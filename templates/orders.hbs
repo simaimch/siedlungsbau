@@ -1,0 +1,33 @@
+<div class="siedlung-orders">
+  {{#if empty}}
+  <p class="empty">{{localize "SIEDLUNG.orders.empty"}}</p>
+  {{else}}
+  <table>
+    <thead>
+      <tr>
+        <th>{{localize "SIEDLUNG.orders.name"}}</th>
+        <th>{{localize "SIEDLUNG.orders.category"}}</th>
+        <th>{{localize "SIEDLUNG.orders.status"}}</th>
+        {{#if isGM}}<th></th>{{/if}}
+      </tr>
+    </thead>
+    <tbody>
+      {{#each rows}}
+      <tr class="{{#if done}}done{{else}}pending{{/if}}">
+        <td><a data-action="focus" data-id="{{id}}">{{name}}</a></td>
+        <td>{{categoryLabel}}</td>
+        <td>{{statusLabel}}</td>
+        {{#if ../isGM}}
+        <td class="actions">
+          {{#unless done}}
+          <button type="button" data-action="complete" data-id="{{id}}">{{localize "SIEDLUNG.orders.complete"}}</button>
+          {{/unless}}
+          <button type="button" data-action="remove" data-id="{{id}}" title="{{localize 'SIEDLUNG.orders.remove'}}"><i class="fa-solid fa-trash"></i></button>
+        </td>
+        {{/if}}
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  {{/if}}
+</div>

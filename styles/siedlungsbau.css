@@ -1,0 +1,12 @@
+.siedlung-palette details { margin-bottom: 0.5rem; }
+.siedlung-palette summary { font-weight: bold; padding: 0.25rem 0; border-bottom: 2px solid var(--cat); cursor: pointer; }
+.siedlung-palette .list { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
+.siedlung-palette .building { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 8px; text-align: left; height: auto; padding: 6px; }
+.siedlung-palette .shape { display: grid; grid-template-columns: repeat(var(--w), 10px); grid-template-rows: repeat(var(--h), 10px); gap: 1px; justify-content: center; }
+.siedlung-palette .shape i { background: var(--cat); display: block; }
+.siedlung-palette .meta { opacity: 0.7; font-size: var(--font-size-12, 12px); }
+.siedlung-orders table { width: 100%; }
+.siedlung-orders td, .siedlung-orders th { padding: 3px 6px; text-align: left; }
+.siedlung-orders tr.done { opacity: 0.7; }
+.siedlung-orders .actions { white-space: nowrap; }
+.siedlung-orders a { cursor: pointer; }

@@ -1,0 +1,18 @@
+<div class="siedlung-palette">
+  {{#each categories}}
+  <details open style="--cat: {{color}}">
+    <summary>{{label}}</summary>
+    <div class="list">
+      {{#each buildings}}
+      <button type="button" class="building" data-action="select" data-id="{{id}}">
+        <span class="shape" style="--w: {{shape.w}}; --h: {{shape.h}}">
+          {{#each shape.cells}}<i style="grid-column: {{col}}; grid-row: {{row}}"></i>{{/each}}
+        </span>
+        <span class="name">{{name}}</span>
+        <span class="meta">{{count}} {{localize "SIEDLUNG.palette.fields"}}</span>
+      </button>
+      {{/each}}
+    </div>
+  </details>
+  {{/each}}
+</div>
