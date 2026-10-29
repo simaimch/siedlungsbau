@@ -33,3 +33,21 @@
 .siedlung-building-editor .cell { width: 28px; height: 28px; padding: 0; line-height: 1; border: 1px solid var(--color-border-light-tertiary, #888); background: transparent; }
 .siedlung-building-editor .cell.on { background: var(--color-text-hyperlink, #4a90d9); }
 .siedlung-building-editor footer { display: flex; justify-content: flex-end; gap: 6px; }
+
+/* Scrollbare Inhalte: Der Fensterinhalt scrollt nicht selbst, sondern der Teil (Part) darin. */
+.application.siedlungsbau .window-content {
+	overflow: hidden;
+}
+
+.application.siedlungsbau .siedlung-palette,
+.application.siedlungsbau .siedlung-orders,
+.application.siedlungsbau .siedlung-definitions {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.application.siedlungsbau .siedlung-building-editor {
+	max-height: 75vh;
+	overflow-y: auto;
+}

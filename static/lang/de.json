@@ -93,6 +93,7 @@
         "noCategory": "Lege zuerst eine Kategorie an.",
         "categoryNotEmpty": "Die Kategorie enthält noch Gebäude. Verschiebe oder lösche sie zuerst."
       }
-    }
+    },
+    "select": "Auswahl"
   }
 }

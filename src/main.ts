@@ -11,6 +11,22 @@ function refreshControls(): void {
   ui.controls?.render({ controls: "tokens" });
 }
 
+/**
+ * Foundry ruft onChange der Werkzeuge nicht nur beim Klick auf, sondern auch beim (De-)Aktivieren der Gruppe
+ * (z. B. wenn ein anderes Werkzeug angeklickt wird). Wir reagieren nur auf einen echten Klick auf genau diesen Button.
+ */
+function isToolClick(event: Event | undefined, active: boolean | undefined, tool: string): boolean {
+  if (active === false) return false;
+  const root = ui.controls?.element as HTMLElement | undefined;
+  if (!root?.querySelector("[data-tool]")) return true; // Markup unbekannt: nicht filtern
+  const button = (event?.target as HTMLElement | null)?.closest?.("[data-tool]") as HTMLElement | null;
+  return button?.dataset.tool === tool;
+}
+
+const onClick = (tool: string, handler: () => void) => (event?: Event, active?: boolean): void => {
+  if (isToolClick(event, active, tool)) handler();
+};
+
 Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
   const active = isSettlementScene();
   const isGM: boolean = game.user.isGM;
@@ -21,8 +37,17 @@ Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
     order: Object.keys(controls).length,
     // Spieler sehen die Gruppe nur in Siedlungsszenen, die SL immer (zum Markieren/Erstellen).
     visible: active || isGM,
-    activeTool: active ? "build" : "info",
+    activeTool: "select",
     tools: {
+      // Neutrales Standardwerkzeug: Die Gruppe hat damit immer ein aktives Werkzeug, das nichts auslöst.
+      // Die Button-Werkzeuge (Bauen, Aufträge, ...) feuern so bei jedem Klick.
+      select: {
+        name: "select",
+        title: "SIEDLUNG.tools.select",
+        icon: "fa-solid fa-arrow-pointer",
+        order: 0,
+        visible: true
+      },
       build: {
         name: "build",
         title: "SIEDLUNG.tools.build",
@@ -30,7 +55,7 @@ Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
         order: 0,
         button: true,
         visible: active,
-        onChange: () => { if (isSettlementScene()) toggleApp(PaletteApp); }
+        onChange: onClick("build", () => { if (isSettlementScene()) toggleApp(PaletteApp); })
       },
       orders: {
         name: "orders",
@@ -39,7 +64,7 @@ Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
         order: 1,
         button: true,
         visible: active,
-        onChange: () => { if (isSettlementScene()) toggleApp(OrdersApp); }
+        onChange: onClick("orders", () => { if (isSettlementScene()) toggleApp(OrdersApp); })
       },
       editor: {
         name: "editor",
@@ -48,7 +73,7 @@ Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
         order: 2,
         button: true,
         visible: isGM,
-        onChange: () => { if (game.user.isGM) toggleApp(DefinitionsApp); }
+        onChange: onClick("editor", () => { if (game.user.isGM) toggleApp(DefinitionsApp); })
       },
       info: {
         name: "info",
@@ -57,7 +82,7 @@ Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
         order: 3,
         button: true,
         visible: !active && isGM,
-        onChange: () => ui.notifications.info(game.i18n.localize("SIEDLUNG.notes.notSettlement"))
+        onChange: onClick("info", () => ui.notifications.info(game.i18n.localize("SIEDLUNG.notes.notSettlement")))
       },
       toggleScene: {
         name: "toggleScene",
@@ -66,7 +91,7 @@ Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
         order: 4,
         button: true,
         visible: isGM,
-        onChange: () => { void toggleSettlementScene(); }
+        onChange: onClick("toggleScene", () => { void toggleSettlementScene(); })
       },
       createScene: {
         name: "createScene",
@@ -75,7 +100,7 @@ Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
         order: 5,
         button: true,
         visible: isGM,
-        onChange: () => { void createSettlementScene(); }
+        onChange: onClick("createScene", () => { void createSettlementScene(); })
       }
     }
   };
