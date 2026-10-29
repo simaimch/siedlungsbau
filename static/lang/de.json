@@ -8,11 +8,14 @@
       "markScene": "Szene als Siedlungsszene markieren",
       "unmarkScene": "Siedlungsmarkierung entfernen",
       "info": "Hinweis",
-      "editor": "Gebäude-Editor"
+      "editor": "Gebäude-Editor",
+      "select": "Auswahl"
     },
     "palette": {
       "title": "Gebäude",
-      "fields": "Felder"
+      "fields": "Felder",
+      "build": "Bau",
+      "upkeep": "Betrieb"
     },
     "orders": {
       "title": "Bauaufträge",
@@ -85,15 +88,36 @@
       "resetDefaults": "Auf Standard zurücksetzen",
       "confirmDeleteCategory": "Diese Kategorie löschen?",
       "confirmDeleteBuilding": "Dieses Gebäude aus den Definitionen löschen? Bereits beauftragte oder gebaute Gebäude auf Karten bleiben bestehen.",
-      "confirmReset": "Alle Kategorien und Gebäude auf die Standardwerte zurücksetzen? Eigene Definitionen gehen verloren.",
+      "confirmReset": "Alle Kategorien, Gebäude, Ressourcen und Arbeiter auf die Standardwerte zurücksetzen? Eigene Definitionen gehen verloren.",
       "errors": {
         "noName": "Bitte einen Namen angeben.",
         "noCells": "Die Form braucht mindestens ein Feld.",
         "notConnected": "Die Felder der Form müssen über Kanten zusammenhängen.",
         "noCategory": "Lege zuerst eine Kategorie an.",
-        "categoryNotEmpty": "Die Kategorie enthält noch Gebäude. Verschiebe oder lösche sie zuerst."
-      }
-    },
-    "select": "Auswahl"
+        "categoryNotEmpty": "Die Kategorie enthält noch Gebäude. Verschiebe oder lösche sie zuerst.",
+        "goldProtected": "Goldmünzen sind die Basiswährung und können nicht gelöscht werden.",
+        "assetInUse": "Dieser Eintrag wird noch in den Kosten von Gebäuden verwendet. Entferne ihn dort zuerst."
+      },
+      "tabs": {
+        "buildings": "Gebäude",
+        "resource": "Ressourcen",
+        "worker": "Arbeiter"
+      },
+      "add": "Hinzufügen",
+      "newResource": "Neue Ressource",
+      "newWorker": "Neue Arbeiterart",
+      "deleteAsset": "Löschen",
+      "colorLabel": "Farbe",
+      "nameLabel": "Name",
+      "valueLabel": "Marktwert (Gold)",
+      "valueHint": "Der Marktwert gilt pro Einheit in Goldmünzen und wird später ausgewertet. Goldmünzen sind die Basiswährung und nicht löschbar.",
+      "confirmDeleteAsset": "Diesen Eintrag löschen?",
+      "buildCost": "Baukosten",
+      "upkeep": "Betriebskosten",
+      "addCost": "Posten hinzufügen",
+      "removeCost": "Posten entfernen",
+      "groupResources": "Ressourcen",
+      "groupWorkers": "Arbeiter"
+    }
   }
 }

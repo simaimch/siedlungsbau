@@ -11,6 +11,8 @@
         </span>
         <span class="name">{{name}}</span>
         <span class="meta">{{count}} {{localize "SIEDLUNG.palette.fields"}}</span>
+        {{#if buildCost.length}}<span class="costs"><b>{{localize "SIEDLUNG.palette.build"}}:</b> {{#each buildCost}}<span class="chip"><i style="background: {{color}}"></i>{{amount}}&nbsp;{{name}}</span>{{/each}}</span>{{/if}}
+        {{#if upkeep.length}}<span class="costs"><b>{{localize "SIEDLUNG.palette.upkeep"}}:</b> {{#each upkeep}}<span class="chip"><i style="background: {{color}}"></i>{{amount}}&nbsp;{{name}}</span>{{/each}}</span>{{/if}}
       </button>
       {{/each}}
     </div>

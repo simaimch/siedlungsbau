@@ -1,11 +1,14 @@
-import { ID, STATUS } from "./constants";
+import { ID, STATUS, GOLD_ID } from "./constants";
 import { getBuildings, getType, bounds, isSettlementScene, isConnected, cellKey, transformCells } from "./store";
-import { getDefinitions, getCategories, getCategory, saveDefinitions, resetDefinitions } from "./definitions";
+import {
+  getDefinitions, getCategories, getCategory, getResources, getWorkers, getAsset, assetKey, isGold, costChips,
+  saveDefinitions, resetDefinitions
+} from "./definitions";
 import { buildingCenter } from "./render";
 import { Placement } from "./placement";
 import { completeBuilding, removeBuilding } from "./service";
 import { sanitizeName } from "./util";
-import type { BuildingType, Cell } from "./types";
+import type { BuildingType, Cell, CostEntry, CostKind } from "./types";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -13,14 +16,16 @@ const t = (key: string): string => game.i18n.localize(key);
 const confirm = (title: string, text: string): Promise<boolean> =>
   foundry.applications.api.DialogV2.confirm({ window: { title }, content: `<p>${text}</p>` });
 
-/** Daten für die Grundriss-Vorschau (CSS-Grid) eines Gebäudetyps. */
+/** Daten für die Grundriss-Vorschau (CSS-Grid) und die Kosten eines Gebäudetyps. */
 function toPreview(b: BuildingType) {
   const { w, h } = bounds(b.cells);
   return {
     id: b.id,
     name: b.name,
     count: b.cells.length,
-    shape: { w, h, cells: b.cells.map(([x, y]) => ({ col: x + 1, row: y + 1 })) }
+    shape: { w, h, cells: b.cells.map(([x, y]) => ({ col: x + 1, row: y + 1 })) },
+    buildCost: costChips(b.buildCost),
+    upkeep: costChips(b.upkeep)
   };
 }
 
@@ -113,23 +118,27 @@ export class OrdersApp extends HandlebarsApplicationMixin(ApplicationV2) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Gebäude-Editor (nur SL): Kategorien und Gebäudetypen               */
+/* Gebäude-Editor (nur SL): Reiter Gebäude, Ressourcen, Arbeiter      */
 /* ------------------------------------------------------------------ */
 
 const CATEGORY_COLORS = ["#c98a3d", "#6b7f9e", "#7a9a6b", "#b5656b", "#8a6bb5", "#4fa3a5", "#c2b13c"];
+const ASSET_COLORS = ["#e0b83a", "#9aa0a6", "#8b5a2b", "#5b8def", "#d35f5f", "#6fbf73", "#b07cc6"];
 
 export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: `${ID}-definitions`,
     classes: [ID],
     window: { title: "SIEDLUNG.editor.title", icon: "fa-solid fa-pen-ruler", resizable: true },
-    position: { width: 500, height: 600 },
+    position: { width: 520, height: 620 },
     actions: {
+      switchTab: DefinitionsApp.#onTab,
       addCategory: DefinitionsApp.#onAddCategory,
       deleteCategory: DefinitionsApp.#onDeleteCategory,
       addBuilding: DefinitionsApp.#onAddBuilding,
       editBuilding: DefinitionsApp.#onEditBuilding,
       deleteBuilding: DefinitionsApp.#onDeleteBuilding,
+      addAsset: DefinitionsApp.#onAddAsset,
+      deleteAsset: DefinitionsApp.#onDeleteAsset,
       resetDefaults: DefinitionsApp.#onReset
     }
   };
@@ -138,8 +147,11 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     main: { template: `modules/${ID}/templates/definitions.hbs`, scrollable: [""] }
   };
 
+  /** Aktiver Reiter: "buildings", "resource" oder "worker". */
+  _tab = "buildings";
+
   async _prepareContext(): Promise<object> {
-    const { categories, buildings } = getDefinitions();
+    const { categories, buildings, resources, workers } = getDefinitions();
     const groups = categories.map(c => ({
       id: c.id,
       label: c.label,
@@ -149,12 +161,27 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Gebäude mit unbekannter Kategorie nicht verlieren
     const orphans = buildings.filter(b => !categories.some(c => c.id === b.category));
     if (orphans.length) groups.push({ id: "", label: t("SIEDLUNG.editor.noCategory"), color: "#888888", buildings: orphans.map(toPreview) });
-    return { categories, groups };
+
+    const tab = this._tab;
+    const kind: CostKind = tab === "worker" ? "worker" : "resource";
+    const assets = (kind === "worker" ? workers : resources).map(a => ({ ...a, fixed: isGold(kind, a.id) }));
+    return {
+      isBuildings: tab === "buildings",
+      isResource: tab === "resource",
+      isWorker: tab === "worker",
+      categories,
+      groups,
+      assets,
+      assetKind: kind,
+      assetTitle: t(`SIEDLUNG.editor.tabs.${kind}`)
+    };
   }
 
   _onRender(): void {
-    const inputs = this.element.querySelectorAll("[data-cat-field]") as NodeListOf<HTMLInputElement>;
-    for (const el of inputs) el.addEventListener("change", () => void this._onCategoryField(el));
+    const catInputs = this.element.querySelectorAll("[data-cat-field]") as NodeListOf<HTMLInputElement>;
+    for (const el of catInputs) el.addEventListener("change", () => void this._onCategoryField(el));
+    const assetInputs = this.element.querySelectorAll("[data-asset-field]") as NodeListOf<HTMLInputElement>;
+    for (const el of assetInputs) el.addEventListener("change", () => void this._onAssetField(el));
   }
 
   /** Name oder Farbe einer Kategorie wurde im Formular geändert. */
@@ -167,6 +194,29 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (field === "color" && /^#[0-9a-f]{6}$/i.test(el.value)) c.color = el.value;
       else if (field === "label") c.label = sanitizeName(el.value, c.label);
     });
+    void this.render();
+  }
+
+  /** Name, Farbe oder Marktwert einer Ressource bzw. Arbeiterart wurde geändert. */
+  async _onAssetField(el: HTMLInputElement): Promise<void> {
+    const kind = el.dataset.kind as CostKind;
+    const id = el.dataset.id ?? "";
+    const field = el.dataset.assetField;
+    await saveDefinitions(defs => {
+      const a = defs[assetKey(kind)].find(x => x.id === id);
+      if (!a) return;
+      if (field === "color" && /^#[0-9a-f]{6}$/i.test(el.value)) a.color = el.value;
+      else if (field === "name") a.name = sanitizeName(el.value, a.name);
+      else if (field === "value" && !isGold(kind, id)) {
+        const v = Number(el.value);
+        if (Number.isFinite(v) && v >= 0) a.value = Math.round(v * 100) / 100;
+      }
+    });
+    void this.render();
+  }
+
+  static #onTab(this: DefinitionsApp, _event: Event, target: HTMLElement): void {
+    this._tab = target.dataset.tab ?? "buildings";
     void this.render();
   }
 
@@ -212,12 +262,49 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  static async #onAddAsset(_event: Event, target: HTMLElement): Promise<void> {
+    const kind = target.dataset.kind as CostKind;
+    await saveDefinitions(defs => {
+      const list = defs[assetKey(kind)];
+      list.push({
+        id: foundry.utils.randomID(),
+        name: t(kind === "resource" ? "SIEDLUNG.editor.newResource" : "SIEDLUNG.editor.newWorker"),
+        color: ASSET_COLORS[list.length % ASSET_COLORS.length],
+        value: 1
+      });
+    });
+  }
+
+  static async #onDeleteAsset(_event: Event, target: HTMLElement): Promise<void> {
+    const kind = target.dataset.kind as CostKind;
+    const id = target.dataset.id ?? "";
+    if (isGold(kind, id)) {
+      ui.notifications.warn(t("SIEDLUNG.editor.errors.goldProtected"));
+      return;
+    }
+    const inUse = getDefinitions().buildings.some(b => [...b.buildCost, ...b.upkeep].some(e => e.kind === kind && e.id === id));
+    if (inUse) {
+      ui.notifications.warn(t("SIEDLUNG.editor.errors.assetInUse"));
+      return;
+    }
+    if (!(await confirm(t("SIEDLUNG.editor.deleteAsset"), t("SIEDLUNG.editor.confirmDeleteAsset")))) return;
+    await saveDefinitions(defs => {
+      defs[assetKey(kind)] = defs[assetKey(kind)].filter(a => a.id !== id);
+    });
+  }
+
   static async #onReset(): Promise<void> {
     if (await confirm(t("SIEDLUNG.editor.resetDefaults"), t("SIEDLUNG.editor.confirmReset"))) await resetDefinitions();
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Bearbeiten eines Gebäudetyps: Name, Kategorie, Kosten, Form        */
+/* ------------------------------------------------------------------ */
+
 const MAX_SHAPE_SIZE = 12;
+type CostList = "buildCost" | "upkeep";
+const COST_LISTS: CostList[] = ["buildCost", "upkeep"];
 
 interface EditorState {
   typeId: string | null;
@@ -226,16 +313,34 @@ interface EditorState {
   w: number;
   h: number;
   on: Set<string>;
+  buildCost: CostEntry[];
+  upkeep: CostEntry[];
 }
 
-/** Bearbeitet oder erstellt einen Gebäudetyp: Name, Kategorie und Form (Felder anklicken). */
+/** Fasst gleiche Posten zusammen und entfernt ungültige (Menge < 1 oder unbekannter Eintrag). */
+function normalizeCosts(entries: CostEntry[]): CostEntry[] {
+  const merged = new Map<string, CostEntry>();
+  for (const e of entries) {
+    const amount = Math.round(e.amount);
+    if (!(amount > 0) || !getAsset(e.kind, e.id)) continue;
+    const key = `${e.kind}:${e.id}`;
+    const existing = merged.get(key);
+    if (existing) existing.amount += amount;
+    else merged.set(key, { kind: e.kind, id: e.id, amount });
+  }
+  return [...merged.values()];
+}
+
+/** Bearbeitet oder erstellt einen Gebäudetyp: Name, Kategorie, Bau-/Betriebskosten und Form (Felder anklicken). */
 export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     classes: [ID],
     window: { icon: "fa-solid fa-pencil" },
-    position: { width: 380, height: "auto" },
+    position: { width: 400, height: "auto" },
     actions: {
       toggleCell: BuildingEditorApp.#onToggleCell,
+      addCost: BuildingEditorApp.#onAddCost,
+      removeCost: BuildingEditorApp.#onRemoveCost,
       save: BuildingEditorApp.#onSave,
       cancel: BuildingEditorApp.#onCancel
     }
@@ -262,7 +367,9 @@ export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2)
       category: type?.category ?? getCategories()[0]?.id ?? "",
       w: Math.min(MAX_SHAPE_SIZE, Math.max(w, 4)),
       h: Math.min(MAX_SHAPE_SIZE, Math.max(h, 4)),
-      on: new Set(cells.map(([x, y]) => cellKey(x, y)))
+      on: new Set(cells.map(([x, y]) => cellKey(x, y))),
+      buildCost: (type?.buildCost ?? []).map(e => ({ ...e })),
+      upkeep: (type?.upkeep ?? []).map(e => ({ ...e }))
     };
   }
 
@@ -274,6 +381,25 @@ export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2)
     const { w, h, on, name, category } = this._state;
     const gridCells: { x: number; y: number; on: boolean }[] = [];
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) gridCells.push({ x, y, on: on.has(cellKey(x, y)) });
+
+    const resources = getResources();
+    const workers = getWorkers();
+    const rowsFor = (entries: CostEntry[]) =>
+      entries.map((e, index) => ({
+        index,
+        amount: e.amount,
+        groups: [
+          {
+            label: t("SIEDLUNG.editor.groupResources"),
+            options: resources.map(r => ({ value: `resource:${r.id}`, label: r.name, selected: e.kind === "resource" && e.id === r.id }))
+          },
+          {
+            label: t("SIEDLUNG.editor.groupWorkers"),
+            options: workers.map(r => ({ value: `worker:${r.id}`, label: r.name, selected: e.kind === "worker" && e.id === r.id }))
+          }
+        ].filter(g => g.options.length)
+      }));
+
     return {
       name,
       w,
@@ -281,7 +407,8 @@ export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2)
       max: MAX_SHAPE_SIZE,
       gridCells,
       count: on.size,
-      categories: getCategories().map(c => ({ id: c.id, label: c.label, selected: c.id === category }))
+      categories: getCategories().map(c => ({ id: c.id, label: c.label, selected: c.id === category })),
+      costLists: COST_LISTS.map(key => ({ key, label: t(`SIEDLUNG.editor.${key}`), rows: rowsFor(this._state[key]) }))
     };
   }
 
@@ -290,12 +417,23 @@ export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2)
     for (const input of inputs) input.addEventListener("change", () => this._resize());
   }
 
-  /** Übernimmt Name und Kategorie aus dem Formular in den Zustand. */
+  /** Übernimmt Name, Kategorie und Kostenposten aus dem Formular in den Zustand. */
   _syncForm(): void {
     const name = this.element.querySelector("input[name=name]") as HTMLInputElement | null;
     const category = this.element.querySelector("select[name=category]") as HTMLSelectElement | null;
     if (name) this._state.name = name.value;
     if (category) this._state.category = category.value;
+
+    for (const key of COST_LISTS) {
+      const rows = this.element.querySelectorAll(`.cost-row[data-list="${key}"]`) as NodeListOf<HTMLElement>;
+      const entries: CostEntry[] = [];
+      for (const row of rows) {
+        const [kind, id] = (row.querySelector("select") as HTMLSelectElement).value.split(":");
+        const amount = Number((row.querySelector("input[name=amount]") as HTMLInputElement).value);
+        if (id) entries.push({ kind: kind as CostKind, id, amount: Number.isFinite(amount) ? amount : 1 });
+      }
+      this._state[key] = entries;
+    }
   }
 
   _resize(): void {
@@ -326,6 +464,20 @@ export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (count) count.textContent = String(this._state.on.size);
   }
 
+  static #onAddCost(this: BuildingEditorApp, _event: Event, target: HTMLElement): void {
+    this._syncForm();
+    const key = target.dataset.list as CostList;
+    this._state[key].push({ kind: "resource", id: getResources()[0]?.id ?? GOLD_ID, amount: 1 });
+    void this.render();
+  }
+
+  static #onRemoveCost(this: BuildingEditorApp, _event: Event, target: HTMLElement): void {
+    this._syncForm();
+    const key = target.dataset.list as CostList;
+    this._state[key].splice(Number(target.dataset.index), 1);
+    void this.render();
+  }
+
   static async #onSave(this: BuildingEditorApp): Promise<void> {
     this._syncForm();
     const s = this._state;
@@ -339,15 +491,15 @@ export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!raw.length) return ui.notifications.warn(t("SIEDLUNG.editor.errors.noCells"));
     if (!isConnected(raw)) return ui.notifications.warn(t("SIEDLUNG.editor.errors.notConnected"));
     const cells = transformCells(raw, 0, false); // verschiebt die Form auf den Ursprung
+    const buildCost = normalizeCosts(s.buildCost);
+    const upkeep = normalizeCosts(s.upkeep);
 
     await saveDefinitions(defs => {
       const existing = s.typeId ? defs.buildings.find(b => b.id === s.typeId) : undefined;
       if (existing) {
-        existing.name = name;
-        existing.category = s.category;
-        existing.cells = cells;
+        Object.assign(existing, { name, category: s.category, cells, buildCost, upkeep });
       } else {
-        defs.buildings.push({ id: foundry.utils.randomID(), name, category: s.category, cells, cost: null, workers: null });
+        defs.buildings.push({ id: foundry.utils.randomID(), name, category: s.category, cells, buildCost, upkeep });
       }
     });
     await this.close();

@@ -14,6 +14,26 @@ export interface Category {
 export interface Definitions {
   categories: Category[];
   buildings: BuildingType[];
+  resources: PricedType[];
+  workers: PricedType[];
+}
+
+export type CostKind = "resource" | "worker";
+
+/** Ein Posten in Bau- oder Betriebskosten. */
+export interface CostEntry {
+  kind: CostKind;
+  /** ID der Ressource bzw. Arbeiterart */
+  id: string;
+  amount: number;
+}
+
+/** Ressource oder Arbeiterart: Name, Anzeigefarbe und Marktwert in Goldmünzen (Nutzen folgt später). */
+export interface PricedType {
+  id: string;
+  name: string;
+  color: string;
+  value: number;
 }
 
 export interface BuildingType {
@@ -22,9 +42,10 @@ export interface BuildingType {
   category: string;
   /** Zellen als Offsets, Ursprung oben links. */
   cells: Cell[];
-  /** Platzhalter für später. */
-  cost: number | null;
-  workers: number | null;
+  /** Einmalige Baukosten (Ressourcen und/oder Personal). */
+  buildCost: CostEntry[];
+  /** Laufende Betriebskosten (Ressourcen und/oder Personal); der Zeitraum folgt später. */
+  upkeep: CostEntry[];
 }
 
 /** Ein beauftragtes oder fertiges Gebäude auf der Karte (als Scene-Flag gespeichert). */

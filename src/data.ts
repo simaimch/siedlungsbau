@@ -1,3 +1,4 @@
+import { GOLD_ID } from "./constants";
 import type { Cell, Definitions, TerrainType } from "./types";
 
 // Gebäude-Definitionen. Zellen sind [x, y]-Offsets (x = Spalte, y = Zeile), Ursprung oben links.
@@ -17,12 +18,20 @@ export const DEFAULT_DEFINITIONS: Definitions = {
     { id: "sonstiges", label: "Sonstiges", color: "#7a9a6b" }
   ],
   buildings: [
-    { id: "taverne-klein", name: "Kleine Taverne", category: "taverne", cells: rect(2, 2), cost: null, workers: null },
-    { id: "taverne-gross", name: "Große Taverne", category: "taverne", cells: rect(3, 2).concat([[0, 2]]), cost: null, workers: null },
-    { id: "baracke-gerade", name: "Baracke", category: "baracke", cells: rect(3, 1), cost: null, workers: null },
-    { id: "baracke-l", name: "Winkelbaracke", category: "baracke", cells: [[0, 0], [0, 1], [0, 2], [1, 2]], cost: null, workers: null },
-    { id: "lager", name: "Lagerhaus", category: "sonstiges", cells: rect(2, 1), cost: null, workers: null }
-  ]
+    { id: "taverne-klein", name: "Kleine Taverne", category: "taverne", cells: rect(2, 2), buildCost: [], upkeep: [] },
+    { id: "taverne-gross", name: "Große Taverne", category: "taverne", cells: rect(3, 2).concat([[0, 2]]), buildCost: [], upkeep: [] },
+    { id: "baracke-gerade", name: "Baracke", category: "baracke", cells: rect(3, 1), buildCost: [], upkeep: [] },
+    { id: "baracke-l", name: "Winkelbaracke", category: "baracke", cells: [[0, 0], [0, 1], [0, 2], [1, 2]], buildCost: [], upkeep: [] },
+    { id: "lager", name: "Lagerhaus", category: "sonstiges", cells: rect(2, 1), buildCost: [], upkeep: [] }
+  ],
+  // Marktwerte sind Platzhalter (in Goldmünzen pro Einheit) und können im Editor angepasst werden.
+  resources: [
+    { id: GOLD_ID, name: "Goldmünzen", color: "#e0b83a", value: 1 },
+    { id: "stone", name: "Stein", color: "#9aa0a6", value: 1 },
+    { id: "wood", name: "Holz", color: "#8b5a2b", value: 1 }
+  ],
+  workers: [{ id: "unskilled", name: "Ungelernter Arbeiter", color: "#c9a98a", value: 1 }]
+
 };
 
 // Geländearten: Der Schlüssel ist das Zeichen, das pro Feld gespeichert wird.

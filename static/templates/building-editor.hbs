@@ -9,6 +9,27 @@
       {{#each categories}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
     </select>
   </div>
+
+  {{#each costLists}}
+  <fieldset class="cost-list">
+    <legend>{{label}}</legend>
+    {{#each rows}}
+    <div class="cost-row" data-list="{{../key}}">
+      <select name="item">
+        {{#each groups}}
+        <optgroup label="{{label}}">
+          {{#each options}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+        </optgroup>
+        {{/each}}
+      </select>
+      <input type="number" name="amount" value="{{amount}}" min="1" step="1">
+      <button type="button" data-action="removeCost" data-list="{{../key}}" data-index="{{index}}" title="{{localize 'SIEDLUNG.editor.removeCost'}}"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    {{/each}}
+    <button type="button" data-action="addCost" data-list="{{key}}"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.editor.addCost"}}</button>
+  </fieldset>
+  {{/each}}
+
   <div class="form-group size">
     <label>{{localize "SIEDLUNG.editor.width"}}</label>
     <input type="number" name="w" value="{{w}}" min="1" max="{{max}}">

@@ -1,4 +1,11 @@
 <div class="siedlung-definitions">
+  <nav class="siedlung-tabs">
+    <button type="button" class="{{#if isBuildings}}active{{/if}}" data-action="switchTab" data-tab="buildings">{{localize "SIEDLUNG.editor.tabs.buildings"}}</button>
+    <button type="button" class="{{#if isResource}}active{{/if}}" data-action="switchTab" data-tab="resource">{{localize "SIEDLUNG.editor.tabs.resource"}}</button>
+    <button type="button" class="{{#if isWorker}}active{{/if}}" data-action="switchTab" data-tab="worker">{{localize "SIEDLUNG.editor.tabs.worker"}}</button>
+  </nav>
+
+  {{#if isBuildings}}
   <section>
     <header>
       <h3>{{localize "SIEDLUNG.editor.categories"}}</h3>
@@ -41,6 +48,31 @@
     </details>
     {{/each}}
   </section>
+  {{else}}
+  <section>
+    <header>
+      <h3>{{assetTitle}}</h3>
+      <button type="button" data-action="addAsset" data-kind="{{assetKind}}"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.editor.add"}}</button>
+    </header>
+    <p class="hint">{{localize "SIEDLUNG.editor.valueHint"}}</p>
+    <ul class="asset-list">
+      <li class="asset-head">
+        <span>{{localize "SIEDLUNG.editor.colorLabel"}}</span>
+        <span>{{localize "SIEDLUNG.editor.nameLabel"}}</span>
+        <span>{{localize "SIEDLUNG.editor.valueLabel"}}</span>
+        <span></span>
+      </li>
+      {{#each assets}}
+      <li>
+        <input type="color" value="{{color}}" data-asset-field="color" data-kind="{{../assetKind}}" data-id="{{id}}">
+        <input type="text" value="{{name}}" data-asset-field="name" data-kind="{{../assetKind}}" data-id="{{id}}" maxlength="40">
+        <input type="number" value="{{value}}" min="0" step="0.01" data-asset-field="value" data-kind="{{../assetKind}}" data-id="{{id}}" {{#if fixed}}disabled{{/if}}>
+        {{#if fixed}}<span></span>{{else}}<button type="button" data-action="deleteAsset" data-kind="{{../assetKind}}" data-id="{{id}}" title="{{localize 'SIEDLUNG.editor.deleteAsset'}}"><i class="fa-solid fa-trash"></i></button>{{/if}}
+      </li>
+      {{/each}}
+    </ul>
+  </section>
+  {{/if}}
 
   <footer>
     <button type="button" data-action="resetDefaults">{{localize "SIEDLUNG.editor.resetDefaults"}}</button>

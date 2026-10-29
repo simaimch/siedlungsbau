@@ -35,19 +35,30 @@
 .siedlung-building-editor footer { display: flex; justify-content: flex-end; gap: 6px; }
 
 /* Scrollbare Inhalte: Der Fensterinhalt scrollt nicht selbst, sondern der Teil (Part) darin. */
-.application.siedlungsbau .window-content {
-	overflow: hidden;
-}
-
+.application.siedlungsbau .window-content { overflow: hidden; }
 .application.siedlungsbau .siedlung-palette,
 .application.siedlungsbau .siedlung-orders,
 .application.siedlungsbau .siedlung-definitions {
-	flex: 1 1 auto;
-	min-height: 0;
-	overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
+.application.siedlungsbau .siedlung-building-editor { max-height: 75vh; overflow-y: auto; }
 
-.application.siedlungsbau .siedlung-building-editor {
-	max-height: 75vh;
-	overflow-y: auto;
-}
+/* Kosten-Chips in der Palette */
+.siedlung-palette .costs { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 2px 8px; font-size: var(--font-size-11, 11px); opacity: 0.9; }
+.siedlung-palette .chip { white-space: nowrap; }
+.siedlung-palette .chip i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; }
+
+/* Reiter und Listen im Gebäude-Editor */
+.siedlung-definitions .siedlung-tabs { display: flex; gap: 4px; margin-bottom: 0.75rem; }
+.siedlung-definitions .siedlung-tabs button { flex: 1; }
+.siedlung-definitions .siedlung-tabs button.active { border-color: var(--color-text-hyperlink, #4a90d9); font-weight: bold; }
+.siedlung-definitions .asset-list li { display: grid; grid-template-columns: 40px 1fr 7rem auto; gap: 6px; align-items: center; }
+.siedlung-definitions .asset-list li.asset-head { font-size: var(--font-size-11, 11px); opacity: 0.7; }
+.siedlung-definitions .asset-list input[type="color"] { width: 40px; padding: 0; }
+.siedlung-definitions .hint { opacity: 0.7; font-size: var(--font-size-12, 12px); }
+
+/* Kosten im Bearbeiten-Dialog */
+.siedlung-building-editor fieldset.cost-list { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+.siedlung-building-editor .cost-row { display: grid; grid-template-columns: 1fr 5rem auto; gap: 6px; align-items: center; }
