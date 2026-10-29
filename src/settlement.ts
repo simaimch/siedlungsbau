@@ -1,6 +1,7 @@
 import { ID } from "./constants";
 import { getBuildings, costsOf } from "./store";
-import { getAsset } from "./definitions";
+import { getAsset, getStats } from "./definitions";
+import { clampStat } from "./stats";
 import { computeWeek } from "./week";
 import type { WeekResult } from "./week";
 import { escapeHTML } from "./util";
@@ -15,7 +16,8 @@ export function getSettlement(scene: any = canvas?.scene): SettlementState {
   return {
     week: Number.isFinite(raw?.week) ? raw.week : 1,
     resources: { ...(raw?.resources ?? {}) },
-    workers: { ...(raw?.workers ?? {}) }
+    workers: { ...(raw?.workers ?? {}) },
+    stats: { ...(raw?.stats ?? {}) }
   };
 }
 
@@ -25,6 +27,16 @@ export async function setAmount(kind: CostKind, id: string, amount: number): Pro
   const value = Number.isFinite(amount) ? Math.max(0, Math.round(amount)) : 0;
   const state = getSettlement();
   state[kind === "resource" ? "resources" : "workers"][id] = value;
+  await canvas.scene.setFlag(ID, "settlement", state);
+}
+
+/** SL: setzt den Wert eines Stats (Intervall: auf die Grenzen begrenzt, offen: ganze Zahl ≥ 0). */
+export async function setStat(id: string, amount: number): Promise<void> {
+  if (!game.user.isGM || !canvas.scene) return;
+  const stat = getStats().find(s => s.id === id);
+  if (!stat) return;
+  const state = getSettlement();
+  state.stats[id] = clampStat(stat, amount);
   await canvas.scene.setFlag(ID, "settlement", state);
 }
 

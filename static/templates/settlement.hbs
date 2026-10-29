@@ -4,6 +4,24 @@
     {{#if isGM}}<button type="button" data-action="nextWeek"><i class="fa-solid fa-forward"></i> {{localize "SIEDLUNG.settlement.nextWeek"}}</button>{{/if}}
   </div>
 
+  {{#if stats.length}}
+  <section>
+    <h4>{{localize "SIEDLUNG.settlement.stats"}}</h4>
+    <ul class="stat-list">
+      {{#each stats}}
+      <li>
+        <div class="stat-row">
+          <span class="name">{{name}}</span>
+          {{#if label}}<span class="pill" style="background: {{color}}; color: {{textColor}}">{{label}}</span>{{/if}}
+          {{#if ../isGM}}<input type="number" step="any" min="{{min}}" {{#if isInterval}}max="{{max}}"{{/if}} value="{{value}}" data-stat-id="{{id}}">{{else}}<span class="amount">{{value}}</span>{{/if}}
+        </div>
+        {{#if isInterval}}<div class="bar"><span style="width: {{percent}}%; background: {{color}}"></span></div>{{/if}}
+      </li>
+      {{/each}}
+    </ul>
+  </section>
+  {{/if}}
+
   <section>
     <h4>{{localize "SIEDLUNG.settlement.resources"}}</h4>
     <ul class="stock-list">

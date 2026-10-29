@@ -2,19 +2,21 @@
 import { GOLD_ID } from "./constants";
 import { DEFAULT_DEFINITIONS } from "./data";
 import { isConnected, transformCells } from "./store";
-import type { BuildingType, Category, Cell, CostEntry, Definitions, PricedType } from "./types";
+import { sortedPoints, validateInterval } from "./stats";
+import type { BuildingType, Category, Cell, CostEntry, Definitions, PricedType, StatPoint, StatType } from "./types";
 
 export const FORMAT_VERSION = 1;
 
-export type SectionKey = "categories" | "resources" | "workers" | "buildings";
+export type SectionKey = "categories" | "resources" | "workers" | "stats" | "buildings";
 
 /** Reihenfolge, in der Bereiche exportiert und angewendet werden. */
-export const SECTIONS: SectionKey[] = ["categories", "resources", "workers", "buildings"];
+export const SECTIONS: SectionKey[] = ["categories", "resources", "workers", "stats", "buildings"];
 
 export const SECTION_LABELS: Record<SectionKey, string> = {
   categories: "Kategorien",
   resources: "Ressourcen",
   workers: "Arbeiter",
+  stats: "Werte",
   buildings: "Gebäude"
 };
 
@@ -28,7 +30,7 @@ const MAX_SHAPE = 50;
 /** Formatiertes JSON; Rasterfelder ([x, y]) stehen dabei jeweils in einer Zeile. */
 export function exportDefinitions(defs: Definitions): string {
   const json = JSON.stringify(
-    { version: FORMAT_VERSION, categories: defs.categories, resources: defs.resources, workers: defs.workers, buildings: defs.buildings },
+    { version: FORMAT_VERSION, categories: defs.categories, resources: defs.resources, workers: defs.workers, stats: defs.stats, buildings: defs.buildings },
     null,
     2
   );
@@ -72,6 +74,37 @@ function parseAsset(raw: unknown): Parsed<PricedType> {
   if (typeof raw.color !== "string" || !HEX.test(raw.color)) return "„color“ muss das Format #rrggbb haben.";
   if (typeof raw.value !== "number" || !Number.isFinite(raw.value) || raw.value < 0) return "„value“ muss eine Zahl ≥ 0 sein.";
   return { id, name, color: raw.color, value: Math.round(raw.value * 100) / 100 };
+}
+
+const STAT_ERRORS = {
+  range: "„min“ und „max“ müssen Zahlen sein, min < max.",
+  pointRange: "Ein Stützpunkt liegt außerhalb von min/max.",
+  pointName: "Ein Stützpunkt hat keinen Namen.",
+  pointColor: "Ein Stützpunkt hat eine ungültige „color“ (erwartet #rrggbb).",
+  pointDuplicate: "Zwei Stützpunkte haben denselben „value“."
+} as const;
+
+function parseStat(raw: unknown): Parsed<StatType> {
+  if (!isObj(raw)) return "Kein Objekt.";
+  const id = text(raw.id, 100);
+  const name = text(raw.name, 40);
+  if (!id) return "„id“ fehlt.";
+  if (!name) return "„name“ fehlt.";
+  if (raw.kind === "open") return { id, name, kind: "open" };
+  if (raw.kind !== "interval") return "„kind“ muss „interval“ oder „open“ sein.";
+  if (typeof raw.min !== "number" || typeof raw.max !== "number") return STAT_ERRORS.range;
+  if (!Array.isArray(raw.points)) return "„points“ muss eine Liste sein.";
+
+  const points: StatPoint[] = [];
+  for (const p of raw.points) {
+    if (!isObj(p) || typeof p.value !== "number" || typeof p.name !== "string" || typeof p.color !== "string") {
+      return "Ein Stützpunkt ist ungültig (erwartet value, name, color).";
+    }
+    points.push({ value: Math.round(p.value * 100) / 100, name: p.name.trim().slice(0, 40), color: p.color });
+  }
+  const error = validateInterval(raw.min, raw.max, points);
+  if (error) return STAT_ERRORS[error];
+  return { id, name, kind: "interval", min: raw.min, max: raw.max, points: sortedPoints(points) };
 }
 
 function parseCosts(raw: unknown, field: string, allowNegative: boolean): Parsed<CostEntry[]> {
@@ -150,14 +183,14 @@ export function parseImport(input: string): ParsedImport {
   if (!isObj(raw)) return { data: {}, errors: ["Der Import muss ein JSON-Objekt sein."] };
 
   const data: Partial<Definitions> = {};
-  const parsers = { categories: parseCategory, resources: parseAsset, workers: parseAsset, buildings: parseBuilding } as const;
+  const parsers = { categories: parseCategory, resources: parseAsset, workers: parseAsset, stats: parseStat, buildings: parseBuilding } as const;
   for (const key of SECTIONS) {
     if (raw[key] === undefined) continue;
     const list = parseSection(key, raw[key], parsers[key] as (e: unknown) => Parsed<{ id: string }>, errors);
     if (list) (data as Record<string, unknown>)[key] = list;
   }
   if (!errors.length && !Object.keys(data).length) {
-    errors.push("Der Import enthält keinen bekannten Bereich (categories, resources, workers, buildings).");
+    errors.push("Der Import enthält keinen bekannten Bereich (categories, resources, workers, stats, buildings).");
   }
   return { data, errors };
 }
@@ -172,8 +205,8 @@ export interface MissingEntry {
   name: string;
 }
 
-const nameOf = (key: SectionKey, e: Category | PricedType | BuildingType): string =>
-  key === "categories" ? (e as Category).label : (e as PricedType | BuildingType).name;
+const nameOf = (key: SectionKey, e: Category | PricedType | BuildingType | StatType): string =>
+  key === "categories" ? (e as Category).label : (e as PricedType | BuildingType | StatType).name;
 
 /**
  * Bestehende Einträge, die im Import fehlen – nur in Bereichen, die der Import enthält.
@@ -185,7 +218,7 @@ export function findMissing(current: Definitions, imported: Partial<Definitions>
     const incoming = imported[key] as { id: string }[] | undefined;
     if (!incoming) continue;
     const ids = new Set(incoming.map(e => e.id));
-    for (const e of current[key] as (Category | PricedType | BuildingType)[]) {
+    for (const e of current[key] as (Category | PricedType | BuildingType | StatType)[]) {
       if (ids.has(e.id) || (key === "resources" && e.id === GOLD_ID)) continue;
       missing.push({ section: key, id: e.id, name: nameOf(key, e) });
     }

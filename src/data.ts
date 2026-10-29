@@ -1,4 +1,5 @@
 import { GOLD_ID } from "./constants";
+import { DEFAULT_STATS } from "./stat-defaults";
 import type { Cell, Definitions, TerrainType } from "./types";
 
 // Gebäude-Definitionen. Zellen sind [x, y]-Offsets (x = Spalte, y = Zeile), Ursprung oben links.
@@ -30,8 +31,8 @@ export const DEFAULT_DEFINITIONS: Definitions = {
     { id: "stone", name: "Stein", color: "#9aa0a6", value: 1 },
     { id: "wood", name: "Holz", color: "#8b5a2b", value: 1 }
   ],
-  workers: [{ id: "unskilled", name: "Ungelernter Arbeiter", color: "#c9a98a", value: 1 }]
-
+  workers: [{ id: "unskilled", name: "Ungelernter Arbeiter", color: "#c9a98a", value: 1 }],
+  stats: DEFAULT_STATS,
 };
 
 // Geländearten: Der Schlüssel ist das Zeichen, das pro Feld gespeichert wird.

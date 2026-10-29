@@ -1,0 +1,43 @@
+<div class="siedlung-stat-editor">
+  <div class="form-group">
+    <label>{{localize "SIEDLUNG.stats.name"}}</label>
+    <input type="text" name="name" value="{{name}}" maxlength="40" autocomplete="off">
+  </div>
+  <div class="form-group">
+    <label>{{localize "SIEDLUNG.stats.kind"}}</label>
+    <select name="kind">
+      <option value="interval" {{#if isInterval}}selected{{/if}}>{{localize "SIEDLUNG.stats.kindInterval"}}</option>
+      <option value="open" {{#unless isInterval}}selected{{/unless}}>{{localize "SIEDLUNG.stats.kindOpen"}}</option>
+    </select>
+  </div>
+
+  {{#if isInterval}}
+  <div class="form-group size">
+    <label>{{localize "SIEDLUNG.stats.min"}}</label>
+    <input type="number" name="min" step="any" value="{{min}}">
+    <label>{{localize "SIEDLUNG.stats.max"}}</label>
+    <input type="number" name="max" step="any" value="{{max}}">
+  </div>
+  <div class="strip" style="background: {{strip}}"></div>
+  <fieldset class="points">
+    <legend>{{localize "SIEDLUNG.stats.points"}}</legend>
+    <p class="hint">{{localize "SIEDLUNG.stats.pointsHint"}}</p>
+    {{#each points}}
+    <div class="point-row">
+      <input type="number" name="pvalue" step="any" value="{{value}}" title="{{localize 'SIEDLUNG.stats.pointValue'}}">
+      <input type="text" name="pname" value="{{name}}" maxlength="40" title="{{localize 'SIEDLUNG.stats.pointName'}}">
+      <input type="color" name="pcolor" value="{{color}}" title="{{localize 'SIEDLUNG.stats.pointColor'}}">
+      <button type="button" data-action="removePoint" data-index="{{@index}}" title="{{localize 'SIEDLUNG.stats.removePoint'}}"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    {{/each}}
+    <button type="button" data-action="addPoint"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.stats.addPoint"}}</button>
+  </fieldset>
+  {{else}}
+  <p class="hint">{{localize "SIEDLUNG.stats.openHint"}}</p>
+  {{/if}}
+
+  <footer>
+    <button type="button" data-action="save"><i class="fa-solid fa-check"></i> {{localize "SIEDLUNG.editor.save"}}</button>
+    <button type="button" data-action="cancel">{{localize "SIEDLUNG.editor.cancel"}}</button>
+  </footer>
+</div>

@@ -1,14 +1,16 @@
 import { ID, STATUS, GOLD_ID } from "./constants";
 import { getBuildings, getType, bounds, isSettlementScene, isConnected, cellKey, transformCells, costsOf } from "./store";
 import {
-  getDefinitions, getCategories, getCategory, getResources, getWorkers, getAsset, assetKey, isGold, costChips,
+  getDefinitions, getCategories, getCategory, getResources, getWorkers, getStats, getAsset, assetKey, isGold, costChips,
   saveDefinitions, resetDefinitions
 } from "./definitions";
 import { buildingCenter } from "./render";
 import { Placement } from "./placement";
 import { completeBuilding, removeBuilding } from "./service";
 import { sanitizeName } from "./util";
-import { getSettlement, setAmount, advanceWeek } from "./settlement";
+import { getSettlement, setAmount, setStat, advanceWeek } from "./settlement";
+import { clampStat, contrastText, defaultStatValue, describeInterval, stripGradient } from "./stats";
+import { openStatEditor } from "./stat-editor";
 import { fractions, laborCommitted } from "./week";
 import type { Building, BuildingType, Cell, CostEntry, CostKind } from "./types";
 
@@ -141,7 +143,17 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { resources, workers } = getDefinitions();
     const buildings = getBuildings();
     const committed = laborCommitted(buildings, costsOf);
+    const statRows = getStats().map(stat => {
+      const value = clampStat(stat, state.stats[stat.id] ?? defaultStatValue(stat));
+      if (stat.kind === "open") return { id: stat.id, name: stat.name, isInterval: false, value, min: 0, max: 0, label: "", color: "", textColor: "", percent: 0 };
+      const d = describeInterval(stat, value);
+      return {
+        id: stat.id, name: stat.name, isInterval: true, value, min: stat.min, max: stat.max,
+        label: d.name, color: d.color, textColor: contrastText(d.color), percent: Math.round(d.fraction * 100)
+      };
+    });
     return {
+      stats: statRows,
       isGM: game.user.isGM,
       weekLabel: game.i18n.format("SIEDLUNG.settlement.week", { week: state.week }),
       resources: resources.map(r => ({ id: r.id, name: r.name, color: r.color, amount: state.resources[r.id] ?? 0 })),
@@ -163,6 +175,10 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const inputs = this.element.querySelectorAll("[data-stock-kind]") as NodeListOf<HTMLInputElement>;
     for (const el of inputs) {
       el.addEventListener("change", () => void setAmount(el.dataset.stockKind as CostKind, el.dataset.id ?? "", Number(el.value)));
+    }
+    const statInputs = this.element.querySelectorAll("[data-stat-id]") as NodeListOf<HTMLInputElement>;
+    for (const el of statInputs) {
+      el.addEventListener("change", () => void setStat(el.dataset.statId ?? "", Number(el.value)));
     }
   }
 
@@ -199,6 +215,9 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       deleteBuilding: DefinitionsApp.#onDeleteBuilding,
       addAsset: DefinitionsApp.#onAddAsset,
       deleteAsset: DefinitionsApp.#onDeleteAsset,
+      addStat: DefinitionsApp.#onAddStat,
+      editStat: DefinitionsApp.#onEditStat,
+      deleteStat: DefinitionsApp.#onDeleteStat,
       resetDefaults: DefinitionsApp.#onReset
     }
   };
@@ -211,7 +230,7 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _tab = "buildings";
 
   async _prepareContext(): Promise<object> {
-    const { categories, buildings, resources, workers } = getDefinitions();
+    const { categories, buildings, resources, workers, stats } = getDefinitions();
     const groups = categories.map(c => ({
       id: c.id,
       label: c.label,
@@ -229,11 +248,22 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       isBuildings: tab === "buildings",
       isResource: tab === "resource",
       isWorker: tab === "worker",
+      isStats: tab === "stat",
       categories,
       groups,
       assets,
       assetKind: kind,
-      assetTitle: t(`SIEDLUNG.editor.tabs.${kind}`)
+      assetTitle: t(`SIEDLUNG.editor.tabs.${kind}`),
+      stats: stats.map(s =>
+        s.kind === "interval"
+          ? {
+              id: s.id,
+              name: s.name,
+              summary: game.i18n.format("SIEDLUNG.stats.summaryInterval", { min: s.min, max: s.max, count: s.points.length }),
+              strip: s.points.length ? stripGradient(s.min, s.max, s.points) : ""
+            }
+          : { id: s.id, name: s.name, summary: t("SIEDLUNG.stats.summaryOpen"), strip: "" }
+      )
     };
   }
 
@@ -350,6 +380,22 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!(await confirm(t("SIEDLUNG.editor.deleteAsset"), t("SIEDLUNG.editor.confirmDeleteAsset")))) return;
     await saveDefinitions(defs => {
       defs[assetKey(kind)] = defs[assetKey(kind)].filter(a => a.id !== id);
+    });
+  }
+
+  static #onAddStat(): void {
+    openStatEditor(null);
+  }
+
+  static #onEditStat(_event: Event, target: HTMLElement): void {
+    openStatEditor(target.dataset.id ?? null);
+  }
+
+  static async #onDeleteStat(_event: Event, target: HTMLElement): Promise<void> {
+    const id = target.dataset.id;
+    if (!(await confirm(t("SIEDLUNG.stats.delete"), t("SIEDLUNG.stats.confirmDelete")))) return;
+    await saveDefinitions(defs => {
+      defs.stats = defs.stats.filter(s => s.id !== id);
     });
   }
 

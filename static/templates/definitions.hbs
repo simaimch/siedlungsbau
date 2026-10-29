@@ -3,6 +3,7 @@
     <button type="button" class="{{#if isBuildings}}active{{/if}}" data-action="switchTab" data-tab="buildings">{{localize "SIEDLUNG.editor.tabs.buildings"}}</button>
     <button type="button" class="{{#if isResource}}active{{/if}}" data-action="switchTab" data-tab="resource">{{localize "SIEDLUNG.editor.tabs.resource"}}</button>
     <button type="button" class="{{#if isWorker}}active{{/if}}" data-action="switchTab" data-tab="worker">{{localize "SIEDLUNG.editor.tabs.worker"}}</button>
+    <button type="button" class="{{#if isStats}}active{{/if}}" data-action="switchTab" data-tab="stat">{{localize "SIEDLUNG.editor.tabs.stat"}}</button>
   </nav>
 
   {{#if isBuildings}}
@@ -47,6 +48,25 @@
       </ul>
     </details>
     {{/each}}
+  </section>
+  {{else if isStats}}
+  <section>
+    <header>
+      <h3>{{localize "SIEDLUNG.stats.title"}}</h3>
+      <button type="button" data-action="addStat"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.editor.add"}}</button>
+    </header>
+    <p class="hint">{{localize "SIEDLUNG.stats.hint"}}</p>
+    <ul class="stat-defs">
+      {{#each stats}}
+      <li>
+        <span class="name">{{name}}</span>
+        <span class="meta">{{summary}}</span>
+        <button type="button" data-action="editStat" data-id="{{id}}" title="{{localize 'SIEDLUNG.editor.edit'}}"><i class="fa-solid fa-pencil"></i></button>
+        <button type="button" data-action="deleteStat" data-id="{{id}}" title="{{localize 'SIEDLUNG.stats.delete'}}"><i class="fa-solid fa-trash"></i></button>
+        {{#if strip}}<div class="strip" style="background: {{strip}}"></div>{{/if}}
+      </li>
+      {{/each}}
+    </ul>
   </section>
   {{else}}
   <section>

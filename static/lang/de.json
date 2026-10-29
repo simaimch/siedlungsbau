@@ -10,7 +10,7 @@
       "info": "Hinweis",
       "editor": "Gebäude-Editor",
       "select": "Auswahl",
-      "settlement": "Vorräte"
+      "settlement": "Siedlungs-Übersicht"
     },
     "palette": {
       "title": "Gebäude",
@@ -102,7 +102,8 @@
       "tabs": {
         "buildings": "Gebäude",
         "resource": "Ressourcen",
-        "worker": "Arbeiter"
+        "worker": "Arbeiter",
+        "stat": "Werte"
       },
       "add": "Hinzufügen",
       "newResource": "Neue Ressource",
@@ -122,7 +123,7 @@
       "upkeepHint": "Negative Mengen bedeuten, dass das Gebäude etwas produziert bzw. Arbeitskraft liefert."
     },
     "settlement": {
-      "title": "Siedlung: Vorräte",
+      "title": "Siedlungs-Übersicht",
       "week": "Arbeitswoche {week}",
       "nextWeek": "Nächste Woche",
       "confirmNextWeek": "Zur nächsten Arbeitswoche springen? Die Betriebskosten fertiger Gebäude werden verrechnet, danach erhalten Bauaufträge Material und Arbeitskraft.",
@@ -134,7 +135,8 @@
       "noConstruction": "Keine Gebäude im Bau.",
       "material": "Material",
       "work": "Arbeit",
-      "hintGM": "Als Spielleitung kannst du die Werte direkt ändern."
+      "hintGM": "Als Spielleitung kannst du die Werte direkt ändern.",
+      "stats": "Werte"
     },
     "week": {
       "title": "Arbeitswoche {week}",
@@ -162,7 +164,7 @@
       "copied": "Daten in die Zwischenablage kopiert.",
       "copyFailed": "Kopieren nicht möglich. Der Text wurde markiert, bitte mit Strg+C kopieren.",
       "import": "Import",
-      "importHint": "JSON einfügen. Bereiche, die im Import fehlen (categories, resources, workers, buildings), bleiben unverändert.",
+      "importHint": "JSON einfügen. Bereiche, die im Import fehlen (categories, resources, workers, stats, buildings), bleiben unverändert.",
       "placeholder": "JSON hier einfügen",
       "run": "Importieren",
       "empty": "Bitte zuerst JSON einfügen.",
@@ -180,6 +182,38 @@
       "goldNote": "Goldmünzen sind die Basiswährung und bleiben immer erhalten.",
       "done": "Import übernommen.",
       "doneCleanup": "Bereinigt: {costs} Kostenposten, {buildings} Gebäude entfernt."
+    },
+    "stats": {
+      "title": "Siedlungs-Werte",
+      "hint": "Werte wie Moral oder Loyalität erscheinen oben in der Siedlungs-Übersicht. Die SL kann sie dort direkt ändern.",
+      "delete": "Wert löschen",
+      "confirmDelete": "Diesen Wert aus den Definitionen löschen? Gespeicherte Werte der Siedlungen werden ignoriert.",
+      "summaryInterval": "Intervall {min} bis {max}, {count} Stützpunkte",
+      "summaryOpen": "Nach oben offen",
+      "newStat": "Neuer Wert",
+      "editStat": "Wert bearbeiten",
+      "name": "Name",
+      "kind": "Art",
+      "kindInterval": "Intervall (z. B. 0 bis 100)",
+      "kindOpen": "Nach oben offen",
+      "min": "Minimum",
+      "max": "Maximum",
+      "points": "Stützpunkte",
+      "pointsHint": "Angezeigt wird der Name des nächstgelegenen Punkts. Die Farbe wird zwischen den benachbarten Punkten nach Nähe gemischt.",
+      "pointValue": "Wert",
+      "pointName": "Name",
+      "pointColor": "Farbe",
+      "addPoint": "Punkt hinzufügen",
+      "removePoint": "Punkt entfernen",
+      "openHint": "Nach oben offener Wert (mindestens 0, ganze Zahlen), zum Beispiel die Anzahl rekrutierbarer Abenteurer pro Woche. Hier wird nur der Name festgelegt.",
+      "errors": {
+        "noName": "Bitte einen Namen angeben.",
+        "range": "Das Minimum muss kleiner als das Maximum sein.",
+        "pointRange": "Ein Stützpunkt liegt außerhalb des Intervalls.",
+        "pointName": "Jeder Stützpunkt braucht einen Namen.",
+        "pointColor": "Ein Stützpunkt hat eine ungültige Farbe.",
+        "pointDuplicate": "Zwei Stützpunkte haben denselben Wert."
+      }
     }
   }
 }

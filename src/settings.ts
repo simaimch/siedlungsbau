@@ -2,7 +2,7 @@ import { ID } from "./constants";
 import { DEFAULT_DEFINITIONS } from "./data";
 import { SETTING_DEFINITIONS } from "./definitions";
 import { getType } from "./store";
-import { PaletteApp, DefinitionsApp, refreshApp } from "./apps";
+import { PaletteApp, DefinitionsApp, SettlementApp, refreshApp } from "./apps";
 import { DataTransferApp } from "./transfer-app";
 import { redraw } from "./render";
 import { Placement } from "./placement";
@@ -36,6 +36,7 @@ function onDefinitionsChanged(): void {
   }
   refreshApp(PaletteApp);
   refreshApp(DefinitionsApp);
+  refreshApp(SettlementApp);
   refreshApp(DataTransferApp);
   redraw();
 }

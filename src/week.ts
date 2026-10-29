@@ -201,7 +201,7 @@ export function computeWeek(state: SettlementState, buildings: Building[], costs
   for (const r of reports.values()) r.after = have(r.id);
 
   return {
-    state: { week: state.week + 1, resources: stock, workers: { ...state.workers } },
+    state: { ...state, week: state.week + 1, resources: stock, workers: { ...state.workers } },
     buildings: updated,
     resources: [...reports.values()],
     labor: [...laborReports.values()],

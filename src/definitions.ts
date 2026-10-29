@@ -1,6 +1,7 @@
 import { ID, GOLD_ID } from "./constants";
 import { DEFAULT_DEFINITIONS } from "./data";
-import type { BuildingType, Category, CostEntry, CostKind, Definitions, PricedType } from "./types";
+import { DEFAULT_STATS } from "./stat-defaults";
+import type { BuildingType, Category, CostEntry, CostKind, Definitions, PricedType, StatType } from "./types";
 
 export const SETTING_DEFINITIONS = "definitions";
 
@@ -23,7 +24,9 @@ export function getDefinitions(): Definitions {
     categories: list(raw?.categories, DEFAULT_DEFINITIONS.categories),
     buildings,
     resources: list(raw?.resources, DEFAULT_DEFINITIONS.resources),
-    workers: list(raw?.workers, DEFAULT_DEFINITIONS.workers)
+    workers: list(raw?.workers, DEFAULT_DEFINITIONS.workers),
+    // Ältere Speicherstände ohne Stats bekommen die Standard-Stats
+    stats: list(raw?.stats, DEFAULT_DEFINITIONS.stats ?? DEFAULT_STATS)
   };
 }
 
@@ -32,6 +35,7 @@ export const getBuildingTypes = (): BuildingType[] => getDefinitions().buildings
 export const getCategory = (id: string): Category | undefined => getCategories().find(c => c.id === id);
 export const getResources = (): PricedType[] => getDefinitions().resources;
 export const getWorkers = (): PricedType[] => getDefinitions().workers;
+export const getStats = (): StatType[] => getDefinitions().stats;
 
 export const assetKey = (kind: CostKind): "resources" | "workers" => (kind === "resource" ? "resources" : "workers");
 

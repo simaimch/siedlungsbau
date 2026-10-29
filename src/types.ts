@@ -16,6 +16,7 @@ export interface Definitions {
   buildings: BuildingType[];
   resources: PricedType[];
   workers: PricedType[];
+  stats: StatType[];
 }
 
 export type CostKind = "resource" | "worker";
@@ -74,6 +75,8 @@ export interface SettlementState {
   week: number;
   resources: Record<string, number>;
   workers: Record<string, number>;
+  /** Werte der Siedlungs-Stats (Moral, Loyalität, ...); fehlende Werte gelten als Standardwert. */
+  stats: Record<string, number>;
 }
 
 export interface OrderMessage {
@@ -104,3 +107,32 @@ export interface TerrainData {
   rows: number;
   cells: string;
 }
+
+export type StatKind = "interval" | "open";
+
+/** Stützpunkt eines Intervall-Stats: Name und Farbe an dieser Stelle; dazwischen wird die Farbe interpoliert. */
+export interface StatPoint {
+  value: number;
+  name: string;
+  /** #rrggbb */
+  color: string;
+}
+
+/** Wert in einem Intervall (z. B. 0 bis 100) mit benannten, gefärbten Stützpunkten. */
+export interface IntervalStat {
+  id: string;
+  name: string;
+  kind: "interval";
+  min: number;
+  max: number;
+  points: StatPoint[];
+}
+
+/** Nach oben offener Wert (mindestens 0), von dem nur der Name festgelegt wird. */
+export interface OpenStat {
+  id: string;
+  name: string;
+  kind: "open";
+}
+
+export type StatType = IntervalStat | OpenStat;

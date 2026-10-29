@@ -86,3 +86,25 @@
 .siedlung-transfer h3 { margin: 0; border: none; }
 .siedlung-transfer .hint { opacity: 0.7; font-size: var(--font-size-12, 12px); margin: 0.25rem 0; }
 .siedlung-transfer textarea.json { width: 100%; box-sizing: border-box; font-family: monospace; font-size: 12px; white-space: pre; overflow: auto; resize: vertical; }
+
+/* Stats in der Siedlungs-Übersicht */
+.siedlung-settlement .stat-list li { display: flex; flex-direction: column; gap: 3px; }
+.siedlung-settlement .stat-row { display: grid; grid-template-columns: 1fr auto 6rem; gap: 8px; align-items: center; }
+.siedlung-settlement .stat-row .name { font-weight: bold; }
+.siedlung-settlement .stat-row .amount { grid-column: 3; }
+.siedlung-settlement .pill { padding: 1px 8px; border-radius: 10px; font-size: var(--font-size-12, 12px); font-weight: bold; white-space: nowrap; }
+.siedlung-settlement .stat-list .bar { height: 6px; }
+
+/* Stats im Editor */
+.siedlung-definitions .stat-defs li { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; }
+.siedlung-definitions .stat-defs .strip { grid-column: 1 / -1; height: 8px; border-radius: 4px; }
+.siedlung-stat-editor { display: flex; flex-direction: column; gap: 0.5rem; }
+.siedlung-stat-editor .size { display: flex; align-items: center; gap: 6px; }
+.siedlung-stat-editor .size input { width: 5rem; }
+.siedlung-stat-editor .strip { height: 10px; border-radius: 5px; }
+.siedlung-stat-editor fieldset.points { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+.siedlung-stat-editor .point-row { display: grid; grid-template-columns: 5rem 1fr 40px auto; gap: 6px; align-items: center; }
+.siedlung-stat-editor input[type="color"] { width: 40px; padding: 0; }
+.siedlung-stat-editor .hint { opacity: 0.7; font-size: var(--font-size-12, 12px); margin: 0; }
+.siedlung-stat-editor footer { display: flex; justify-content: flex-end; gap: 6px; }
+.application.siedlungsbau .siedlung-stat-editor { max-height: 75vh; overflow-y: auto; }
