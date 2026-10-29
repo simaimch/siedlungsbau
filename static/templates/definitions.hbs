@@ -4,6 +4,7 @@
     <button type="button" class="{{#if isResource}}active{{/if}}" data-action="switchTab" data-tab="resource">{{localize "SIEDLUNG.editor.tabs.resource"}}</button>
     <button type="button" class="{{#if isWorker}}active{{/if}}" data-action="switchTab" data-tab="worker">{{localize "SIEDLUNG.editor.tabs.worker"}}</button>
     <button type="button" class="{{#if isStats}}active{{/if}}" data-action="switchTab" data-tab="stat">{{localize "SIEDLUNG.editor.tabs.stat"}}</button>
+    <button type="button" class="{{#if isTerrain}}active{{/if}}" data-action="switchTab" data-tab="terrain">{{localize "SIEDLUNG.editor.tabs.terrain"}}</button>
   </nav>
 
   {{#if isBuildings}}
@@ -64,6 +65,30 @@
         <button type="button" data-action="editStat" data-id="{{id}}" title="{{localize 'SIEDLUNG.editor.edit'}}"><i class="fa-solid fa-pencil"></i></button>
         <button type="button" data-action="deleteStat" data-id="{{id}}" title="{{localize 'SIEDLUNG.stats.delete'}}"><i class="fa-solid fa-trash"></i></button>
         {{#if strip}}<div class="strip" style="background: {{strip}}"></div>{{/if}}
+      </li>
+      {{/each}}
+    </ul>
+  </section>
+  {{else if isTerrain}}
+  <section>
+    <header>
+      <h3>{{localize "SIEDLUNG.terrainEditor.title"}}</h3>
+      <button type="button" data-action="addTerrain"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.editor.add"}}</button>
+    </header>
+    <p class="hint">{{localize "SIEDLUNG.terrainEditor.hint"}}</p>
+    <ul class="terrain-defs">
+      <li class="asset-head">
+        <span>{{localize "SIEDLUNG.editor.colorLabel"}}</span>
+        <span>{{localize "SIEDLUNG.editor.nameLabel"}}</span>
+        <span>{{localize "SIEDLUNG.terrainEditor.buildable"}}</span>
+        <span></span>
+      </li>
+      {{#each terrain}}
+      <li>
+        <input type="color" value="{{color}}" data-terrain-field="color" data-id="{{id}}">
+        <input type="text" value="{{label}}" data-terrain-field="label" data-id="{{id}}" maxlength="40">
+        <input type="checkbox" data-terrain-field="buildable" data-id="{{id}}" {{#if buildable}}checked{{/if}} {{#if noToggle}}disabled{{/if}}>
+        {{#if fixed}}<span title="{{localize 'SIEDLUNG.terrainEditor.errors.builtin'}}"><i class="fa-solid fa-lock"></i></span>{{else}}<button type="button" data-action="deleteTerrain" data-id="{{id}}" title="{{localize 'SIEDLUNG.terrainEditor.delete'}}"><i class="fa-solid fa-trash"></i></button>{{/if}}
       </li>
       {{/each}}
     </ul>

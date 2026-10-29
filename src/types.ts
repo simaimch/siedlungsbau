@@ -17,6 +17,8 @@ export interface Definitions {
   resources: PricedType[];
   workers: PricedType[];
   stats: StatType[];
+  /** Geländearten; leer/fehlend = nur die mitgelieferten */
+  terrain: TerrainEntry[];
 }
 
 export type CostKind = "resource" | "worker";
@@ -102,6 +104,11 @@ export interface TerrainType {
   label: string;
   color: string;
   buildable: boolean;
+}
+
+/** Eine Geländeart; die ID ist das Zeichen, das pro Feld gespeichert wird. */
+export interface TerrainEntry extends TerrainType {
+  id: string;
 }
 
 /** Gelände einer Szene: zeilenweise, ein Zeichen pro Feld (Schlüssel aus TERRAIN). */

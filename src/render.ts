@@ -69,7 +69,7 @@ export function teardownRender(): void {
   container = null;
 }
 
-/** Zeichnet nur Gelände, das vom Standard (Gras = Hintergrundfarbe) abweicht. */
+/** Zeichnet das Gelände aller Felder; unbekannte Zeichen gelten als Standardgelände. */
 function drawTerrain(): void {
   for (const c of terrainContainer.removeChildren()) c.destroy({ children: true });
   const terrain = getTerrain();
@@ -78,9 +78,9 @@ function drawTerrain(): void {
   const g = new PIXI.Graphics();
   for (let y = 0; y < terrain.rows; y++) {
     for (let x = 0; x < terrain.cols; x++) {
-      const code = terrain.cells[y * terrain.cols + x];
-      if (!code || code === DEFAULT_TERRAIN || !TERRAIN[code]) continue;
-      fillRect(g, x * s, y * s, s, s, hexToInt(TERRAIN[code].color), 0.85);
+      const type = TERRAIN[terrain.cells[y * terrain.cols + x]] ?? TERRAIN[DEFAULT_TERRAIN];
+      if (!type) continue;
+      fillRect(g, x * s, y * s, s, s, hexToInt(type.color), 1);
     }
   }
   terrainContainer.addChild(g);

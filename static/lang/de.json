@@ -111,7 +111,8 @@
         "buildings": "Gebäude",
         "resource": "Ressourcen",
         "worker": "Arbeiter",
-        "stat": "Werte"
+        "stat": "Werte",
+        "terrain": "Gelände"
       },
       "add": "Hinzufügen",
       "newResource": "Neue Ressource",
@@ -259,6 +260,20 @@
       "buildable": "baubar",
       "blocked": "nicht baubar",
       "occupied": "Auf diesem Feld steht ein Gebäude – hier ist kein nicht baubares Gelände möglich."
+    },
+    "terrainEditor": {
+      "title": "Geländearten",
+      "hint": "Die Gelände-Arten, die du mit dem Pinsel malen kannst. „Baubar“ entscheidet, ob darauf Gebäude stehen dürfen. Mitgelieferte Arten (mit Schloss-Symbol) lassen sich ändern, aber nicht löschen.",
+      "buildable": "Baubar",
+      "newTerrain": "Neues Gelände",
+      "delete": "Gelände löschen",
+      "confirmDelete": "Dieses Gelände löschen? Alle Felder damit werden in allen Szenen zu Gras.",
+      "errors": {
+        "builtin": "Mitgelieferte Gelände-Arten können nicht gelöscht werden.",
+        "hasBuildings": "Auf diesem Gelände stehen Gebäude (in mindestens einer Szene).",
+        "defaultBuildable": "Das Standardgelände muss baubar bleiben.",
+        "full": "Es sind höchstens 52 Geländearten möglich."
+      }
     }
   }
 }

@@ -3,20 +3,22 @@ import { GOLD_ID } from "./constants";
 import { DEFAULT_DEFINITIONS } from "./data";
 import { isConnected, transformCells } from "./store";
 import { sortedPoints, validateInterval } from "./stats";
-import type { BuildingType, Category, Cell, CostEntry, Definitions, PricedType, StatEffect, StatPoint, StatType } from "./types";
+import { BUILTIN_TERRAIN, normalizeTerrain } from "./terrain-defs";
+import type { BuildingType, Category, Cell, CostEntry, Definitions, PricedType, StatEffect, StatPoint, StatType, TerrainEntry } from "./types";
 
 export const FORMAT_VERSION = 1;
 
-export type SectionKey = "categories" | "resources" | "workers" | "stats" | "buildings";
+export type SectionKey = "categories" | "resources" | "workers" | "stats" | "terrain" | "buildings";
 
 /** Reihenfolge, in der Bereiche exportiert und angewendet werden. */
-export const SECTIONS: SectionKey[] = ["categories", "resources", "workers", "stats", "buildings"];
+export const SECTIONS: SectionKey[] = ["categories", "resources", "workers", "stats", "terrain", "buildings"];
 
 export const SECTION_LABELS: Record<SectionKey, string> = {
   categories: "Kategorien",
   resources: "Ressourcen",
   workers: "Arbeiter",
   stats: "Werte",
+  terrain: "Gelände",
   buildings: "Gebäude"
 };
 
@@ -30,7 +32,7 @@ const MAX_SHAPE = 50;
 /** Formatiertes JSON; Rasterfelder ([x, y]) stehen dabei jeweils in einer Zeile. */
 export function exportDefinitions(defs: Definitions): string {
   const json = JSON.stringify(
-    { version: FORMAT_VERSION, categories: defs.categories, resources: defs.resources, workers: defs.workers, stats: defs.stats, buildings: defs.buildings },
+    { version: FORMAT_VERSION, categories: defs.categories, resources: defs.resources, workers: defs.workers, stats: defs.stats, terrain: defs.terrain ?? [], buildings: defs.buildings },
     null,
     2
   );
@@ -63,6 +65,19 @@ function parseCategory(raw: unknown): Parsed<Category> {
   if (!label) return "„label“ fehlt.";
   if (typeof raw.color !== "string" || !HEX.test(raw.color)) return "„color“ muss das Format #rrggbb haben.";
   return { id, label, color: raw.color };
+}
+
+function parseTerrain(raw: unknown): Parsed<TerrainEntry> {
+  if (!isObj(raw)) return "Kein Objekt.";
+  const id = text(raw.id, 100);
+  const label = text(raw.label, 40);
+  if (!id) return "„id“ fehlt.";
+  const builtin = BUILTIN_TERRAIN.some(b => b.id === id);
+  if (!builtin && !/^[A-Za-z]$/.test(id)) return "„id“ muss ein einzelner Buchstabe sein.";
+  if (!label) return "„label“ fehlt.";
+  if (typeof raw.color !== "string" || !HEX.test(raw.color)) return "„color“ muss das Format #rrggbb haben.";
+  if (typeof raw.buildable !== "boolean") return "„buildable“ muss true oder false sein.";
+  return { id, label, color: raw.color, buildable: raw.buildable };
 }
 
 function parseAsset(raw: unknown): Parsed<PricedType> {
@@ -200,14 +215,14 @@ export function parseImport(input: string): ParsedImport {
   if (!isObj(raw)) return { data: {}, errors: ["Der Import muss ein JSON-Objekt sein."] };
 
   const data: Partial<Definitions> = {};
-  const parsers = { categories: parseCategory, resources: parseAsset, workers: parseAsset, stats: parseStat, buildings: parseBuilding } as const;
+  const parsers = { categories: parseCategory, resources: parseAsset, workers: parseAsset, stats: parseStat, terrain: parseTerrain, buildings: parseBuilding } as const;
   for (const key of SECTIONS) {
     if (raw[key] === undefined) continue;
     const list = parseSection(key, raw[key], parsers[key] as (e: unknown) => Parsed<{ id: string }>, errors);
     if (list) (data as Record<string, unknown>)[key] = list;
   }
   if (!errors.length && !Object.keys(data).length) {
-    errors.push("Der Import enthält keinen bekannten Bereich (categories, resources, workers, stats, buildings).");
+    errors.push("Der Import enthält keinen bekannten Bereich (categories, resources, workers, stats, terrain, buildings).");
   }
   return { data, errors };
 }
@@ -222,8 +237,8 @@ export interface MissingEntry {
   name: string;
 }
 
-const nameOf = (key: SectionKey, e: Category | PricedType | BuildingType | StatType): string =>
-  key === "categories" ? (e as Category).label : (e as PricedType | BuildingType | StatType).name;
+const nameOf = (key: SectionKey, e: Category | PricedType | BuildingType | StatType | TerrainEntry): string =>
+  key === "categories" || key === "terrain" ? (e as Category | TerrainEntry).label : (e as PricedType | BuildingType | StatType).name;
 
 /**
  * Bestehende Einträge, die im Import fehlen – nur in Bereichen, die der Import enthält.
@@ -235,8 +250,9 @@ export function findMissing(current: Definitions, imported: Partial<Definitions>
     const incoming = imported[key] as { id: string }[] | undefined;
     if (!incoming) continue;
     const ids = new Set(incoming.map(e => e.id));
-    for (const e of current[key] as (Category | PricedType | BuildingType | StatType)[]) {
-      if (ids.has(e.id) || (key === "resources" && e.id === GOLD_ID)) continue;
+    for (const e of (current[key] ?? []) as (Category | PricedType | BuildingType | StatType | TerrainEntry)[]) {
+      // Goldmünzen und mitgelieferte Geländearten sind unlöschbar und gelten nicht als fehlend
+      if (ids.has(e.id) || (key === "resources" && e.id === GOLD_ID) || (key === "terrain" && BUILTIN_TERRAIN.some(b => b.id === e.id))) continue;
       missing.push({ section: key, id: e.id, name: nameOf(key, e) });
     }
   }
@@ -278,8 +294,11 @@ export function applyImport(current: Definitions, imported: Partial<Definitions>
     const incoming = imported[key] as { id: string }[] | undefined;
     if (!incoming) continue;
     const copy = structuredClone(incoming);
-    (next as unknown as Record<string, unknown>)[key] = mode === "replace" ? copy : mergeById(next[key] as { id: string }[], copy);
+    (next as unknown as Record<string, unknown>)[key] = mode === "replace" ? copy : mergeById((next[key] ?? []) as { id: string }[], copy);
   }
+
+  // Mitgelieferte Geländearten bleiben immer erhalten
+  next.terrain = normalizeTerrain(next.terrain);
 
   // Goldmünzen sind die Basiswährung: immer vorhanden, Marktwert 1
   let restoredGold = false;

@@ -13,6 +13,8 @@ const rect = (w: number, h: number): Cell[] => {
 
 /** Mitgelieferte Standard-Definitionen; der SL kann sie im Gebäude-Editor ändern und erweitern. */
 export const DEFAULT_DEFINITIONS: Definitions = {
+  // Leer = nur die mitgelieferten Geländearten (siehe terrain-defs.ts)
+  terrain: [],
   categories: [
     { id: "taverne", label: "Taverne", color: "#c98a3d" },
     { id: "baracke", label: "Baracke", color: "#6b7f9e" },
@@ -25,7 +27,6 @@ export const DEFAULT_DEFINITIONS: Definitions = {
     { id: "baracke-l", name: "Winkelbaracke", category: "baracke", cells: [[0, 0], [0, 1], [0, 2], [1, 2]], buildCost: [], upkeep: [] },
     { id: "lager", name: "Lagerhaus", category: "sonstiges", cells: rect(2, 1), buildCost: [], upkeep: [] }
   ],
-  // Marktwerte sind Platzhalter (in Goldmünzen pro Einheit) und können im Editor angepasst werden.
   resources: [
     { id: GOLD_ID, name: "Goldmünzen", color: "#e0b83a", value: 1 },
     { id: "stone", name: "Stein", color: "#9aa0a6", value: 1 },

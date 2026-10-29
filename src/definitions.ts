@@ -1,7 +1,9 @@
 import { ID, GOLD_ID } from "./constants";
 import { DEFAULT_DEFINITIONS } from "./data";
 import { DEFAULT_STATS } from "./stat-defaults";
-import type { BuildingType, Category, CostEntry, CostKind, Definitions, PricedType, StatEffect, StatType } from "./types";
+import { TERRAIN, DEFAULT_TERRAIN } from "./data";
+import { normalizeTerrain } from "./terrain-defs";
+import type { BuildingType, Category, CostEntry, CostKind, Definitions, PricedType, StatEffect, StatType, TerrainEntry } from "./types";
 
 export const SETTING_DEFINITIONS = "definitions";
 
@@ -27,7 +29,8 @@ export function getDefinitions(): Definitions {
     resources: list(raw?.resources, DEFAULT_DEFINITIONS.resources),
     workers: list(raw?.workers, DEFAULT_DEFINITIONS.workers),
     // Ältere Speicherstände ohne Stats bekommen die Standard-Stats
-    stats: list(raw?.stats, DEFAULT_DEFINITIONS.stats ?? DEFAULT_STATS)
+    stats: list(raw?.stats, DEFAULT_DEFINITIONS.stats ?? DEFAULT_STATS),
+    terrain: normalizeTerrain(raw?.terrain)
   };
 }
 
@@ -37,6 +40,7 @@ export const getCategory = (id: string): Category | undefined => getCategories()
 export const getResources = (): PricedType[] => getDefinitions().resources;
 export const getWorkers = (): PricedType[] => getDefinitions().workers;
 export const getStats = (): StatType[] => getDefinitions().stats;
+export const getTerrainTypes = (): TerrainEntry[] => getDefinitions().terrain;
 
 export const assetKey = (kind: CostKind): "resources" | "workers" => (kind === "resource" ? "resources" : "workers");
 
@@ -62,18 +66,50 @@ export async function saveDefinitions(mutate: (defs: Definitions) => void): Prom
   if (!game.user.isGM) return;
   const defs: Definitions = foundry.utils.deepClone(getDefinitions());
   mutate(defs);
-  await game.settings.set(ID, SETTING_DEFINITIONS, defs);
+  await commit(defs);
 }
+
+/** Speichert die Definitionen. Gelöschte Geländearten werden in allen Szenen durch das Standardgelände ersetzt. */
+async function commit(next: Definitions): Promise<void> {
+  const before = getTerrainTypes().map(e => e.id);
+  next.terrain = normalizeTerrain(next.terrain);
+  const after = new Set(next.terrain.map(e => e.id));
+  await game.settings.set(ID, SETTING_DEFINITIONS, next);
+  const removed = before.filter(id => !after.has(id));
+  if (removed.length) await migrateRemovedTerrain(removed);
+}
+
+/** SL: Felder gelöschter Geländearten werden in allen Szenen zum Standardgelände. */
+export async function migrateRemovedTerrain(ids: string[]): Promise<void> {
+  if (!game.user.isGM) return;
+  for (const scene of game.scenes) {
+    const terrain = scene.getFlag(ID, "terrain");
+    if (typeof terrain?.cells !== "string") continue;
+    let cells: string = terrain.cells;
+    for (const id of ids) cells = cells.split(id).join(DEFAULT_TERRAIN);
+    if (cells !== terrain.cells) await scene.setFlag(ID, "terrain", { ...terrain, cells });
+  }
+}
+
+/**
+ * Gleicht das globale TERRAIN-Objekt (data.ts) mit den Einstellungen ab, damit alle Stellen,
+ * die TERRAIN lesen (Rendering, Bauprüfung, Gelände-Generator), die Arten der SL sehen.
+ */
+export function syncTerrain(): void {
+  for (const key of Object.keys(TERRAIN)) delete TERRAIN[key];
+  for (const e of getTerrainTypes()) TERRAIN[e.id] = { label: e.label, color: e.color, buildable: e.buildable };
+}
+
 
 export async function resetDefinitions(): Promise<void> {
   if (!game.user.isGM) return;
-  await game.settings.set(ID, SETTING_DEFINITIONS, foundry.utils.deepClone(DEFAULT_DEFINITIONS));
+  await commit(foundry.utils.deepClone(DEFAULT_DEFINITIONS));
 }
 
 /** SL: ersetzt alle Definitionen auf einmal (Import). */
 export async function replaceDefinitions(defs: Definitions): Promise<void> {
   if (!game.user.isGM) return;
-  await game.settings.set(ID, SETTING_DEFINITIONS, defs);
+  await commit(defs);
 }
 
 /** Wirkungen auf Werte für die Anzeige, z. B. "+2 Moral"; unbekannte Stats werden übersprungen. */

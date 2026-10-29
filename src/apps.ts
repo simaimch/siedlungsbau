@@ -1,7 +1,7 @@
 import { ID, STATUS, GOLD_ID } from "./constants";
-import { getBuildings, getType, bounds, isSettlementScene, isConnected, cellKey, transformCells, costsOf } from "./store";
+import { getBuildings, getTerrain, terrainAt, getType, bounds, isSettlementScene, isConnected, cellKey, transformCells, costsOf } from "./store";
 import {
-  getDefinitions, getCategories, getCategory, getResources, getWorkers, getStats, getAsset, assetKey, isGold, costChips, effectChips,
+  getDefinitions, getCategories, getCategory, getResources, getWorkers, getStats, getTerrainTypes, getAsset, assetKey, isGold, costChips, effectChips,
   saveDefinitions, resetDefinitions
 } from "./definitions";
 import { buildingCenter } from "./render";
@@ -12,6 +12,7 @@ import { sanitizeName } from "./util";
 import { getSettlement, setAmount, setStat, advanceWeek } from "./settlement";
 import { clampStat, contrastText, defaultStatValue, describeInterval, stripGradient } from "./stats";
 import { openStatEditor } from "./stat-editor";
+import { isBuiltinTerrain, isDefaultTerrain, nextTerrainId } from "./terrain-defs";
 import { fractions, laborCommitted } from "./week";
 import type { Building, BuildingType, Cell, CostEntry, CostKind, StatEffect } from "./types";
 
@@ -200,6 +201,18 @@ function progressText(b: Building): string {
 /* ------------------------------------------------------------------ */
 
 const CATEGORY_COLORS = ["#c98a3d", "#6b7f9e", "#7a9a6b", "#b5656b", "#8a6bb5", "#4fa3a5", "#c2b13c"];
+const TERRAIN_COLORS = ["#c2a878", "#4f7f4f", "#8c6b4a", "#6a8caf", "#b58a8a", "#9a9a6a", "#7a6aaf"];
+
+/** Steht in irgendeiner Szene ein Gebäude auf dieser Geländeart? */
+function terrainHasBuildings(id: string): boolean {
+  for (const scene of game.scenes) {
+    const terrain = getTerrain(scene);
+    if (!terrain) continue;
+    if (getBuildings(scene).some(b => b.cells.some(([x, y]) => terrainAt(terrain, x, y) === id))) return true;
+  }
+  return false;
+}
+
 const ASSET_COLORS = ["#e0b83a", "#9aa0a6", "#8b5a2b", "#5b8def", "#d35f5f", "#6fbf73", "#b07cc6"];
 
 export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
@@ -220,6 +233,8 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       addStat: DefinitionsApp.#onAddStat,
       editStat: DefinitionsApp.#onEditStat,
       deleteStat: DefinitionsApp.#onDeleteStat,
+      addTerrain: DefinitionsApp.#onAddTerrain,
+      deleteTerrain: DefinitionsApp.#onDeleteTerrain,
       resetDefaults: DefinitionsApp.#onReset
     }
   };
@@ -251,6 +266,8 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       isResource: tab === "resource",
       isWorker: tab === "worker",
       isStats: tab === "stat",
+      isTerrain: tab === "terrain",
+      terrain: getTerrainTypes().map(e => ({ ...e, fixed: isBuiltinTerrain(e.id), noToggle: isDefaultTerrain(e.id) })),
       categories,
       groups,
       assets,
@@ -274,6 +291,27 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const el of catInputs) el.addEventListener("change", () => void this._onCategoryField(el));
     const assetInputs = this.element.querySelectorAll("[data-asset-field]") as NodeListOf<HTMLInputElement>;
     for (const el of assetInputs) el.addEventListener("change", () => void this._onAssetField(el));
+    const terrainInputs = this.element.querySelectorAll("[data-terrain-field]") as NodeListOf<HTMLInputElement>;
+    for (const el of terrainInputs) el.addEventListener("change", () => void this._onTerrainField(el));
+  }
+
+  /** Name, Farbe oder Baubarkeit einer Geländeart wurde geändert. */
+  async _onTerrainField(el: HTMLInputElement): Promise<void> {
+    const id = el.dataset.id ?? "";
+    const field = el.dataset.terrainField;
+    if (field === "buildable" && !el.checked && (isDefaultTerrain(id) || terrainHasBuildings(id))) {
+      ui.notifications.warn(t(isDefaultTerrain(id) ? "SIEDLUNG.terrainEditor.errors.defaultBuildable" : "SIEDLUNG.terrainEditor.errors.hasBuildings"));
+      void this.render();
+      return;
+    }
+    await saveDefinitions(defs => {
+      const e = defs.terrain.find(x => x.id === id);
+      if (!e) return;
+      if (field === "color" && /^#[0-9a-f]{6}$/i.test(el.value)) e.color = el.value;
+      else if (field === "label") e.label = sanitizeName(el.value, e.label);
+      else if (field === "buildable") e.buildable = el.checked;
+    });
+    void this.render();
   }
 
   /** Name oder Farbe einer Kategorie wurde im Formular geändert. */
@@ -382,6 +420,38 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!(await confirm(t("SIEDLUNG.editor.deleteAsset"), t("SIEDLUNG.editor.confirmDeleteAsset")))) return;
     await saveDefinitions(defs => {
       defs[assetKey(kind)] = defs[assetKey(kind)].filter(a => a.id !== id);
+    });
+  }
+
+  static async #onAddTerrain(): Promise<void> {
+    const id = nextTerrainId(getTerrainTypes());
+    if (!id) {
+      ui.notifications.warn(t("SIEDLUNG.terrainEditor.errors.full"));
+      return;
+    }
+    await saveDefinitions(defs => {
+      defs.terrain.push({
+        id,
+        label: t("SIEDLUNG.terrainEditor.newTerrain"),
+        color: TERRAIN_COLORS[defs.terrain.length % TERRAIN_COLORS.length],
+        buildable: true
+      });
+    });
+  }
+
+  static async #onDeleteTerrain(_event: Event, target: HTMLElement): Promise<void> {
+    const id = target.dataset.id ?? "";
+    if (isBuiltinTerrain(id)) {
+      ui.notifications.warn(t("SIEDLUNG.terrainEditor.errors.builtin"));
+      return;
+    }
+    if (terrainHasBuildings(id)) {
+      ui.notifications.warn(t("SIEDLUNG.terrainEditor.errors.hasBuildings"));
+      return;
+    }
+    if (!(await confirm(t("SIEDLUNG.terrainEditor.delete"), t("SIEDLUNG.terrainEditor.confirmDelete")))) return;
+    await saveDefinitions(defs => {
+      defs.terrain = defs.terrain.filter(e => e.id !== id);
     });
   }
 
