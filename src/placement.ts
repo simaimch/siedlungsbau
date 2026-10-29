@@ -1,17 +1,18 @@
 import { transformCells, bounds, checkPlacement } from "./store";
 import { fillRect, outline } from "./render";
 import { requestOrder } from "./service";
+import { askBuildingName } from "./dialogs";
 import type { BuildingType, Cell } from "./types";
-import { askBuildingName } from "./dialog";
 
 export class Placement {
-  /** Solange der Namensdialog offen ist, werden weitere Klicks ignoriert. */
-  static busy = false;
   static type: BuildingType | null = null;
   static rotation = 0;
   static mirror = false;
   static pos: { x: number; y: number } | null = null;
   static g: any = null;
+  /** Solange der Namensdialog offen ist, werden weitere Klicks ignoriert. */
+  static busy = false;
+  /** Position (Bildschirm) beim Drücken der rechten Maustaste, um Klick und Ziehen (Verschieben der Ansicht) zu trennen. */
   static _rightDown: { x: number; y: number } | null = null;
 
   static start(type: BuildingType): void {
@@ -69,7 +70,6 @@ export class Placement {
   };
 
   static _onDown = (event: any): void => {
-    
     if (event.button === 2) {
       Placement._rightDown = { x: event.global.x, y: event.global.y };
       return;
@@ -111,7 +111,8 @@ export class Placement {
     if ((event.target as HTMLElement | null)?.closest?.("input, textarea, [contenteditable='true']")) return;
     if (event.code === "Escape") {
       Placement.stop();
-    } else if (event.code === "KeyR") {
+    } else if (event.code === "KeyR" || event.key?.toLowerCase() === "r") {
+      if (event.repeat) return;
       if (event.shiftKey) Placement.mirror = !Placement.mirror;
       else Placement.rotation = (Placement.rotation + 1) % 4;
       Placement._draw();

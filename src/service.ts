@@ -1,9 +1,9 @@
 import { ID, SOCKET, STATUS } from "./constants";
-import { DEFAULT_TERRAIN, TERRAIN } from "./data";
 import { getBuildings, getType, canonical, checkPlacement, isSettlementScene } from "./store";
-import { generateTerrain } from "./terrain/generateTerrain";
-import type { Building, Cell, OrderMessage } from "./types";
+import { TERRAIN, DEFAULT_TERRAIN } from "./data";
 import { escapeHTML, sanitizeName } from "./util";
+import type { Building, Cell, OrderMessage } from "./types";
+import { generateTerrain } from "./terrain/generateTerrain";
 
 const t = (key: string, data?: Record<string, string>): string =>
   data ? game.i18n.format(key, data) : game.i18n.localize(key);
@@ -53,8 +53,8 @@ async function handleOrder({ sceneId, typeId, name, cells, userId }: OrderMessag
     return;
   }
 
-  const buildings: Building[] = foundry.utils.deepClone(getBuildings(scene));
   const finalName = sanitizeName(name, type.name);
+  const buildings: Building[] = foundry.utils.deepClone(getBuildings(scene));
   buildings.push({
     id: foundry.utils.randomID(),
     typeId: type.id,
@@ -114,7 +114,7 @@ export async function createSettlementScene(): Promise<void> {
     height: result.rows * size,
     padding: 0,
     grid: { type: CONST.GRID_TYPES.SQUARE, size, distance: 5, units: "m" },
-    backgroundColor: { color: TERRAIN[DEFAULT_TERRAIN].color },
+    backgroundColor: TERRAIN[DEFAULT_TERRAIN].color,
     tokenVision: false,
     flags: { [ID]: { enabled: true, terrain: generateTerrain(result.cols, result.rows) } }
   });

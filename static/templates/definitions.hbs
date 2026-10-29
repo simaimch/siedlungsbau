@@ -1,0 +1,48 @@
+<div class="siedlung-definitions">
+  <section>
+    <header>
+      <h3>{{localize "SIEDLUNG.editor.categories"}}</h3>
+      <button type="button" data-action="addCategory"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.editor.addCategory"}}</button>
+    </header>
+    <ul class="cat-list">
+      {{#each categories}}
+      <li>
+        <input type="color" value="{{color}}" data-cat-field="color" data-id="{{id}}">
+        <input type="text" value="{{label}}" data-cat-field="label" data-id="{{id}}" maxlength="40">
+        <button type="button" data-action="deleteCategory" data-id="{{id}}" title="{{localize 'SIEDLUNG.editor.deleteCategory'}}"><i class="fa-solid fa-trash"></i></button>
+      </li>
+      {{/each}}
+    </ul>
+  </section>
+
+  <section>
+    <header>
+      <h3>{{localize "SIEDLUNG.editor.buildings"}}</h3>
+      <button type="button" data-action="addBuilding"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.editor.addBuilding"}}</button>
+    </header>
+    {{#each groups}}
+    <details open style="--cat: {{color}}">
+      <summary>{{label}}</summary>
+      <ul class="bld-list">
+        {{#each buildings}}
+        <li>
+          <span class="shape" style="--w: {{shape.w}}; --h: {{shape.h}}">
+            {{#each shape.cells}}<i style="grid-column: {{col}}; grid-row: {{row}}"></i>{{/each}}
+          </span>
+          <span class="name">{{name}}</span>
+          <span class="meta">{{count}} {{localize "SIEDLUNG.editor.fields"}}</span>
+          <button type="button" data-action="editBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.editor.edit'}}"><i class="fa-solid fa-pencil"></i></button>
+          <button type="button" data-action="deleteBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.editor.deleteBuilding'}}"><i class="fa-solid fa-trash"></i></button>
+        </li>
+        {{else}}
+        <li class="empty">{{localize "SIEDLUNG.editor.empty"}}</li>
+        {{/each}}
+      </ul>
+    </details>
+    {{/each}}
+  </section>
+
+  <footer>
+    <button type="button" data-action="resetDefaults">{{localize "SIEDLUNG.editor.resetDefaults"}}</button>
+  </footer>
+</div>

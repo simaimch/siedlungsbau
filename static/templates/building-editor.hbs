@@ -1,0 +1,26 @@
+<div class="siedlung-building-editor">
+  <div class="form-group">
+    <label>{{localize "SIEDLUNG.editor.name"}}</label>
+    <input type="text" name="name" value="{{name}}" maxlength="60" autocomplete="off">
+  </div>
+  <div class="form-group">
+    <label>{{localize "SIEDLUNG.editor.category"}}</label>
+    <select name="category">
+      {{#each categories}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+    </select>
+  </div>
+  <div class="form-group size">
+    <label>{{localize "SIEDLUNG.editor.width"}}</label>
+    <input type="number" name="w" value="{{w}}" min="1" max="{{max}}">
+    <label>{{localize "SIEDLUNG.editor.height"}}</label>
+    <input type="number" name="h" value="{{h}}" min="1" max="{{max}}">
+  </div>
+  <p class="hint">{{localize "SIEDLUNG.editor.shape"}} – <span class="count">{{count}}</span> {{localize "SIEDLUNG.editor.fields"}}</p>
+  <div class="shape-grid" style="--w: {{w}}">
+    {{#each gridCells}}<button type="button" class="cell {{#if on}}on{{/if}}" data-action="toggleCell" data-x="{{x}}" data-y="{{y}}"></button>{{/each}}
+  </div>
+  <footer>
+    <button type="button" data-action="save"><i class="fa-solid fa-check"></i> {{localize "SIEDLUNG.editor.save"}}</button>
+    <button type="button" data-action="cancel">{{localize "SIEDLUNG.editor.cancel"}}</button>
+  </footer>
+</div>

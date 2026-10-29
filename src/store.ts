@@ -1,5 +1,6 @@
 import { ID } from "./constants";
-import { BUILDINGS, DEFAULT_TERRAIN, ROCK_CHANCE, TERRAIN } from "./data";
+import { TERRAIN, DEFAULT_TERRAIN, ROCK_CHANCE } from "./data";
+import { getBuildingTypes } from "./definitions";
 import type { Building, BuildingType, Cell, PlacementCheck, TerrainData } from "./types";
 
 export const cellKey = (x: number, y: number): string => `${x},${y}`;
@@ -8,13 +9,24 @@ export function getBuildings(scene: any = canvas.scene): Building[] {
   return scene?.getFlag(ID, "buildings") ?? [];
 }
 
+export function getTerrain(scene: any = canvas?.scene): TerrainData | null {
+  return scene?.getFlag(ID, "terrain") ?? null;
+}
+
+/** Gelände-Zeichen an einer Zelle; ohne Geländedaten (oder außerhalb) gilt das Standardgelände. */
+export function terrainAt(terrain: TerrainData | null, x: number, y: number): string {
+  if (!terrain || x < 0 || y < 0 || x >= terrain.cols || y >= terrain.rows) return DEFAULT_TERRAIN;
+  return terrain.cells[y * terrain.cols + x] ?? DEFAULT_TERRAIN;
+}
+
+
 /** Nur Szenen mit gesetzter Markierung sind Siedlungsszenen. */
 export function isSettlementScene(scene: any = canvas?.scene): boolean {
   return scene?.getFlag(ID, "enabled") === true;
 }
 
 export function getType(typeId: string): BuildingType | undefined {
-  return BUILDINGS.find(b => b.id === typeId);
+  return getBuildingTypes().find(b => b.id === typeId);
 }
 
 /** Dreht (90°-Schritte) und spiegelt Zellen und verschiebt sie wieder auf min = 0. */
@@ -24,6 +36,25 @@ export function transformCells(cells: Cell[], rotation = 0, mirror = false): Cel
   const minX = Math.min(...out.map(c => c[0]));
   const minY = Math.min(...out.map(c => c[1]));
   return out.map(([x, y]): Cell => [x - minX, y - minY]);
+}
+
+/** Alle Felder hängen über Kanten (nicht nur Ecken) zusammen. */
+export function isConnected(cells: Cell[]): boolean {
+  if (!cells.length) return false;
+  const set = new Set(cells.map(([x, y]) => cellKey(x, y)));
+  const seen = new Set<string>([cellKey(cells[0][0], cells[0][1])]);
+  const stack: Cell[] = [cells[0]];
+  while (stack.length) {
+    const [x, y] = stack.pop()!;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const k = cellKey(x + dx, y + dy);
+      if (set.has(k) && !seen.has(k)) {
+        seen.add(k);
+        stack.push([x + dx, y + dy]);
+      }
+    }
+  }
+  return seen.size === set.size;
 }
 
 export function bounds(cells: Cell[]): { w: number; h: number } {
@@ -51,8 +82,8 @@ export function checkPlacement(scene: any, cells: Cell[]): PlacementCheck {
   const size: number = scene.grid.size;
   const cols = Math.floor(scene.width / size);
   const rows = Math.floor(scene.height / size);
-  const taken = new Set<string>();
   const terrain = getTerrain(scene);
+  const taken = new Set<string>();
   for (const b of getBuildings(scene)) for (const [x, y] of b.cells) taken.add(cellKey(x, y));
   for (const [x, y] of cells) {
     if (x < 0 || y < 0 || x >= cols || y >= rows) return { ok: false, reason: "SIEDLUNG.errors.outOfBounds" };
@@ -61,13 +92,3 @@ export function checkPlacement(scene: any, cells: Cell[]): PlacementCheck {
   }
   return { ok: true };
 }
-
-export function getTerrain(scene: any = canvas?.scene): TerrainData | null {
-  return scene?.getFlag(ID, "terrain") ?? null;
-}
-
-export function terrainAt(terrain: TerrainData | null, x: number, y: number): string {
-  if (!terrain || x < 0 || y < 0 || x >= terrain.cols || y >= terrain.rows) return DEFAULT_TERRAIN;
-  return terrain.cells[y * terrain.cols + x] ?? DEFAULT_TERRAIN;
-}
-

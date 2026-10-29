@@ -4,8 +4,16 @@ export type Cell = [number, number];
 export type Status = "ordered" | "done";
 
 export interface Category {
+  id: string;
   label: string;
+  /** CSS-Farbe im Format #rrggbb */
   color: string;
+}
+
+/** Vom SL pflegbare Definitionen (als Welt-Einstellung gespeichert). */
+export interface Definitions {
+  categories: Category[];
+  buildings: BuildingType[];
 }
 
 export interface BuildingType {
@@ -34,6 +42,8 @@ export interface OrderMessage {
   action: "order";
   sceneId: string;
   typeId: string;
+  /** Vom Auftraggeber gewählter Name des Gebäudes. */
+  name: string;
   cells: Cell[];
   userId: string;
 }
@@ -55,14 +65,4 @@ export interface TerrainData {
   cols: number;
   rows: number;
   cells: string;
-}
-
-export interface OrderMessage {
-  action: "order";
-  sceneId: string;
-  typeId: string;
-  /** Vom Auftraggeber gewählter Name des Gebäudes. */
-  name: string;
-  cells: Cell[];
-  userId: string;
 }

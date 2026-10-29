@@ -1,5 +1,6 @@
 import { ID } from "./constants";
-import { PaletteApp, OrdersApp, toggleApp, refreshOrders, closeApps } from "./apps";
+import { PaletteApp, OrdersApp, DefinitionsApp, toggleApp, refreshOrders, closeApps } from "./apps";
+import { registerSettings } from "./settings";
 import { initRender, teardownRender, redraw } from "./render";
 import { Placement } from "./placement";
 import { registerSocket, createSettlementScene, toggleSettlementScene } from "./service";
@@ -40,11 +41,20 @@ Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
         visible: active,
         onChange: () => { if (isSettlementScene()) toggleApp(OrdersApp); }
       },
+      editor: {
+        name: "editor",
+        title: "SIEDLUNG.tools.editor",
+        icon: "fa-solid fa-pen-ruler",
+        order: 2,
+        button: true,
+        visible: isGM,
+        onChange: () => { if (game.user.isGM) toggleApp(DefinitionsApp); }
+      },
       info: {
         name: "info",
         title: "SIEDLUNG.tools.info",
         icon: "fa-solid fa-circle-info",
-        order: 2,
+        order: 3,
         button: true,
         visible: !active && isGM,
         onChange: () => ui.notifications.info(game.i18n.localize("SIEDLUNG.notes.notSettlement"))
@@ -53,7 +63,7 @@ Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
         name: "toggleScene",
         title: active ? "SIEDLUNG.tools.unmarkScene" : "SIEDLUNG.tools.markScene",
         icon: "fa-solid fa-flag",
-        order: 3,
+        order: 4,
         button: true,
         visible: isGM,
         onChange: () => { void toggleSettlementScene(); }
@@ -62,13 +72,17 @@ Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
         name: "createScene",
         title: "SIEDLUNG.tools.createScene",
         icon: "fa-solid fa-map",
-        order: 4,
+        order: 5,
         button: true,
         visible: isGM,
         onChange: () => { void createSettlementScene(); }
       }
     }
   };
+});
+
+Hooks.once("init", () => {
+  registerSettings();
 });
 
 Hooks.once("ready", () => {

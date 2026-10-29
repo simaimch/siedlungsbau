@@ -4,13 +4,12 @@
   "description": "Gebäude auf einer Raster-Karte (1 Feld = 5 m) in Auftrag geben und platzieren. Die SL schließt den Bau ab.",
   "version": "0.1.0",
   "compatibility": { "minimum": "14", "verified": "14" },
-  "authors": [{ "name": "Christian Hoffmann" }],
+  "authors": [{ "name": "Dein Name" }],
   "esmodules": ["scripts/main.js"],
   "styles": ["styles/siedlungsbau.css"],
   "languages": [{ "lang": "de", "name": "Deutsch", "path": "lang/de.json" }],
   "relationships": {
     "systems": [{ "id": "pf2e", "type": "system", "compatibility": {} }]
   },
-  "socket": true,
-  "url":"https://github.com/simaimch/siedlungsbau"
+  "socket": true
 }

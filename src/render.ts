@@ -1,8 +1,10 @@
 import { STATUS } from "./constants";
-import { CATEGORIES, DEFAULT_TERRAIN, TERRAIN } from "./data";
-import { getBuildings, cellKey, getTerrain } from "./store";
+import { TERRAIN, DEFAULT_TERRAIN } from "./data";
+import { getCategory } from "./definitions";
+import { getBuildings, getTerrain, cellKey } from "./store";
 import type { Building, Cell } from "./types";
 
+let terrainContainer: any = null;
 let container: any = null;
 
 // Kleine Helfer, die mit PIXI v7 und v8 funktionieren.
@@ -67,6 +69,23 @@ export function teardownRender(): void {
   container = null;
 }
 
+/** Zeichnet nur Gelände, das vom Standard (Gras = Hintergrundfarbe) abweicht. */
+function drawTerrain(): void {
+  for (const c of terrainContainer.removeChildren()) c.destroy({ children: true });
+  const terrain = getTerrain();
+  if (!terrain) return;
+  const s: number = canvas.scene.grid.size;
+  const g = new PIXI.Graphics();
+  for (let y = 0; y < terrain.rows; y++) {
+    for (let x = 0; x < terrain.cols; x++) {
+      const code = terrain.cells[y * terrain.cols + x];
+      if (!code || code === DEFAULT_TERRAIN || !TERRAIN[code]) continue;
+      fillRect(g, x * s, y * s, s, s, hexToInt(TERRAIN[code].color), 0.85);
+    }
+  }
+  terrainContainer.addChild(g);
+}
+
 export function redraw(): void {
   if (!container || !terrainContainer || !canvas.scene) return;
   drawTerrain();
@@ -75,7 +94,7 @@ export function redraw(): void {
 
   for (const b of getBuildings()) {
     const done = b.status === STATUS.DONE;
-    const color = hexToInt(CATEGORIES[b.category]?.color ?? "#888888");
+    const color = hexToInt(getCategory(b.category)?.color ?? "#888888");
     const g = new PIXI.Graphics();
     for (const [x, y] of b.cells) fillRect(g, x * s, y * s, s, s, color, done ? 0.65 : 0.25);
     outline(g, b.cells, s, color, done ? 1 : 0.7);
@@ -95,26 +114,4 @@ export function redraw(): void {
     holder.position.set(x, y);
     container.addChild(holder);
   }
-}
-
-let terrainContainer: any = null;   // neben `container`
-
-
-
-
-
-function drawTerrain(): void {
-  for (const c of terrainContainer.removeChildren()) c.destroy({ children: true });
-  const terrain = getTerrain();
-  if (!terrain) return;
-  const s: number = canvas.scene.grid.size;
-  const g = new PIXI.Graphics();
-  for (let y = 0; y < terrain.rows; y++) {
-    for (let x = 0; x < terrain.cols; x++) {
-      const code = terrain.cells[y * terrain.cols + x];
-      if (!code || code === DEFAULT_TERRAIN || !TERRAIN[code]) continue;
-      fillRect(g, x * s, y * s, s, s, hexToInt(TERRAIN[code].color), 0.85);
-    }
-  }
-  terrainContainer.addChild(g);
 }

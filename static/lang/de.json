@@ -7,7 +7,8 @@
       "createScene": "Siedlungs-Szene erstellen",
       "markScene": "Szene als Siedlungsszene markieren",
       "unmarkScene": "Siedlungsmarkierung entfernen",
-      "info": "Hinweis"
+      "info": "Hinweis",
+      "editor": "Gebäude-Editor"
     },
     "palette": {
       "title": "Gebäude",
@@ -26,7 +27,8 @@
       "removeConfirm": "Dieses Gebäude bzw. diesen Auftrag wirklich entfernen?"
     },
     "placement": {
-      "hint": "Linksklick = beauftragen (Shift = mehrfach), R = drehen, Shift+R = spiegeln, Esc = abbrechen."
+      "hint": "Linksklick = beauftragen (Shift = mehrfach), R = drehen, Shift+R = spiegeln, Rechtsklick oder Esc = abbrechen.",
+      "hintShort": "Platzieren: R = drehen, Shift+R = spiegeln, Rechtsklick/Esc = abbrechen"
     },
     "chat": {
       "ordered": "<strong>{user}</strong> hat <strong>{name}</strong> in Auftrag gegeben.",
@@ -57,6 +59,40 @@
       "title": "Gebäude benennen",
       "label": "Name",
       "confirm": "Beauftragen"
+    },
+    "editor": {
+      "title": "Gebäude-Editor",
+      "categories": "Kategorien",
+      "addCategory": "Kategorie hinzufügen",
+      "newCategory": "Neue Kategorie",
+      "deleteCategory": "Kategorie löschen",
+      "buildings": "Gebäude",
+      "addBuilding": "Gebäude hinzufügen",
+      "newBuilding": "Neues Gebäude",
+      "editBuilding": "Gebäude bearbeiten",
+      "deleteBuilding": "Gebäude löschen",
+      "edit": "Bearbeiten",
+      "noCategory": "Ohne Kategorie",
+      "empty": "(leer)",
+      "fields": "Felder",
+      "name": "Name",
+      "category": "Kategorie",
+      "width": "Breite",
+      "height": "Höhe",
+      "shape": "Form (Felder anklicken)",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "resetDefaults": "Auf Standard zurücksetzen",
+      "confirmDeleteCategory": "Diese Kategorie löschen?",
+      "confirmDeleteBuilding": "Dieses Gebäude aus den Definitionen löschen? Bereits beauftragte oder gebaute Gebäude auf Karten bleiben bestehen.",
+      "confirmReset": "Alle Kategorien und Gebäude auf die Standardwerte zurücksetzen? Eigene Definitionen gehen verloren.",
+      "errors": {
+        "noName": "Bitte einen Namen angeben.",
+        "noCells": "Die Form braucht mindestens ein Feld.",
+        "notConnected": "Die Felder der Form müssen über Kanten zusammenhängen.",
+        "noCategory": "Lege zuerst eine Kategorie an.",
+        "categoryNotEmpty": "Die Kategorie enthält noch Gebäude. Verschiebe oder lösche sie zuerst."
+      }
     }
   }
 }
