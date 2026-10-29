@@ -1,6 +1,6 @@
 import { STATUS } from "./constants";
 import { TERRAIN, DEFAULT_TERRAIN } from "./data";
-import { getCategory } from "./definitions";
+import { getCategory, syncTerrain } from "./definitions";
 import { getBuildings, getTerrain, cellKey } from "./store";
 import type { Building, Cell } from "./types";
 
@@ -88,6 +88,8 @@ function drawTerrain(): void {
 
 export function redraw(): void {
   if (!container || !terrainContainer || !canvas.scene) return;
+  // Die erste Szene wird vor dem "ready"-Hook gezeichnet: Geländearten der SL deshalb hier aktuell halten.
+  syncTerrain();
   drawTerrain();
   for (const c of container.removeChildren()) c.destroy({ children: true });
   const s: number = canvas.scene.grid.size;

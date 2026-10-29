@@ -143,8 +143,6 @@
 .siedlung-terrain .meta { opacity: 0.7; font-size: var(--font-size-11, 11px); }
 .application.siedlungsbau .siedlung-terrain { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 
-/* Gelände-Reiter im Editor */
-.siedlung-definitions .terrain-defs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.siedlung-definitions .terrain-defs li { display: grid; grid-template-columns: 40px 1fr 4.5rem 2rem; gap: 6px; align-items: center; }
+/* Gelände-Reiter im Editor: Spalten kommen von .asset-list, hier nur Feinheiten */
 .siedlung-definitions .terrain-defs input[type="checkbox"] { justify-self: center; }
 .siedlung-definitions .terrain-defs li > span:last-child { text-align: center; opacity: 0.6; }
