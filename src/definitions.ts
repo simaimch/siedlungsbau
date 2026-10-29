@@ -64,3 +64,9 @@ export async function resetDefinitions(): Promise<void> {
   if (!game.user.isGM) return;
   await game.settings.set(ID, SETTING_DEFINITIONS, foundry.utils.deepClone(DEFAULT_DEFINITIONS));
 }
+
+/** SL: ersetzt alle Definitionen auf einmal (Import). */
+export async function replaceDefinitions(defs: Definitions): Promise<void> {
+  if (!game.user.isGM) return;
+  await game.settings.set(ID, SETTING_DEFINITIONS, defs);
+}

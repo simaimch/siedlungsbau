@@ -151,6 +151,35 @@
       "completed": "fertiggestellt",
       "stalled": "Ohne Fortschritt: {names}",
       "nothing": "Keine Veränderungen."
+    },
+    "transfer": {
+      "menuName": "Daten exportieren/importieren",
+      "menuLabel": "Öffnen",
+      "menuHint": "Gebäude, Kategorien, Ressourcen und Arbeiter als JSON exportieren oder aus JSON importieren.",
+      "title": "Siedlungsbau: Daten",
+      "export": "Export",
+      "copy": "In Zwischenablage kopieren",
+      "copied": "Daten in die Zwischenablage kopiert.",
+      "copyFailed": "Kopieren nicht möglich. Der Text wurde markiert, bitte mit Strg+C kopieren.",
+      "import": "Import",
+      "importHint": "JSON einfügen. Bereiche, die im Import fehlen (categories, resources, workers, buildings), bleiben unverändert.",
+      "placeholder": "JSON hier einfügen",
+      "run": "Importieren",
+      "empty": "Bitte zuerst JSON einfügen.",
+      "errorsTitle": "Import nicht möglich",
+      "errorsIntro": "Der Import enthält Fehler und wurde nicht übernommen:",
+      "incompleteTitle": "Unvollständiger Import",
+      "incompleteIntro": "Der Import enthält folgende bestehende Einträge nicht:",
+      "cancel": "Abbrechen",
+      "replaceLabel": "Fehlende löschen, Import übernehmen",
+      "mergeLabel": "Mit bestehenden Daten zusammenführen",
+      "optionsHint": "Beim Zusammenführen bleiben die fehlenden Einträge erhalten, gleiche IDs werden vom Import überschrieben.",
+      "cleanupNote": "Beim Löschen werden bestehende Daten bereinigt:",
+      "cleanupCosts": "{count} Kostenposten, die auf gelöschte Ressourcen oder Arbeiter verweisen, werden entfernt.",
+      "cleanupBuildings": "Gebäude ohne gültige Kategorie werden entfernt: {names}",
+      "goldNote": "Goldmünzen sind die Basiswährung und bleiben immer erhalten.",
+      "done": "Import übernommen.",
+      "doneCleanup": "Bereinigt: {costs} Kostenposten, {buildings} Gebäude entfernt."
     }
   }
 }

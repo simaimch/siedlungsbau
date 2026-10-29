@@ -3,6 +3,7 @@ import { DEFAULT_DEFINITIONS } from "./data";
 import { SETTING_DEFINITIONS } from "./definitions";
 import { getType } from "./store";
 import { PaletteApp, DefinitionsApp, refreshApp } from "./apps";
+import { DataTransferApp } from "./transfer-app";
 import { redraw } from "./render";
 import { Placement } from "./placement";
 
@@ -13,6 +14,16 @@ export function registerSettings(): void {
     type: new foundry.data.fields.ObjectField(),
     default: foundry.utils.deepClone(DEFAULT_DEFINITIONS),
     onChange: onDefinitionsChanged
+  });
+
+  // Eigener Reiter in den Spieleinstellungen mit Button für Export/Import (nur SL)
+  game.settings.registerMenu(ID, "dataTransfer", {
+    name: "SIEDLUNG.transfer.menuName",
+    label: "SIEDLUNG.transfer.menuLabel",
+    hint: "SIEDLUNG.transfer.menuHint",
+    icon: "fa-solid fa-file-export",
+    type: DataTransferApp,
+    restricted: true
   });
 }
 
@@ -25,5 +36,6 @@ function onDefinitionsChanged(): void {
   }
   refreshApp(PaletteApp);
   refreshApp(DefinitionsApp);
+  refreshApp(DataTransferApp);
   redraw();
 }

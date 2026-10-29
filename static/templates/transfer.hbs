@@ -1,0 +1,18 @@
+<div class="siedlung-transfer">
+  <section>
+    <header>
+      <h3>{{localize "SIEDLUNG.transfer.export"}}</h3>
+      <button type="button" data-action="copyExport"><i class="fa-regular fa-copy"></i> {{localize "SIEDLUNG.transfer.copy"}}</button>
+    </header>
+    <textarea class="json" name="exportJson" rows="14" readonly spellcheck="false">{{exportJson}}</textarea>
+  </section>
+
+  <section>
+    <header>
+      <h3>{{localize "SIEDLUNG.transfer.import"}}</h3>
+      <button type="button" data-action="runImport"><i class="fa-solid fa-file-import"></i> {{localize "SIEDLUNG.transfer.run"}}</button>
+    </header>
+    <p class="hint">{{localize "SIEDLUNG.transfer.importHint"}}</p>
+    <textarea class="json" name="importJson" rows="10" spellcheck="false" placeholder="{{localize 'SIEDLUNG.transfer.placeholder'}}">{{importJson}}</textarea>
+  </section>
+</div>
