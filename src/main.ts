@@ -1,18 +1,18 @@
-import { ID } from "./constants.js";
-import { PaletteApp, OrdersApp, toggleApp, refreshOrders, closeApps } from "./apps.js";
-import { initRender, teardownRender, redraw } from "./render.js";
-import { Placement } from "./placement.js";
-import { registerSocket, createSettlementScene, toggleSettlementScene } from "./service.js";
-import { isSettlementScene } from "./store.js";
+import { ID } from "./constants";
+import { PaletteApp, OrdersApp, toggleApp, refreshOrders, closeApps } from "./apps";
+import { initRender, teardownRender, redraw } from "./render";
+import { Placement } from "./placement";
+import { registerSocket, createSettlementScene, toggleSettlementScene } from "./service";
+import { isSettlementScene } from "./store";
 
-function refreshControls() {
+function refreshControls(): void {
   // Ab v13: Neuaufbau der Steuerung über render() mit der zu aktivierenden Control-Gruppe.
   ui.controls?.render({ controls: "tokens" });
 }
 
-Hooks.on("getSceneControlButtons", controls => {
+Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
   const active = isSettlementScene();
-  const isGM = game.user.isGM;
+  const isGM: boolean = game.user.isGM;
   controls.siedlung = {
     name: "siedlung",
     title: "SIEDLUNG.title",
@@ -56,7 +56,7 @@ Hooks.on("getSceneControlButtons", controls => {
         order: 3,
         button: true,
         visible: isGM,
-        onChange: () => toggleSettlementScene()
+        onChange: () => { void toggleSettlementScene(); }
       },
       createScene: {
         name: "createScene",
@@ -65,7 +65,7 @@ Hooks.on("getSceneControlButtons", controls => {
         order: 4,
         button: true,
         visible: isGM,
-        onChange: () => createSettlementScene()
+        onChange: () => { void createSettlementScene(); }
       }
     }
   };
@@ -86,13 +86,16 @@ Hooks.on("canvasTearDown", () => {
   teardownRender();
 });
 
-Hooks.on("updateScene", (scene, changes) => {
+Hooks.on("updateScene", (scene: any, changes: any) => {
   if (scene.id !== canvas.scene?.id) return;
   const flags = changes.flags?.[ID];
   if (flags === undefined) return;
   if (typeof flags === "object" && "enabled" in flags) {
     refreshControls();
-    if (!isSettlementScene(scene)) { Placement.stop(); closeApps(); }
+    if (!isSettlementScene(scene)) {
+      Placement.stop();
+      closeApps();
+    }
   }
   redraw();
   refreshOrders();

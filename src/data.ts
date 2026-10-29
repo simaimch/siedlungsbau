@@ -1,19 +1,21 @@
+import type { BuildingType, Category, Cell } from "./types";
+
 // Gebäude-Definitionen. Zellen sind [x, y]-Offsets (x = Spalte, y = Zeile), Ursprung oben links.
 // Baukosten und Arbeiter folgen später: cost / workers sind schon als Platzhalter vorgesehen.
 
-const rect = (w, h) => {
-  const c = [];
+const rect = (w: number, h: number): Cell[] => {
+  const c: Cell[] = [];
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) c.push([x, y]);
   return c;
 };
 
-export const CATEGORIES = {
+export const CATEGORIES: Record<string, Category> = {
   taverne: { label: "Taverne", color: "#c98a3d" },
   baracke: { label: "Baracke", color: "#6b7f9e" },
   sonstiges: { label: "Sonstiges", color: "#7a9a6b" }
 };
 
-export const BUILDINGS = [
+export const BUILDINGS: BuildingType[] = [
   { id: "taverne-klein", name: "Kleine Taverne", category: "taverne", cells: rect(2, 2), cost: null, workers: null },
   { id: "taverne-gross", name: "Große Taverne", category: "taverne", cells: rect(3, 2).concat([[0, 2]]), cost: null, workers: null },
   { id: "baracke-gerade", name: "Baracke", category: "baracke", cells: rect(3, 1), cost: null, workers: null },

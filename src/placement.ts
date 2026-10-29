@@ -1,15 +1,16 @@
-import { transformCells, bounds, checkPlacement } from "./store.js";
-import { fillRect, outline } from "./render.js";
-import { requestOrder } from "./service.js";
+import { transformCells, bounds, checkPlacement } from "./store";
+import { fillRect, outline } from "./render";
+import { requestOrder } from "./service";
+import type { BuildingType, Cell } from "./types";
 
 export class Placement {
-  static type = null;
+  static type: BuildingType | null = null;
   static rotation = 0;
   static mirror = false;
-  static pos = null;
-  static g = null;
+  static pos: { x: number; y: number } | null = null;
+  static g: any = null;
 
-  static start(type) {
+  static start(type: BuildingType): void {
     this.stop();
     this.type = type;
     this.rotation = 0;
@@ -24,7 +25,7 @@ export class Placement {
     ui.notifications.info(game.i18n.localize("SIEDLUNG.placement.hint"));
   }
 
-  static stop() {
+  static stop(): void {
     if (!this.type) return;
     canvas.stage?.off("pointermove", this._onMove);
     canvas.stage?.off("pointerdown", this._onDown);
@@ -35,18 +36,18 @@ export class Placement {
   }
 
   /** Absolute Rasterzellen unter dem Mauszeiger (Form ist um den Zeiger zentriert). */
-  static _cells() {
-    const s = canvas.scene.grid.size;
-    const shape = transformCells(this.type.cells, this.rotation, this.mirror);
+  static _cells(): Cell[] {
+    const s: number = canvas.scene.grid.size;
+    const shape = transformCells(this.type!.cells, this.rotation, this.mirror);
     const { w, h } = bounds(shape);
-    const cx = Math.floor(this.pos.x / s) - Math.floor(w / 2);
-    const cy = Math.floor(this.pos.y / s) - Math.floor(h / 2);
-    return shape.map(([x, y]) => [x + cx, y + cy]);
+    const cx = Math.floor(this.pos!.x / s) - Math.floor(w / 2);
+    const cy = Math.floor(this.pos!.y / s) - Math.floor(h / 2);
+    return shape.map(([x, y]): Cell => [x + cx, y + cy]);
   }
 
-  static _draw() {
-    if (!this.g || !this.pos) return;
-    const s = canvas.scene.grid.size;
+  static _draw(): void {
+    if (!this.g || !this.pos || !this.type) return;
+    const s: number = canvas.scene.grid.size;
     const cells = this._cells();
     const ok = checkPlacement(canvas.scene, cells).ok;
     const color = ok ? 0x2ecc71 : 0xe74c3c;
@@ -55,22 +56,25 @@ export class Placement {
     outline(this.g, cells, s, color, 1, 3);
   }
 
-  static _onMove = event => {
+  static _onMove = (event: any): void => {
     Placement.pos = event.getLocalPosition(canvas.stage);
     Placement._draw();
   };
 
-  static _onDown = event => {
-    if (event.button !== 0 || !Placement.pos) return;
+  static _onDown = (event: any): void => {
+    if (event.button !== 0 || !Placement.pos || !Placement.type) return;
     const cells = Placement._cells();
     const res = checkPlacement(canvas.scene, cells);
-    if (!res.ok) return ui.notifications.warn(game.i18n.localize(res.reason));
+    if (!res.ok) {
+      ui.notifications.warn(game.i18n.localize(res.reason!));
+      return;
+    }
     requestOrder(Placement.type.id, cells);
     if (!event.shiftKey) Placement.stop();
   };
 
-  static _onKey = event => {
-    if (event.target?.closest?.("input, textarea, [contenteditable='true']")) return;
+  static _onKey = (event: KeyboardEvent): void => {
+    if ((event.target as HTMLElement | null)?.closest?.("input, textarea, [contenteditable='true']")) return;
     if (event.code === "Escape") {
       Placement.stop();
     } else if (event.code === "KeyR") {
