@@ -47,6 +47,8 @@ export interface BuildingType {
   buildCost: CostEntry[];
   /** Laufende Betriebskosten (Ressourcen und/oder Personal); der Zeitraum folgt später. */
   upkeep: CostEntry[];
+  /** Wirkung auf Siedlungs-Werte pro Woche, solange das Gebäude fertig ist (negativ senkt den Wert). */
+  statEffects?: StatEffect[];
 }
 
 /** Ein beauftragtes oder fertiges Gebäude auf der Karte (als Scene-Flag gespeichert). */
@@ -61,6 +63,7 @@ export interface Building {
   /** Beim Beauftragen festgehaltene Kosten (ältere Aufträge ohne diese Felder nutzen die aktuelle Typ-Definition). */
   buildCost?: CostEntry[];
   upkeep?: CostEntry[];
+  statEffects?: StatEffect[];
   /** Bisher gelieferte Menge je Ressource bzw. Arbeiterart (nur im Bau). */
   progress?: Progress;
 }
@@ -136,3 +139,15 @@ export interface OpenStat {
 }
 
 export type StatType = IntervalStat | OpenStat;
+
+/** Wöchentliche Veränderung eines Siedlungs-Werts durch ein Gebäude. */
+export interface StatEffect {
+  /** ID des Stats */
+  id: string;
+  /** Veränderung (pro Woche bzw. einmalig); negativ senkt den Wert */
+  amount: number;
+  /** "weekly" (Standard): jede Woche, solange das Gebäude fertig ist; "once": einmalig bei Fertigstellung, dauerhaft. */
+  mode?: StatEffectMode;
+}
+
+export type StatEffectMode = "weekly" | "once";

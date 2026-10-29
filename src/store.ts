@@ -1,7 +1,7 @@
 import { ID } from "./constants";
 import { TERRAIN, DEFAULT_TERRAIN, ROCK_CHANCE } from "./data";
 import { getBuildingTypes } from "./definitions";
-import type { Building, BuildingType, Cell, CostEntry, PlacementCheck, TerrainData } from "./types";
+import type { Building, BuildingType, Cell, CostEntry, PlacementCheck, StatEffect, TerrainData } from "./types";
 
 export const cellKey = (x: number, y: number): string => `${x},${y}`;
 
@@ -94,7 +94,11 @@ export function checkPlacement(scene: any, cells: Cell[]): PlacementCheck {
 }
 
 /** Kosten eines Gebäudes: beim Beauftragen festgehaltene Werte, sonst (ältere Aufträge) die aktuelle Typ-Definition. */
-export function costsOf(b: Building): { buildCost: CostEntry[]; upkeep: CostEntry[] } {
-  const type = getType(b.typeId);
-  return { buildCost: b.buildCost ?? type?.buildCost ?? [], upkeep: b.upkeep ?? type?.upkeep ?? [] };
+export function costsOf(b: Building): { buildCost: CostEntry[]; upkeep: CostEntry[]; statEffects: StatEffect[] } {
+  const type = getBuildingTypes().find(t => t.id === b.typeId);
+  return {
+    buildCost: b.buildCost ?? type?.buildCost ?? [],
+    upkeep: b.upkeep ?? type?.upkeep ?? [],
+    statEffects: b.statEffects ?? type?.statEffects ?? []
+  };
 }

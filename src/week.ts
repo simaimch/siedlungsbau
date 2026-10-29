@@ -1,9 +1,11 @@
 // Reine Rechenlogik der Arbeitswoche (ohne Foundry-Abhängigkeiten, daher einzeln testbar).
-import type { Building, CostEntry, CostKind, Progress, SettlementState } from "./types";
+import { clampStat, defaultStatValue } from "./stats";
+import type { Building, CostEntry, CostKind, Progress, SettlementState, StatEffect, StatType } from "./types";
 
 export interface Costs {
   buildCost: CostEntry[];
   upkeep: CostEntry[];
+  statEffects?: StatEffect[];
 }
 export type CostsOf = (b: Building) => Costs;
 
@@ -46,8 +48,47 @@ export interface BuildingReport {
   completed: boolean;
 }
 
+/** Wendet Änderungen {statId: Summe} auf Werte an (begrenzt auf den Wertebereich); liefert nur tatsächlich betroffene Stats. */
+export function applyStatChanges(
+  stats: StatType[], values: Record<string, number>, net: Record<string, number>, once: Record<string, number> = {}
+): { values: Record<string, number>; reports: StatReport[] } {
+  const out: Record<string, number> = { ...values };
+  const reports: StatReport[] = [];
+  for (const stat of stats) {
+    const weekly = Math.round((net[stat.id] ?? 0) * 100) / 100;
+    const single = Math.round((once[stat.id] ?? 0) * 100) / 100;
+    const change = Math.round((weekly + single) * 100) / 100;
+    if (!change) continue;
+    const before = clampStat(stat, values[stat.id] ?? defaultStatValue(stat));
+    const after = clampStat(stat, before + change);
+    out[stat.id] = after;
+    reports.push({ id: stat.id, before, after, change, weekly, once: single });
+  }
+  return { values: out, reports };
+}
+
+/** Summe der einmaligen Wirkungen einer Liste von Effekten pro Stat. */
+export function sumEffects(effects: StatEffect[], mode: "weekly" | "once"): Record<string, number> {
+  const net: Record<string, number> = {};
+  for (const e of effects) if ((e.mode ?? "weekly") === mode) net[e.id] = (net[e.id] ?? 0) + e.amount;
+  return net;
+}
+
+export interface StatReport {
+  id: string;
+  before: number;
+  after: number;
+  /** Summe der Wirkungen fertiger Gebäude (kann durch die Grenzen des Werts größer sein als after - before) */
+  change: number;
+  /** Anteil der wöchentlichen Wirkungen */
+  weekly: number;
+  /** Anteil der einmaligen Wirkungen (neu fertiggestellte Gebäude) */
+  once: number;
+}
+
 export interface WeekResult {
   state: SettlementState;
+  stats: StatReport[];
   buildings: Building[];
   resources: ResourceReport[];
   labor: LaborReport[];
@@ -93,7 +134,7 @@ export function laborCommitted(buildings: Building[], costsOf: CostsOf): Record<
  *    Arbeit kommt aus dem Wochenvorrat an Arbeitskraft, aber nur so weit, dass der Arbeitsanteil nie über dem
  *    Materialanteil liegt. Ist alles geliefert, gilt das Gebäude als fertig.
  */
-export function computeWeek(state: SettlementState, buildings: Building[], costsOf: CostsOf): WeekResult {
+export function computeWeek(state: SettlementState, buildings: Building[], costsOf: CostsOf, stats: StatType[] = []): WeekResult {
   const stock: Record<string, number> = { ...state.resources };
   const have = (id: string): number => stock[id] ?? 0;
   const add = (map: Record<string, number>, id: string, n: number): void => {
@@ -200,8 +241,23 @@ export function computeWeek(state: SettlementState, buildings: Building[], costs
 
   for (const r of reports.values()) r.after = have(r.id);
 
+  // --- 3. Werte ---------------------------------------------------------
+  // Wöchentliche Wirkungen: nur Gebäude, die zu Beginn der Woche fertig waren.
+  // Einmalige Wirkungen: Gebäude, die in dieser Woche fertig geworden sind.
+  const weeklyEffects: StatEffect[] = [];
+  const onceEffects: StatEffect[] = [];
+  buildings.forEach((b, i) => {
+    const effects = costsOf(b).statEffects ?? [];
+    if (b.status === "done") weeklyEffects.push(...effects);
+    else if (updated[i].status === "done") onceEffects.push(...effects);
+  });
+  const applied = applyStatChanges(stats, state.stats, sumEffects(weeklyEffects, "weekly"), sumEffects(onceEffects, "once"));
+  const statValues = applied.values;
+  const statReports = applied.reports;
+
   return {
-    state: { ...state, week: state.week + 1, resources: stock, workers: { ...state.workers } },
+    state: { ...state, week: state.week + 1, resources: stock, workers: { ...state.workers }, stats: statValues },
+    stats: statReports,
     buildings: updated,
     resources: [...reports.values()],
     labor: [...laborReports.values()],

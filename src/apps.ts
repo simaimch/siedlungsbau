@@ -1,7 +1,7 @@
 import { ID, STATUS, GOLD_ID } from "./constants";
 import { getBuildings, getType, bounds, isSettlementScene, isConnected, cellKey, transformCells, costsOf } from "./store";
 import {
-  getDefinitions, getCategories, getCategory, getResources, getWorkers, getStats, getAsset, assetKey, isGold, costChips,
+  getDefinitions, getCategories, getCategory, getResources, getWorkers, getStats, getAsset, assetKey, isGold, costChips, effectChips,
   saveDefinitions, resetDefinitions
 } from "./definitions";
 import { buildingCenter } from "./render";
@@ -12,7 +12,7 @@ import { getSettlement, setAmount, setStat, advanceWeek } from "./settlement";
 import { clampStat, contrastText, defaultStatValue, describeInterval, stripGradient } from "./stats";
 import { openStatEditor } from "./stat-editor";
 import { fractions, laborCommitted } from "./week";
-import type { Building, BuildingType, Cell, CostEntry, CostKind } from "./types";
+import type { Building, BuildingType, Cell, CostEntry, CostKind, StatEffect } from "./types";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -28,6 +28,7 @@ function toPreview(b: BuildingType) {
     name: b.name,
     count: b.cells.length,
     shape: { w, h, cells: b.cells.map(([x, y]) => ({ col: x + 1, row: y + 1 })) },
+    effects: effectChips(b.statEffects ?? []),
     buildCost: costChips(b.buildCost),
     upkeep: costChips(b.upkeep)
   };
@@ -393,6 +394,10 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async #onDeleteStat(_event: Event, target: HTMLElement): Promise<void> {
     const id = target.dataset.id;
+    if (getDefinitions().buildings.some(b => (b.statEffects ?? []).some(e => e.id === id))) {
+      ui.notifications.warn(t("SIEDLUNG.stats.errors.inUse"));
+      return;
+    }
     if (!(await confirm(t("SIEDLUNG.stats.delete"), t("SIEDLUNG.stats.confirmDelete")))) return;
     await saveDefinitions(defs => {
       defs.stats = defs.stats.filter(s => s.id !== id);
@@ -421,6 +426,7 @@ interface EditorState {
   on: Set<string>;
   buildCost: CostEntry[];
   upkeep: CostEntry[];
+  statEffects: StatEffect[];
 }
 
 /**
@@ -449,6 +455,8 @@ export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2)
     actions: {
       toggleCell: BuildingEditorApp.#onToggleCell,
       addCost: BuildingEditorApp.#onAddCost,
+      addEffect: BuildingEditorApp.#onAddEffect,
+      removeEffect: BuildingEditorApp.#onRemoveEffect,
       removeCost: BuildingEditorApp.#onRemoveCost,
       save: BuildingEditorApp.#onSave,
       cancel: BuildingEditorApp.#onCancel
@@ -478,7 +486,8 @@ export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2)
       h: Math.min(MAX_SHAPE_SIZE, Math.max(h, 4)),
       on: new Set(cells.map(([x, y]) => cellKey(x, y))),
       buildCost: (type?.buildCost ?? []).map(e => ({ ...e })),
-      upkeep: (type?.upkeep ?? []).map(e => ({ ...e }))
+      upkeep: (type?.upkeep ?? []).map(e => ({ ...e })),
+      statEffects: (type?.statEffects ?? []).map(e => ({ ...e }))
     };
   }
 
@@ -523,6 +532,13 @@ export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2)
         allowNegative: key === "upkeep",
         hint: key === "upkeep" ? t("SIEDLUNG.editor.upkeepHint") : "",
         rows: rowsFor(this._state[key])
+      })),
+      hasStats: getStats().length > 0,
+      effectRows: this._state.statEffects.map((e, index) => ({
+        index,
+        amount: e.amount,
+        once: e.mode === "once",
+        options: getStats().map(s => ({ value: s.id, label: s.name, selected: s.id === e.id }))
       }))
     };
   }
@@ -549,6 +565,16 @@ export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2)
       }
       this._state[key] = entries;
     }
+
+    const effectRows = this.element.querySelectorAll(".effect-row") as NodeListOf<HTMLElement>;
+    this._state.statEffects = [...effectRows].map(row => {
+      const amount = Number((row.querySelector("input[name=amount]") as HTMLInputElement).value);
+      return {
+        id: (row.querySelector("select[name=stat]") as HTMLSelectElement).value,
+        amount: Number.isFinite(amount) ? amount : 0,
+        mode: (row.querySelector("select[name=mode]") as HTMLSelectElement).value === "once" ? "once" : "weekly"
+      } as StatEffect;
+    });
   }
 
   _resize(): void {
@@ -586,6 +612,19 @@ export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2)
     void this.render();
   }
 
+  static #onAddEffect(this: BuildingEditorApp): void {
+    this._syncForm();
+    const first = getStats()[0];
+    if (first) this._state.statEffects.push({ id: first.id, amount: 1, mode: "weekly" });
+    void this.render();
+  }
+
+  static #onRemoveEffect(this: BuildingEditorApp, _event: Event, target: HTMLElement): void {
+    this._syncForm();
+    this._state.statEffects.splice(Number(target.dataset.index), 1);
+    void this.render();
+  }
+
   static #onRemoveCost(this: BuildingEditorApp, _event: Event, target: HTMLElement): void {
     this._syncForm();
     const key = target.dataset.list as CostList;
@@ -608,13 +647,23 @@ export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2)
     const cells = transformCells(raw, 0, false); // verschiebt die Form auf den Ursprung
     const buildCost = normalizeCosts(s.buildCost, false);
     const upkeep = normalizeCosts(s.upkeep, true);
+    // Wirkungen auf Werte: gleiche Stats zusammenfassen, unbekannte und 0 verwerfen
+    const effects = new Map<string, StatEffect>();
+    for (const e of s.statEffects) {
+      if (!getStats().some(x => x.id === e.id)) continue;
+      const mode = e.mode === "once" ? "once" : "weekly";
+      const key = `${mode}:${e.id}`;
+      const prev = effects.get(key);
+      effects.set(key, { id: e.id, mode, amount: Math.round(((prev?.amount ?? 0) + e.amount) * 100) / 100 });
+    }
+    const statEffects: StatEffect[] = [...effects.values()].filter(e => e.amount !== 0);
 
     await saveDefinitions(defs => {
       const existing = s.typeId ? defs.buildings.find(b => b.id === s.typeId) : undefined;
       if (existing) {
-        Object.assign(existing, { name, category: s.category, cells, buildCost, upkeep });
+        Object.assign(existing, { name, category: s.category, cells, buildCost, upkeep, statEffects });
       } else {
-        defs.buildings.push({ id: foundry.utils.randomID(), name, category: s.category, cells, buildCost, upkeep });
+        defs.buildings.push({ id: foundry.utils.randomID(), name, category: s.category, cells, buildCost, upkeep, statEffects });
       }
     });
     await this.close();

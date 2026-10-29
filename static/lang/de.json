@@ -16,7 +16,10 @@
       "title": "Gebäude",
       "fields": "Felder",
       "build": "Bau",
-      "upkeep": "Betrieb"
+      "upkeep": "Betrieb",
+      "effects": "Wirkung",
+      "weekly": "pro Woche",
+      "once": "einmalig"
     },
     "orders": {
       "title": "Bauaufträge",
@@ -120,7 +123,13 @@
       "removeCost": "Posten entfernen",
       "groupResources": "Ressourcen",
       "groupWorkers": "Arbeiter",
-      "upkeepHint": "Negative Mengen bedeuten, dass das Gebäude etwas produziert bzw. Arbeitskraft liefert."
+      "upkeepHint": "Negative Mengen bedeuten, dass das Gebäude etwas produziert bzw. Arbeitskraft liefert.",
+      "statEffects": "Wirkung auf Werte",
+      "statEffectsHint": "„Pro Woche“ gilt jede Woche, solange das Gebäude fertig ist. „Einmalig“ ändert den Wert dauerhaft ein einziges Mal bei Fertigstellung. Negative Zahlen senken den Wert.",
+      "addEffect": "Wirkung hinzufügen",
+      "removeEffect": "Wirkung entfernen",
+      "modeWeekly": "pro Woche",
+      "modeOnce": "einmalig"
     },
     "settlement": {
       "title": "Siedlungs-Übersicht",
@@ -152,7 +161,11 @@
       "progress": "Baufortschritt",
       "completed": "fertiggestellt",
       "stalled": "Ohne Fortschritt: {names}",
-      "nothing": "Keine Veränderungen."
+      "nothing": "Keine Veränderungen.",
+      "stats": "Werte",
+      "statLimit": "Grenze erreicht",
+      "once": "einmalig",
+      "weekly": "pro Woche"
     },
     "transfer": {
       "menuName": "Daten exportieren/importieren",
@@ -181,7 +194,8 @@
       "cleanupBuildings": "Gebäude ohne gültige Kategorie werden entfernt: {names}",
       "goldNote": "Goldmünzen sind die Basiswährung und bleiben immer erhalten.",
       "done": "Import übernommen.",
-      "doneCleanup": "Bereinigt: {costs} Kostenposten, {buildings} Gebäude entfernt."
+      "doneCleanup": "Bereinigt: {costs} Kostenposten, {buildings} Gebäude entfernt.",
+      "cleanupEffects": "{count} Wirkungen auf nicht mehr vorhandene Werte werden entfernt."
     },
     "stats": {
       "title": "Siedlungs-Werte",
@@ -212,7 +226,8 @@
         "pointRange": "Ein Stützpunkt liegt außerhalb des Intervalls.",
         "pointName": "Jeder Stützpunkt braucht einen Namen.",
         "pointColor": "Ein Stützpunkt hat eine ungültige Farbe.",
-        "pointDuplicate": "Zwei Stützpunkte haben denselben Wert."
+        "pointDuplicate": "Zwei Stützpunkte haben denselben Wert.",
+        "inUse": "Dieser Wert wird noch von Gebäuden verändert. Entferne die Wirkung dort zuerst."
       }
     }
   }

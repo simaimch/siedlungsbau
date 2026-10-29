@@ -31,6 +31,27 @@
   </fieldset>
   {{/each}}
 
+  {{#if hasStats}}
+  <fieldset class="cost-list">
+    <legend>{{localize "SIEDLUNG.editor.statEffects"}}</legend>
+    <p class="hint">{{localize "SIEDLUNG.editor.statEffectsHint"}}</p>
+    {{#each effectRows}}
+    <div class="cost-row effect-row">
+      <select name="stat">
+        {{#each options}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+      </select>
+      <input type="number" name="amount" value="{{amount}}" step="any">
+      <select name="mode">
+        <option value="weekly" {{#unless once}}selected{{/unless}}>{{localize "SIEDLUNG.editor.modeWeekly"}}</option>
+        <option value="once" {{#if once}}selected{{/if}}>{{localize "SIEDLUNG.editor.modeOnce"}}</option>
+      </select>
+      <button type="button" data-action="removeEffect" data-index="{{index}}" title="{{localize 'SIEDLUNG.editor.removeEffect'}}"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    {{/each}}
+    <button type="button" data-action="addEffect"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.editor.addEffect"}}</button>
+  </fieldset>
+  {{/if}}
+
   <div class="form-group size">
     <label>{{localize "SIEDLUNG.editor.width"}}</label>
     <input type="number" name="w" value="{{w}}" min="1" max="{{max}}">

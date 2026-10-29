@@ -1,11 +1,11 @@
 import { ID } from "./constants";
 import { getBuildings, costsOf } from "./store";
 import { getAsset, getStats } from "./definitions";
-import { clampStat } from "./stats";
-import { computeWeek } from "./week";
-import type { WeekResult } from "./week";
+import { clampStat, describeInterval } from "./stats";
+import { applyStatChanges, computeWeek, sumEffects } from "./week";
+import type { StatReport, WeekResult } from "./week";
 import { escapeHTML } from "./util";
-import type { CostKind, SettlementState } from "./types";
+import type { CostKind, SettlementState, StatEffect } from "./types";
 
 const t = (key: string, data?: Record<string, string | number>): string =>
   data ? game.i18n.format(key, data) : game.i18n.localize(key);
@@ -44,7 +44,7 @@ export async function setStat(id: string, amount: number): Promise<void> {
 export async function advanceWeek(): Promise<void> {
   const scene = canvas.scene;
   if (!game.user.isGM || !scene) return;
-  const result = computeWeek(getSettlement(scene), getBuildings(scene), costsOf);
+  const result = computeWeek(getSettlement(scene), getBuildings(scene), costsOf, getStats());
   await scene.update({ flags: { [ID]: { settlement: result.state, buildings: result.buildings } } });
   await ChatMessage.create({ speaker: { alias: t("SIEDLUNG.title") }, content: renderReport(result) });
 }
@@ -77,6 +77,10 @@ function renderReport(result: WeekResult): string {
     parts.push(`<p>⚠ ${t("SIEDLUNG.week.shortfall", { name: plain("resource", r.id), amount: r.shortfall })}</p>`);
   }
 
+  // Werte
+  const statLines = result.stats.map(statLine).filter(Boolean);
+  if (statLines.length) parts.push(`<p><strong>${t("SIEDLUNG.week.stats")}</strong></p><ul>${statLines.join("")}</ul>`);
+
   // Arbeitskraft
   const labor = result.labor.filter(l => l.capacity > 0 || l.used > 0 || l.committed > 0);
   if (labor.length) {
@@ -103,4 +107,29 @@ function renderReport(result: WeekResult): string {
   }
   if (parts.length === 1) parts.push(`<p>${t("SIEDLUNG.week.nothing")}</p>`);
   return parts.join("");
+}
+
+/** Eine Chat-Zeile zur Veränderung eines Werts, z. B. "Moral: 50 → 57 (+7: +5 einmalig, +2 pro Woche) – Gut". */
+function statLine(r: StatReport): string {
+  const stat = getStats().find(s => s.id === r.id);
+  if (!stat) return "";
+  const label = stat.kind === "interval" ? describeInterval(stat, r.after).name : "";
+  const parts: string[] = [];
+  if (r.once) parts.push(`${signed(r.once)} ${t("SIEDLUNG.week.once")}`);
+  if (r.weekly) parts.push(`${signed(r.weekly)} ${t("SIEDLUNG.week.weekly")}`);
+  const delta = Math.round((r.after - r.before) * 100) / 100;
+  const limited = Math.abs(delta - r.change) > 1e-9 ? ` – ${t("SIEDLUNG.week.statLimit")}` : "";
+  return `<li>${escapeHTML(stat.name)}: ${r.before} → <strong>${r.after}</strong> (${signed(delta)}; ${parts.join(", ")})${label ? ` – ${escapeHTML(label)}` : ""}${limited}</li>`;
+}
+
+/** SL: wendet die einmaligen Wirkungen eines fertiggestellten Gebäudes an; liefert Chat-Zeilen. */
+export async function applyOnceEffects(effects: StatEffect[]): Promise<string[]> {
+  const once = sumEffects(effects, "once");
+  if (!Object.keys(once).length || !canvas.scene) return [];
+  const state = getSettlement();
+  const { values, reports } = applyStatChanges(getStats(), state.stats, {}, once);
+  if (!reports.length) return [];
+  state.stats = values;
+  await canvas.scene.setFlag(ID, "settlement", state);
+  return reports.map(statLine).filter(Boolean);
 }

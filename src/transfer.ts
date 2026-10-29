@@ -3,7 +3,7 @@ import { GOLD_ID } from "./constants";
 import { DEFAULT_DEFINITIONS } from "./data";
 import { isConnected, transformCells } from "./store";
 import { sortedPoints, validateInterval } from "./stats";
-import type { BuildingType, Category, Cell, CostEntry, Definitions, PricedType, StatPoint, StatType } from "./types";
+import type { BuildingType, Category, Cell, CostEntry, Definitions, PricedType, StatEffect, StatPoint, StatType } from "./types";
 
 export const FORMAT_VERSION = 1;
 
@@ -125,6 +125,21 @@ function parseCosts(raw: unknown, field: string, allowNegative: boolean): Parsed
   return out;
 }
 
+function parseEffects(raw: unknown): Parsed<StatEffect[]> {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw)) return "„statEffects“ muss eine Liste sein.";
+  const out: StatEffect[] = [];
+  for (const e of raw) {
+    if (!isObj(e)) return "„statEffects“ enthält einen ungültigen Eintrag.";
+    const id = text(e.id, 100);
+    if (!id) return "„statEffects“: „id“ fehlt.";
+    if (typeof e.amount !== "number" || !Number.isFinite(e.amount) || e.amount === 0) return "„statEffects“: „amount“ muss eine Zahl ungleich 0 sein.";
+    if (e.mode !== undefined && e.mode !== "weekly" && e.mode !== "once") return "„statEffects“: „mode“ muss „weekly“ oder „once“ sein.";
+    out.push({ id, amount: Math.round(e.amount * 100) / 100, mode: e.mode === "once" ? "once" : "weekly" });
+  }
+  return out;
+}
+
 function parseBuilding(raw: unknown): Parsed<BuildingType> {
   if (!isObj(raw)) return "Kein Objekt.";
   const id = text(raw.id, 100);
@@ -148,7 +163,9 @@ function parseBuilding(raw: unknown): Parsed<BuildingType> {
   if (typeof buildCost === "string") return buildCost;
   const upkeep = parseCosts(raw.upkeep, "upkeep", true);
   if (typeof upkeep === "string") return upkeep;
-  return { id, name, category, cells, buildCost, upkeep };
+  const statEffects = parseEffects(raw.statEffects);
+  if (typeof statEffects === "string") return statEffects;
+  return { id, name, category, cells, buildCost, upkeep, statEffects };
 }
 
 function parseSection<T extends { id: string }>(key: SectionKey, raw: unknown, parse: (e: unknown) => Parsed<T>, errors: string[]): T[] | undefined {
@@ -234,6 +251,8 @@ export interface Cleanup {
   costEntries: number;
   /** Gebäude, deren Kategorie nicht (mehr) existiert */
   removedBuildings: string[];
+  /** Wirkungen auf Werte, die nicht (mehr) existieren */
+  statEffects: number;
   /** Goldmünzen wurden wiederhergestellt, weil der Import sie nicht enthielt */
   restoredGold: boolean;
 }
@@ -292,5 +311,12 @@ export function applyImport(current: Definitions, imported: Partial<Definitions>
       b[list] = kept;
     }
   }
-  return { defs: next, cleanup: { costEntries, removedBuildings, restoredGold } };
+  const statIds = new Set(next.stats.map(s => s.id));
+  let statEffects = 0;
+  for (const b of next.buildings) {
+    const kept = (b.statEffects ?? []).filter(e => statIds.has(e.id));
+    statEffects += (b.statEffects ?? []).length - kept.length;
+    b.statEffects = kept;
+  }
+  return { defs: next, cleanup: { costEntries, removedBuildings, restoredGold, statEffects } };
 }

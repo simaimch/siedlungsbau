@@ -1,7 +1,7 @@
 import { ID, GOLD_ID } from "./constants";
 import { DEFAULT_DEFINITIONS } from "./data";
 import { DEFAULT_STATS } from "./stat-defaults";
-import type { BuildingType, Category, CostEntry, CostKind, Definitions, PricedType, StatType } from "./types";
+import type { BuildingType, Category, CostEntry, CostKind, Definitions, PricedType, StatEffect, StatType } from "./types";
 
 export const SETTING_DEFINITIONS = "definitions";
 
@@ -18,7 +18,8 @@ export function getDefinitions(): Definitions {
     category: b.category,
     cells: b.cells,
     buildCost: list(b.buildCost, []),
-    upkeep: list(b.upkeep, [])
+    upkeep: list(b.upkeep, []),
+    statEffects: list(b.statEffects, [])
   }));
   return {
     categories: list(raw?.categories, DEFAULT_DEFINITIONS.categories),
@@ -73,4 +74,15 @@ export async function resetDefinitions(): Promise<void> {
 export async function replaceDefinitions(defs: Definitions): Promise<void> {
   if (!game.user.isGM) return;
   await game.settings.set(ID, SETTING_DEFINITIONS, defs);
+}
+
+/** Wirkungen auf Werte für die Anzeige, z. B. "+2 Moral"; unbekannte Stats werden übersprungen. */
+export function effectChips(effects: StatEffect[]): { name: string; text: string; once: boolean }[] {
+  const stats = getStats();
+  const chips: { name: string; text: string; once: boolean }[] = [];
+  for (const e of effects) {
+    const stat = stats.find(s => s.id === e.id);
+    if (stat) chips.push({ name: stat.name, text: e.amount > 0 ? `+${e.amount}` : `−${-e.amount}`, once: e.mode === "once" });
+  }
+  return chips;
 }

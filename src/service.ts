@@ -1,9 +1,10 @@
 import { ID, SOCKET, STATUS } from "./constants";
-import { getBuildings, getType, canonical, checkPlacement, isSettlementScene } from "./store";
+import { getBuildings, getType, canonical, checkPlacement, isSettlementScene, costsOf } from "./store";
 import { TERRAIN, DEFAULT_TERRAIN } from "./data";
 import { escapeHTML, sanitizeName } from "./util";
 import type { Building, Cell, OrderMessage } from "./types";
 import { generateTerrain } from "./terrain/generateTerrain";
+import { applyOnceEffects } from "./settlement";
 
 const t = (key: string, data?: Record<string, string>): string =>
   data ? game.i18n.format(key, data) : game.i18n.localize(key);
@@ -64,6 +65,7 @@ async function handleOrder({ sceneId, typeId, name, cells, userId }: OrderMessag
     status: STATUS.ORDERED,
     buildCost: foundry.utils.deepClone(type.buildCost),
     upkeep: foundry.utils.deepClone(type.upkeep),
+    statEffects: foundry.utils.deepClone(type.statEffects ?? []),
   });
   await scene.setFlag(ID, "buildings", buildings);
   // Bei eigenem Namen zusätzlich den Typ nennen: "Zum Eber (Kleine Taverne)"
@@ -78,7 +80,12 @@ export async function completeBuilding(id: string): Promise<void> {
   if (!b || b.status === STATUS.DONE) return;
   b.status = STATUS.DONE;
   await canvas.scene.setFlag(ID, "buildings", buildings);
-  await ChatMessage.create({ speaker: speaker(), content: t("SIEDLUNG.chat.completed", { name: escapeHTML(b.name) }) });
+  b.status = STATUS.DONE;
+  await canvas.scene.setFlag(ID, "buildings", buildings);
+  let content = t("SIEDLUNG.chat.completed", { name: escapeHTML(b.name) });
+  const lines = await applyOnceEffects(costsOf(b).statEffects);
+  if (lines.length) content += `<ul>${lines.join("")}</ul>`;
+  await ChatMessage.create({ speaker: speaker(), content });
 }
 
 export async function removeBuilding(id: string): Promise<void> {
