@@ -1,0 +1,50 @@
+<div class="siedlung-settlement">
+  <div class="week">
+    <h3>{{weekLabel}}</h3>
+    {{#if isGM}}<button type="button" data-action="nextWeek"><i class="fa-solid fa-forward"></i> {{localize "SIEDLUNG.settlement.nextWeek"}}</button>{{/if}}
+  </div>
+
+  <section>
+    <h4>{{localize "SIEDLUNG.settlement.resources"}}</h4>
+    <ul class="stock-list">
+      {{#each resources}}
+      <li>
+        <i class="dot" style="background: {{color}}"></i>
+        <span class="name">{{name}}</span>
+        {{#if ../isGM}}<input type="number" step="1" min="0" value="{{amount}}" data-stock-kind="resource" data-id="{{id}}">{{else}}<span class="amount">{{amount}}</span>{{/if}}
+      </li>
+      {{/each}}
+    </ul>
+  </section>
+
+  <section>
+    <h4>{{localize "SIEDLUNG.settlement.workers"}}</h4>
+    <ul class="stock-list">
+      {{#each workers}}
+      <li>
+        <i class="dot" style="background: {{color}}"></i>
+        <span class="name">{{name}}</span>
+        {{#if ../isGM}}<input type="number" step="1" min="0" value="{{capacity}}" data-stock-kind="worker" data-id="{{id}}">{{else}}<span class="amount">{{capacity}}</span>{{/if}}
+        <span class="sub">{{free}} {{localize "SIEDLUNG.settlement.free"}}{{#if bound}} ({{bound}} {{localize "SIEDLUNG.settlement.bound"}}){{/if}}</span>
+      </li>
+      {{/each}}
+    </ul>
+  </section>
+
+  <section>
+    <h4>{{localize "SIEDLUNG.settlement.underConstruction"}}</h4>
+    {{#if construction.length}}
+    <ul class="build-list">
+      {{#each construction}}
+      <li>
+        <strong>{{name}}</strong>
+        <div class="bar-row"><span>{{localize "SIEDLUNG.settlement.material"}}</span><div class="bar"><span style="width: {{res}}%"></span></div><span>{{res}} %</span></div>
+        <div class="bar-row"><span>{{localize "SIEDLUNG.settlement.work"}}</span><div class="bar"><span style="width: {{lab}}%"></span></div><span>{{lab}} %</span></div>
+      </li>
+      {{/each}}
+    </ul>
+    {{else}}
+    <p class="empty">{{localize "SIEDLUNG.settlement.noConstruction"}}</p>
+    {{/if}}
+  </section>
+</div>

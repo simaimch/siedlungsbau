@@ -61,7 +61,9 @@ async function handleOrder({ sceneId, typeId, name, cells, userId }: OrderMessag
     name: finalName,
     category: type.category,
     cells,
-    status: STATUS.ORDERED
+    status: STATUS.ORDERED,
+    buildCost: foundry.utils.deepClone(type.buildCost),
+    upkeep: foundry.utils.deepClone(type.upkeep),
   });
   await scene.setFlag(ID, "buildings", buildings);
   // Bei eigenem Namen zusätzlich den Typ nennen: "Zum Eber (Kleine Taverne)"

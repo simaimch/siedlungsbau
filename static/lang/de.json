@@ -9,7 +9,8 @@
       "unmarkScene": "Siedlungsmarkierung entfernen",
       "info": "Hinweis",
       "editor": "Gebäude-Editor",
-      "select": "Auswahl"
+      "select": "Auswahl",
+      "settlement": "Vorräte"
     },
     "palette": {
       "title": "Gebäude",
@@ -117,7 +118,39 @@
       "addCost": "Posten hinzufügen",
       "removeCost": "Posten entfernen",
       "groupResources": "Ressourcen",
-      "groupWorkers": "Arbeiter"
+      "groupWorkers": "Arbeiter",
+      "upkeepHint": "Negative Mengen bedeuten, dass das Gebäude etwas produziert bzw. Arbeitskraft liefert."
+    },
+    "settlement": {
+      "title": "Siedlung: Vorräte",
+      "week": "Arbeitswoche {week}",
+      "nextWeek": "Nächste Woche",
+      "confirmNextWeek": "Zur nächsten Arbeitswoche springen? Die Betriebskosten fertiger Gebäude werden verrechnet, danach erhalten Bauaufträge Material und Arbeitskraft.",
+      "resources": "Ressourcen",
+      "workers": "Arbeitskraft pro Woche",
+      "free": "frei für den Bau",
+      "bound": "durch Betrieb gebunden",
+      "underConstruction": "Im Bau",
+      "noConstruction": "Keine Gebäude im Bau.",
+      "material": "Material",
+      "work": "Arbeit",
+      "hintGM": "Als Spielleitung kannst du die Werte direkt ändern."
+    },
+    "week": {
+      "title": "Arbeitswoche {week}",
+      "stock": "Vorräte",
+      "before": "vorher",
+      "upkeep": "Betrieb",
+      "build": "Bau",
+      "shortfall": "Fehlbetrag im Betrieb: {name} {amount}",
+      "labor": "Arbeitskraft",
+      "laborLine": "{name}: {used} von {available} eingesetzt",
+      "laborBound": "{bound} durch Betrieb gebunden",
+      "laborShortfall": "Personal im Betrieb fehlt: {name} {amount}",
+      "progress": "Baufortschritt",
+      "completed": "fertiggestellt",
+      "stalled": "Ohne Fortschritt: {names}",
+      "nothing": "Keine Veränderungen."
     }
   }
 }

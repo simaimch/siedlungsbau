@@ -1,5 +1,5 @@
 import { ID } from "./constants";
-import { PaletteApp, OrdersApp, DefinitionsApp, toggleApp, refreshOrders, closeApps } from "./apps";
+import { PaletteApp, OrdersApp, DefinitionsApp, toggleApp, refreshOrders, closeApps, SettlementApp, refreshApp } from "./apps";
 import { registerSettings } from "./settings";
 import { initRender, teardownRender, redraw } from "./render";
 import { Placement } from "./placement";
@@ -65,6 +65,15 @@ Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
         button: true,
         visible: active,
         onChange: onClick("orders", () => { if (isSettlementScene()) toggleApp(OrdersApp); })
+      },
+      settlement: {
+        name: "settlement",
+        title: "SIEDLUNG.tools.settlement",
+        icon: "fa-solid fa-warehouse",
+        order: 3,
+        button: true,
+        visible: active,
+        onChange: onClick("settlement", () => { if (isSettlementScene()) toggleApp(SettlementApp); })
       },
       editor: {
         name: "editor",
@@ -138,4 +147,5 @@ Hooks.on("updateScene", (scene: any, changes: any) => {
   }
   redraw();
   refreshOrders();
+  refreshApp(SettlementApp);
 });

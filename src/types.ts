@@ -57,6 +57,23 @@ export interface Building {
   /** Absolute Rasterzellen. */
   cells: Cell[];
   status: Status;
+  /** Beim Beauftragen festgehaltene Kosten (ältere Aufträge ohne diese Felder nutzen die aktuelle Typ-Definition). */
+  buildCost?: CostEntry[];
+  upkeep?: CostEntry[];
+  /** Bisher gelieferte Menge je Ressource bzw. Arbeiterart (nur im Bau). */
+  progress?: Progress;
+}
+
+export interface Progress {
+  resources: Record<string, number>;
+  workers: Record<string, number>;
+}
+
+/** Vorräte einer Siedlung (an der Szene gespeichert). Arbeiter sind die Arbeitskraft pro Woche, keine Verbrauchsgüter. */
+export interface SettlementState {
+  week: number;
+  resources: Record<string, number>;
+  workers: Record<string, number>;
 }
 
 export interface OrderMessage {

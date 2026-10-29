@@ -10,7 +10,7 @@ export const SETTING_DEFINITIONS = "definitions";
  */
 export function getDefinitions(): Definitions {
   const raw = game.settings.get(ID, SETTING_DEFINITIONS) as Partial<Definitions> | undefined;
-  const list = <T>(value: T[] | undefined, fallback: T[]): T[] => (Array.isArray(value) ? value : fallback);
+  const list = <T>(value: T[] | undefined, fallback: T[] | undefined): T[] => (Array.isArray(value) ? value : (fallback ?? []));
   const buildings: BuildingType[] = list(raw?.buildings, DEFAULT_DEFINITIONS.buildings).map(b => ({
     id: b.id,
     name: b.name,
@@ -41,12 +41,13 @@ export const getAsset = (kind: CostKind, id: string): PricedType | undefined =>
 export const isGold = (kind: CostKind, id: string): boolean => kind === "resource" && id === GOLD_ID;
 
 /** Kosten für die Anzeige: Name und Farbe aufgelöst, unbekannte Einträge übersprungen. */
-export function costChips(entries: CostEntry[]): { name: string; color: string; amount: number }[] {
+export function costChips(entries: CostEntry[]): { name: string; color: string; amount: number; text: string }[] {
   const defs = getDefinitions();
-  const chips: { name: string; color: string; amount: number }[] = [];
+  const chips: { name: string; color: string; amount: number; text: string }[] = [];
   for (const e of entries) {
     const asset = defs[assetKey(e.kind)].find(a => a.id === e.id);
-    if (asset) chips.push({ name: asset.name, color: asset.color, amount: e.amount });
+    // Negative Mengen (Betriebskosten) bedeuten Produktion und werden mit "+" angezeigt
+    if (asset) chips.push({ name: asset.name, color: asset.color, amount: e.amount, text: e.amount < 0 ? `+${-e.amount}` : String(e.amount) });
   }
   return chips;
 }

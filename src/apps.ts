@@ -1,5 +1,5 @@
 import { ID, STATUS, GOLD_ID } from "./constants";
-import { getBuildings, getType, bounds, isSettlementScene, isConnected, cellKey, transformCells } from "./store";
+import { getBuildings, getType, bounds, isSettlementScene, isConnected, cellKey, transformCells, costsOf } from "./store";
 import {
   getDefinitions, getCategories, getCategory, getResources, getWorkers, getAsset, assetKey, isGold, costChips,
   saveDefinitions, resetDefinitions
@@ -8,7 +8,9 @@ import { buildingCenter } from "./render";
 import { Placement } from "./placement";
 import { completeBuilding, removeBuilding } from "./service";
 import { sanitizeName } from "./util";
-import type { BuildingType, Cell, CostEntry, CostKind } from "./types";
+import { getSettlement, setAmount, advanceWeek } from "./settlement";
+import { fractions, laborCommitted } from "./week";
+import type { Building, BuildingType, Cell, CostEntry, CostKind } from "./types";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -92,7 +94,7 @@ export class OrdersApp extends HandlebarsApplicationMixin(ApplicationV2) {
       name: b.name,
       categoryLabel: getCategory(b.category)?.label ?? b.category,
       done: b.status === STATUS.DONE,
-      statusLabel: t(b.status === STATUS.DONE ? "SIEDLUNG.orders.done" : "SIEDLUNG.orders.ordered")
+      statusLabel: b.status === STATUS.DONE ? t("SIEDLUNG.orders.done") : `${t("SIEDLUNG.orders.ordered")} (${progressText(b)})`
     }));
     // offene Aufträge zuerst
     rows.sort((a, b) => Number(a.done) - Number(b.done));
@@ -115,6 +117,64 @@ export class OrdersApp extends HandlebarsApplicationMixin(ApplicationV2) {
       void removeBuilding(target.dataset.id ?? "");
     }
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Vorräte der Siedlung (alle sehen, SL ändert, SL springt zur Woche) */
+/* ------------------------------------------------------------------ */
+
+export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
+  static DEFAULT_OPTIONS = {
+    id: `${ID}-settlement`,
+    classes: [ID],
+    window: { title: "SIEDLUNG.settlement.title", icon: "fa-solid fa-warehouse", resizable: true },
+    position: { width: 400, height: 560 },
+    actions: { nextWeek: SettlementApp.#onNextWeek }
+  };
+
+  static PARTS = {
+    main: { template: `modules/${ID}/templates/settlement.hbs`, scrollable: [""] }
+  };
+
+  async _prepareContext(): Promise<object> {
+    const state = getSettlement();
+    const { resources, workers } = getDefinitions();
+    const buildings = getBuildings();
+    const committed = laborCommitted(buildings, costsOf);
+    return {
+      isGM: game.user.isGM,
+      weekLabel: game.i18n.format("SIEDLUNG.settlement.week", { week: state.week }),
+      resources: resources.map(r => ({ id: r.id, name: r.name, color: r.color, amount: state.resources[r.id] ?? 0 })),
+      workers: workers.map(w => {
+        const capacity = state.workers[w.id] ?? 0;
+        const bound = committed[w.id] ?? 0;
+        return { id: w.id, name: w.name, color: w.color, capacity, bound: bound > 0 ? bound : 0, free: Math.max(0, capacity - bound) };
+      }),
+      construction: buildings
+        .filter(b => b.status === STATUS.ORDERED)
+        .map(b => {
+          const f = fractions(b, costsOf(b));
+          return { name: b.name, res: Math.round(f.res * 100), lab: Math.round(f.lab * 100) };
+        })
+    };
+  }
+
+  _onRender(): void {
+    const inputs = this.element.querySelectorAll("[data-stock-kind]") as NodeListOf<HTMLInputElement>;
+    for (const el of inputs) {
+      el.addEventListener("change", () => void setAmount(el.dataset.stockKind as CostKind, el.dataset.id ?? "", Number(el.value)));
+    }
+  }
+
+  static async #onNextWeek(): Promise<void> {
+    if (await confirm(t("SIEDLUNG.settlement.nextWeek"), t("SIEDLUNG.settlement.confirmNextWeek"))) await advanceWeek();
+  }
+}
+
+/** "Material 40 %, Arbeit 20 %" für einen Bauauftrag. */
+function progressText(b: Building): string {
+  const f = fractions(b, costsOf(b));
+  return `${t("SIEDLUNG.settlement.material")} ${Math.round(f.res * 100)} %, ${t("SIEDLUNG.settlement.work")} ${Math.round(f.lab * 100)} %`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -317,18 +377,21 @@ interface EditorState {
   upkeep: CostEntry[];
 }
 
-/** Fasst gleiche Posten zusammen und entfernt ungültige (Menge < 1 oder unbekannter Eintrag). */
-function normalizeCosts(entries: CostEntry[]): CostEntry[] {
+/**
+ * Fasst gleiche Posten zusammen und entfernt ungültige (Menge 0, unbekannter Eintrag).
+ * Negative Mengen sind nur bei Betriebskosten erlaubt (das Gebäude produziert dann etwas).
+ */
+function normalizeCosts(entries: CostEntry[], allowNegative: boolean): CostEntry[] {
   const merged = new Map<string, CostEntry>();
   for (const e of entries) {
     const amount = Math.round(e.amount);
-    if (!(amount > 0) || !getAsset(e.kind, e.id)) continue;
+    if (!amount || (amount < 0 && !allowNegative) || !getAsset(e.kind, e.id)) continue;
     const key = `${e.kind}:${e.id}`;
     const existing = merged.get(key);
     if (existing) existing.amount += amount;
     else merged.set(key, { kind: e.kind, id: e.id, amount });
   }
-  return [...merged.values()];
+  return [...merged.values()].filter(e => e.amount !== 0);
 }
 
 /** Bearbeitet oder erstellt einen Gebäudetyp: Name, Kategorie, Bau-/Betriebskosten und Form (Felder anklicken). */
@@ -408,7 +471,13 @@ export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2)
       gridCells,
       count: on.size,
       categories: getCategories().map(c => ({ id: c.id, label: c.label, selected: c.id === category })),
-      costLists: COST_LISTS.map(key => ({ key, label: t(`SIEDLUNG.editor.${key}`), rows: rowsFor(this._state[key]) }))
+      costLists: COST_LISTS.map(key => ({
+        key,
+        label: t(`SIEDLUNG.editor.${key}`),
+        allowNegative: key === "upkeep",
+        hint: key === "upkeep" ? t("SIEDLUNG.editor.upkeepHint") : "",
+        rows: rowsFor(this._state[key])
+      }))
     };
   }
 
@@ -491,8 +560,8 @@ export class BuildingEditorApp extends HandlebarsApplicationMixin(ApplicationV2)
     if (!raw.length) return ui.notifications.warn(t("SIEDLUNG.editor.errors.noCells"));
     if (!isConnected(raw)) return ui.notifications.warn(t("SIEDLUNG.editor.errors.notConnected"));
     const cells = transformCells(raw, 0, false); // verschiebt die Form auf den Ursprung
-    const buildCost = normalizeCosts(s.buildCost);
-    const upkeep = normalizeCosts(s.upkeep);
+    const buildCost = normalizeCosts(s.buildCost, false);
+    const upkeep = normalizeCosts(s.upkeep, true);
 
     await saveDefinitions(defs => {
       const existing = s.typeId ? defs.buildings.find(b => b.id === s.typeId) : undefined;
@@ -535,5 +604,5 @@ export function refreshApp(App: { DEFAULT_OPTIONS: { id: string } }): void {
 export const refreshOrders = (): void => refreshApp(OrdersApp);
 
 export function closeApps(): void {
-  for (const App of [PaletteApp, OrdersApp]) foundry.applications.instances.get(App.DEFAULT_OPTIONS.id)?.close();
+  for (const App of [PaletteApp, OrdersApp, SettlementApp]) foundry.applications.instances.get(App.DEFAULT_OPTIONS.id)?.close();
 }
