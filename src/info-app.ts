@@ -1,0 +1,140 @@
+import { ID, STATUS } from "./constants";
+import { costsOf, getBuildings, getType } from "./store";
+import { costChips, effectChips, getAsset, getCategory } from "./definitions";
+import { buildingCenter } from "./render";
+import { fractions } from "./week";
+import { requestComplete, requestRemove, requestRename } from "./actions";
+import type { Building, CostEntry } from "./types";
+
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+const t = (key: string): string => game.i18n.localize(key);
+const KEY = { resource: "resources", worker: "workers" } as const;
+
+/** Info-Fenster zu einem Gebäude: Status, Baufortschritt, Betrieb, Wirkung; Umbenennen, Abreißen, (SL) Abschließen. */
+export class BuildingInfoApp extends HandlebarsApplicationMixin(ApplicationV2) {
+  static DEFAULT_OPTIONS = {
+    id: `${ID}-info`,
+    classes: [ID],
+    window: { title: "SIEDLUNG.info.title", icon: "fa-solid fa-circle-info", resizable: true },
+    position: { width: 380, height: "auto" as const },
+    actions: {
+      rename: BuildingInfoApp.#onRename,
+      remove: BuildingInfoApp.#onRemove,
+      complete: BuildingInfoApp.#onComplete,
+      focus: BuildingInfoApp.#onFocus
+    }
+  };
+
+  static PARTS = {
+    main: { template: `modules/${ID}/templates/building-info.hbs`, scrollable: [""] }
+  };
+
+  buildingId = "";
+
+  get building(): Building | undefined {
+    return getBuildings().find(b => b.id === this.buildingId);
+  }
+
+  async _prepareContext(): Promise<object> {
+    const b = this.building;
+    if (!b) {
+      void this.close();
+      return { missing: true };
+    }
+    const type = getType(b.typeId);
+    const costs = costsOf(b);
+    const done = b.status === STATUS.DONE;
+    const cat = getCategory(b.category);
+
+    // Normalisierte Form für die Vorschau (Gebäudezellen liegen an absoluten Rasterpositionen)
+    const minX = Math.min(...b.cells.map(c => c[0]));
+    const minY = Math.min(...b.cells.map(c => c[1]));
+    const w = Math.max(...b.cells.map(c => c[0])) - minX + 1;
+    const h = Math.max(...b.cells.map(c => c[1])) - minY + 1;
+
+    const f = fractions(b, costs);
+    const progressRows = (costs.buildCost as CostEntry[]).map(e => {
+      const asset = getAsset(e.kind, e.id);
+      const have = Math.min(e.amount, b.progress?.[KEY[e.kind]]?.[e.id] ?? 0);
+      return {
+        name: asset?.name ?? e.id,
+        color: asset?.color ?? "#888",
+        have,
+        need: e.amount,
+        percent: e.amount > 0 ? Math.round((have / e.amount) * 100) : 100,
+        isWorker: e.kind === "worker"
+      };
+    }).filter(r => r.need > 0);
+
+    return {
+      missing: false,
+      id: b.id,
+      name: b.name,
+      typeName: type?.name ?? "",
+      showType: !!type && type.name !== b.name,
+      categoryLabel: cat?.label ?? b.category,
+      color: cat?.color ?? "#888",
+      shape: { w, h, cells: b.cells.map(([x, y]) => ({ col: x - minX + 1, row: y - minY + 1 })) },
+      count: b.cells.length,
+      done,
+      material: Math.round(f.res * 100),
+      work: Math.round(f.lab * 100),
+      progressRows,
+      upkeep: costChips(costs.upkeep),
+      effects: effectChips(costs.statEffects ?? []),
+      isGM: game.user.isGM
+    };
+  }
+
+  static #onRename(this: BuildingInfoApp): void {
+    const input = this.element.querySelector("input[name=name]") as HTMLInputElement | null;
+    if (input && this.building) requestRename(this.buildingId, input.value);
+  }
+
+  static async #onRemove(this: BuildingInfoApp): Promise<void> {
+    const b = this.building;
+    if (!b) return;
+    const done = b.status === STATUS.DONE;
+    const ok = await foundry.applications.api.DialogV2.confirm({
+      window: { title: t(done ? "SIEDLUNG.info.demolish" : "SIEDLUNG.info.cancelBuild") },
+      content: `<p>${t(done ? "SIEDLUNG.info.confirmDemolish" : "SIEDLUNG.info.confirmCancel")}</p>`
+    });
+    if (ok) requestRemove(this.buildingId);
+  }
+
+  static #onComplete(this: BuildingInfoApp): void {
+    requestComplete(this.buildingId);
+  }
+
+  static #onFocus(this: BuildingInfoApp): void {
+    const b = this.building;
+    if (!b) return;
+    const { x, y } = buildingCenter(b, canvas.scene.grid.size);
+    canvas.animatePan({ x, y });
+  }
+}
+
+/** Öffnet das Info-Fenster (ein einziges Fenster, wird für das angeklickte Gebäude wiederverwendet). */
+export function openBuildingInfo(buildingId: string): void {
+  const existing = foundry.applications.instances.get(BuildingInfoApp.DEFAULT_OPTIONS.id) as BuildingInfoApp | undefined;
+  if (existing) {
+    existing.buildingId = buildingId;
+    void existing.render({ force: true });
+    return;
+  }
+  const app = new BuildingInfoApp();
+  app.buildingId = buildingId;
+  void app.render({ force: true });
+}
+
+export function refreshBuildingInfo(): void {
+  const existing = foundry.applications.instances.get(BuildingInfoApp.DEFAULT_OPTIONS.id) as BuildingInfoApp | undefined;
+  if (!existing) return;
+  if (!existing.building) void existing.close();
+  else void existing.render();
+}
+
+export function closeBuildingInfo(): void {
+  void foundry.applications.instances.get(BuildingInfoApp.DEFAULT_OPTIONS.id)?.close();
+}

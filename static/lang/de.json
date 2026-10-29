@@ -41,7 +41,9 @@
       "ordered": "<strong>{user}</strong> hat <strong>{name}</strong> in Auftrag gegeben.",
       "completed": "<strong>{name}</strong> wurde fertiggestellt.",
       "rejected": "Dein Bauauftrag für <strong>{name}</strong> wurde abgelehnt: {reason}",
-      "removed": "<strong>{name}</strong> wurde abgerissen."
+      "removed": "<strong>{name}</strong> wurde abgerissen.",
+      "demolishedBy": "<strong>{user}</strong> hat <strong>{name}</strong> abgerissen.",
+      "cancelledBy": "<strong>{user}</strong> hat den Bau von <strong>{name}</strong> abgebrochen."
     },
     "errors": {
       "noSquareGrid": "Diese Szene hat kein Quadratraster.",
@@ -49,7 +51,8 @@
       "outOfBounds": "Das Gebäude liegt außerhalb der Karte.",
       "occupied": "Mindestens ein Feld ist bereits belegt.",
       "padding": "Diese Szene hat Padding. Die Rasterberechnung geht von Padding 0 aus, Gebäude können versetzt erscheinen.",
-      "terrain": "Mindestens ein Feld liegt auf unbebaubarem Gelände (Fels)."
+      "terrain": "Mindestens ein Feld liegt auf unbebaubarem Gelände (Fels).",
+      "otherScene": "Die Spielleitung befindet sich gerade in einer anderen Szene, die Aktion wurde nicht ausgeführt."
     },
     "scene": {
       "name": "Name",
@@ -230,6 +233,24 @@
         "pointDuplicate": "Zwei Stützpunkte haben denselben Wert.",
         "inUse": "Dieser Wert wird noch von Gebäuden verändert. Entferne die Wirkung dort zuerst."
       }
+    },
+    "info": {
+      "title": "Gebäude",
+      "focus": "Auf der Karte zeigen",
+      "done": "Fertiggestellt",
+      "inConstruction": "Im Bau",
+      "progress": "Baufortschritt",
+      "afterDone": "Betrieb und Wirkung beginnen nach der Fertigstellung (einmalige Wirkungen sofort bei Fertigstellung).",
+      "currentEffect": "Aktuelle Wirkung",
+      "futureEffect": "Wirkung nach Fertigstellung",
+      "noEffect": "Dieses Gebäude verbraucht, liefert und verändert nichts.",
+      "rename": "Umbenennen",
+      "renameButton": "Umbenennen",
+      "complete": "Bau sofort abschließen",
+      "demolish": "Abreißen",
+      "cancelBuild": "Bau abbrechen",
+      "confirmDemolish": "Dieses Gebäude wirklich abreißen? Einmalige Wirkungen auf Werte werden zurückgenommen.",
+      "confirmCancel": "Den Bau wirklich abbrechen? Bereits gelieferte Ressourcen und geleistete Arbeit gehen verloren."
     }
   }
 }

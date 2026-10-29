@@ -109,3 +109,27 @@
 .siedlung-stat-editor .hint { opacity: 0.7; font-size: var(--font-size-12, 12px); margin: 0; }
 .siedlung-stat-editor footer { display: flex; justify-content: flex-end; gap: 6px; }
 .application.siedlungsbau .siedlung-stat-editor { max-height: 75vh; overflow-y: auto; }
+
+/* Gebäude-Info (Auswahl-Modus) */
+.siedlung-info { display: flex; flex-direction: column; gap: 0.6rem; }
+.siedlung-info header { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; }
+.siedlung-info .shape { display: grid; grid-template-columns: repeat(var(--w), 10px); grid-template-rows: repeat(var(--h), 10px); gap: 1px; justify-content: center; }
+.siedlung-info .shape i { background: var(--cat); display: block; }
+.siedlung-info h3 { margin: 0; border: none; }
+.siedlung-info .meta, .siedlung-info .hint { margin: 0; opacity: 0.7; font-size: var(--font-size-12, 12px); }
+.siedlung-info .status { margin: 2px 0 0; font-weight: bold; }
+.siedlung-info .status.pending { color: #c98a3d; }
+.siedlung-info .status.done { color: #4f9a5b; }
+.siedlung-info section { display: flex; flex-direction: column; gap: 4px; }
+.siedlung-info h4 { margin: 0; border-bottom: 1px solid var(--color-border-light-tertiary, #888); }
+.siedlung-info .bar-row { display: grid; grid-template-columns: 4.5rem 1fr 3rem; gap: 6px; align-items: center; font-size: var(--font-size-12, 12px); }
+.siedlung-info .bar { height: 8px; border-radius: 4px; background: rgba(128, 128, 128, 0.3); overflow: hidden; }
+.siedlung-info .bar > div { height: 100%; background: var(--cat); }
+.siedlung-info .needs { list-style: none; margin: 0; padding: 0; font-size: var(--font-size-12, 12px); }
+.siedlung-info .needs li { display: grid; grid-template-columns: 10px 1fr auto; gap: 6px; align-items: center; }
+.siedlung-info .needs i, .siedlung-info .chip i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; }
+.siedlung-info .costs { margin: 0; display: flex; flex-wrap: wrap; gap: 2px 8px; }
+.siedlung-info .chip { white-space: nowrap; }
+.siedlung-info .rename-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.siedlung-info footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+.application.siedlungsbau .siedlung-info { flex: 1 1 auto; min-height: 0; overflow-y: auto; }

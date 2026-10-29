@@ -151,3 +151,13 @@ export interface StatEffect {
 }
 
 export type StatEffectMode = "weekly" | "once";
+
+/** Aktion eines Spielers an einem bestehenden Gebäude; wird von der aktiven SL ausgeführt. */
+export interface BuildingActionMessage {
+  action: "rename" | "remove";
+  sceneId: string;
+  buildingId: string;
+  /** nur bei "rename" */
+  name?: string;
+  userId: string;
+}

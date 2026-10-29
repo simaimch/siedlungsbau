@@ -5,6 +5,7 @@ import { initRender, teardownRender, redraw } from "./render";
 import { Placement } from "./placement";
 import { registerSocket, createSettlementScene, toggleSettlementScene } from "./service";
 import { isSettlementScene } from "./store";
+import "./inspect";
 
 function refreshControls(): void {
   // Ab v13: Neuaufbau der Steuerung über render() mit der zu aktivierenden Control-Gruppe.

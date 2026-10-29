@@ -1,0 +1,56 @@
+<div class="siedlung-info" style="--cat: {{color}}">
+  {{#unless missing}}
+  <header>
+    <span class="shape" style="--w: {{shape.w}}; --h: {{shape.h}}">
+      {{#each shape.cells}}<i style="grid-column: {{col}}; grid-row: {{row}}"></i>{{/each}}
+    </span>
+    <div>
+      <h3><a data-action="focus" title="{{localize 'SIEDLUNG.info.focus'}}">{{name}}</a></h3>
+      <p class="meta">{{#if showType}}{{typeName}} · {{/if}}{{categoryLabel}} · {{count}} {{localize "SIEDLUNG.palette.fields"}}</p>
+      <p class="status {{#if done}}done{{else}}pending{{/if}}">{{#if done}}{{localize "SIEDLUNG.info.done"}}{{else}}{{localize "SIEDLUNG.info.inConstruction"}}{{/if}}</p>
+    </div>
+  </header>
+
+  {{#unless done}}
+  <section>
+    <h4>{{localize "SIEDLUNG.info.progress"}}</h4>
+    <div class="bar-row"><span>{{localize "SIEDLUNG.settlement.material"}}</span><div class="bar"><div style="width: {{material}}%"></div></div><span>{{material}} %</span></div>
+    <div class="bar-row"><span>{{localize "SIEDLUNG.settlement.work"}}</span><div class="bar"><div style="width: {{work}}%"></div></div><span>{{work}} %</span></div>
+    {{#if progressRows.length}}
+    <ul class="needs">
+      {{#each progressRows}}
+      <li><i style="background: {{color}}"></i><span>{{name}}</span><span>{{have}} / {{need}}</span></li>
+      {{/each}}
+    </ul>
+    {{/if}}
+    <p class="hint">{{localize "SIEDLUNG.info.afterDone"}}</p>
+  </section>
+  {{/unless}}
+
+  <section>
+    <h4>{{#if done}}{{localize "SIEDLUNG.info.currentEffect"}}{{else}}{{localize "SIEDLUNG.info.futureEffect"}}{{/if}}</h4>
+    {{#if upkeep.length}}
+    <p class="costs"><b>{{localize "SIEDLUNG.palette.upkeep"}}:</b> {{#each upkeep}}<span class="chip"><i style="background: {{color}}"></i>{{text}}&nbsp;{{name}}</span>{{/each}}</p>
+    {{/if}}
+    {{#if effects.length}}
+    <p class="costs"><b>{{localize "SIEDLUNG.palette.effects"}}:</b> {{#each effects}}<span class="chip">{{text}}&nbsp;{{name}}&nbsp;({{#if once}}{{localize "SIEDLUNG.palette.once"}}{{else}}{{localize "SIEDLUNG.palette.weekly"}}{{/if}})</span>{{/each}}</p>
+    {{/if}}
+    {{#unless upkeep.length}}{{#unless effects.length}}<p class="hint">{{localize "SIEDLUNG.info.noEffect"}}</p>{{/unless}}{{/unless}}
+  </section>
+
+  <section>
+    <h4>{{localize "SIEDLUNG.info.rename"}}</h4>
+    <div class="rename-row">
+      <input type="text" name="name" value="{{name}}" maxlength="60">
+      <button type="button" data-action="rename"><i class="fa-solid fa-pen"></i> {{localize "SIEDLUNG.info.renameButton"}}</button>
+    </div>
+  </section>
+
+  <footer>
+    {{#if isGM}}{{#unless done}}
+    <button type="button" data-action="complete"><i class="fa-solid fa-check"></i> {{localize "SIEDLUNG.info.complete"}}</button>
+    {{/unless}}{{/if}}
+    <button type="button" data-action="remove"><i class="fa-solid fa-trash"></i> {{#if done}}{{localize "SIEDLUNG.info.demolish"}}{{else}}{{localize "SIEDLUNG.info.cancelBuild"}}{{/if}}</button>
+  </footer>
+  {{/unless}}
+</div>
