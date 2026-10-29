@@ -1,0 +1,12 @@
+<div class="siedlung-terrain">
+  <p class="hint">{{localize "SIEDLUNG.terrain.hint"}}</p>
+  <div class="list">
+    {{#each terrain}}
+    <button type="button" class="{{#if selected}}selected{{/if}}" data-action="pick" data-code="{{code}}">
+      <span class="swatch" style="background: {{color}}"></span>
+      <span class="name">{{label}}</span>
+      <span class="meta">{{#if buildable}}{{localize "SIEDLUNG.terrain.buildable"}}{{else}}{{localize "SIEDLUNG.terrain.blocked"}}{{/if}}</span>
+    </button>
+    {{/each}}
+  </div>
+</div>

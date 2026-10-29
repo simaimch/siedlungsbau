@@ -5,6 +5,8 @@ import { initRender, teardownRender, redraw } from "./render";
 import { Placement } from "./placement";
 import { registerSocket, createSettlementScene, toggleSettlementScene } from "./service";
 import { isSettlementScene } from "./store";
+import { TerrainApp } from "./terrain-app";
+import { TerrainBrush } from "./terrain-brush";
 import "./inspect";
 
 function refreshControls(): void {
@@ -76,6 +78,15 @@ Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
         visible: active,
         onChange: onClick("settlement", () => { if (isSettlementScene()) toggleApp(SettlementApp); })
       },
+      terrain: {
+        name: "terrain",
+        title: "SIEDLUNG.tools.terrain",
+        icon: "fa-solid fa-paintbrush",
+        order: 2,
+        button: true,
+        visible: isGM && active,
+        onChange: onClick("terrain", () => { if (game.user.isGM && isSettlementScene()) toggleApp(TerrainApp); })
+      },
       editor: {
         name: "editor",
         title: "SIEDLUNG.tools.editor",
@@ -132,6 +143,7 @@ Hooks.on("canvasReady", () => {
 
 Hooks.on("canvasTearDown", () => {
   Placement.stop();
+  TerrainBrush.stop();
   teardownRender();
 });
 

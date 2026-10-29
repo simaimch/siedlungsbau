@@ -6,6 +6,7 @@ import {
 } from "./definitions";
 import { buildingCenter } from "./render";
 import { Placement } from "./placement";
+import { TERRAIN_APP_ID } from "./terrain-brush";
 import { completeBuilding, removeBuilding } from "./service";
 import { sanitizeName } from "./util";
 import { getSettlement, setAmount, setStat, advanceWeek } from "./settlement";
@@ -700,4 +701,5 @@ export const refreshOrders = (): void => refreshApp(OrdersApp);
 
 export function closeApps(): void {
   for (const App of [PaletteApp, OrdersApp, SettlementApp]) foundry.applications.instances.get(App.DEFAULT_OPTIONS.id)?.close();
+  foundry.applications.instances.get(TERRAIN_APP_ID)?.close();
 }

@@ -1,5 +1,6 @@
 import { getBuildings, isSettlementScene } from "./store";
 import { Placement } from "./placement";
+import { TerrainBrush } from "./terrain-brush";
 import { registerActionSocket } from "./actions";
 import { openBuildingInfo, refreshBuildingInfo, closeBuildingInfo } from "./info-app";
 import { ID } from "./constants";
@@ -12,7 +13,7 @@ let down: { x: number; y: number } | null = null;
 let stage: any = null;
 
 function active(): boolean {
-  return isSettlementScene() && !Placement.type && !Placement.busy && ui.controls?.control?.name === "siedlung";
+  return isSettlementScene() && !Placement.type && !Placement.busy && TerrainBrush.code === null && ui.controls?.control?.name === "siedlung";
 }
 
 const onDown = (event: any): void => {

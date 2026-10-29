@@ -10,7 +10,8 @@
       "info": "Hinweis",
       "editor": "Gebäude-Editor",
       "select": "Auswahl",
-      "settlement": "Siedlungs-Übersicht"
+      "settlement": "Siedlungs-Übersicht",
+      "terrain": "Gelände bearbeiten"
     },
     "palette": {
       "title": "Gebäude",
@@ -251,6 +252,13 @@
       "cancelBuild": "Bau abbrechen",
       "confirmDemolish": "Dieses Gebäude wirklich abreißen? Einmalige Wirkungen auf Werte werden zurückgenommen.",
       "confirmCancel": "Den Bau wirklich abbrechen? Bereits gelieferte Ressourcen und geleistete Arbeit gehen verloren."
+    },
+    "terrain": {
+      "title": "Gelände",
+      "hint": "Gelände wählen und ein Feld anklicken. Rechtsklick oder ESC beendet den Pinsel.",
+      "buildable": "baubar",
+      "blocked": "nicht baubar",
+      "occupied": "Auf diesem Feld steht ein Gebäude – hier ist kein nicht baubares Gelände möglich."
     }
   }
 }
