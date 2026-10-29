@@ -38,7 +38,8 @@
       "noGM": "Es ist keine Spielleitung online, die den Auftrag entgegennehmen kann.",
       "outOfBounds": "Das Gebäude liegt außerhalb der Karte.",
       "occupied": "Mindestens ein Feld ist bereits belegt.",
-      "padding": "Diese Szene hat Padding. Die Rasterberechnung geht von Padding 0 aus, Gebäude können versetzt erscheinen."
+      "padding": "Diese Szene hat Padding. Die Rasterberechnung geht von Padding 0 aus, Gebäude können versetzt erscheinen.",
+      "terrain": "Mindestens ein Feld liegt auf unbebaubarem Gelände (Fels)."
     },
     "scene": {
       "name": "Name",

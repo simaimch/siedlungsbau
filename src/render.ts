@@ -1,6 +1,6 @@
 import { STATUS } from "./constants";
-import { CATEGORIES } from "./data";
-import { getBuildings, cellKey } from "./store";
+import { CATEGORIES, DEFAULT_TERRAIN, TERRAIN } from "./data";
+import { getBuildings, cellKey, getTerrain } from "./store";
 import type { Building, Cell } from "./types";
 
 let container: any = null;
@@ -50,6 +50,10 @@ export function buildingCenter(b: Building, s: number): { x: number; y: number }
 
 export function initRender(): void {
   teardownRender();
+  // Gelände zuerst hinzufügen, damit es unter den Gebäuden liegt.
+  terrainContainer = new PIXI.Container();
+  terrainContainer.eventMode = "none";
+  canvas.interface.addChild(terrainContainer);
   container = new PIXI.Container();
   container.eventMode = "none";
   canvas.interface.addChild(container);
@@ -57,12 +61,15 @@ export function initRender(): void {
 }
 
 export function teardownRender(): void {
+  if (terrainContainer) terrainContainer.destroy({ children: true });
+  terrainContainer = null;
   if (container) container.destroy({ children: true });
   container = null;
 }
 
 export function redraw(): void {
-  if (!container || !canvas.scene) return;
+  if (!container || !terrainContainer || !canvas.scene) return;
+  drawTerrain();
   for (const c of container.removeChildren()) c.destroy({ children: true });
   const s: number = canvas.scene.grid.size;
 
@@ -88,4 +95,26 @@ export function redraw(): void {
     holder.position.set(x, y);
     container.addChild(holder);
   }
+}
+
+let terrainContainer: any = null;   // neben `container`
+
+
+
+
+
+function drawTerrain(): void {
+  for (const c of terrainContainer.removeChildren()) c.destroy({ children: true });
+  const terrain = getTerrain();
+  if (!terrain) return;
+  const s: number = canvas.scene.grid.size;
+  const g = new PIXI.Graphics();
+  for (let y = 0; y < terrain.rows; y++) {
+    for (let x = 0; x < terrain.cols; x++) {
+      const code = terrain.cells[y * terrain.cols + x];
+      if (!code || code === DEFAULT_TERRAIN || !TERRAIN[code]) continue;
+      fillRect(g, x * s, y * s, s, s, hexToInt(TERRAIN[code].color), 0.85);
+    }
+  }
+  terrainContainer.addChild(g);
 }

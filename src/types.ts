@@ -43,3 +43,16 @@ export interface PlacementCheck {
   /** Lokalisierungsschlüssel */
   reason?: string;
 }
+
+export interface TerrainType {
+  label: string;
+  color: string;
+  buildable: boolean;
+}
+
+/** Gelände einer Szene: zeilenweise, ein Zeichen pro Feld (Schlüssel aus TERRAIN). */
+export interface TerrainData {
+  cols: number;
+  rows: number;
+  cells: string;
+}

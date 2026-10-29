@@ -1,5 +1,6 @@
 import { ID, SOCKET, STATUS } from "./constants";
-import { getBuildings, getType, canonical, checkPlacement, isSettlementScene } from "./store";
+import { DEFAULT_TERRAIN, TERRAIN } from "./data";
+import { getBuildings, getType, canonical, checkPlacement, isSettlementScene, generateTerrain } from "./store";
 import type { Building, Cell, OrderMessage } from "./types";
 
 const t = (key: string, data?: Record<string, string>): string =>
@@ -108,11 +109,31 @@ export async function createSettlementScene(): Promise<void> {
     height: result.rows * size,
     padding: 0,
     grid: { type: CONST.GRID_TYPES.SQUARE, size, distance: 5, units: "m" },
-    background: { color: "#4a5d3a" },
+    backgroundColor: { color: TERRAIN[DEFAULT_TERRAIN].color },
     tokenVision: false,
-    flags: { [ID]: { enabled: true } }
+    flags: { [ID]: { enabled: true, terrain: generateTerrain(result.cols, result.rows) } }
   });
+  await applyBaseColor(scene, TERRAIN[DEFAULT_TERRAIN].color);
   await scene.view();
+}
+
+/**
+ * Ab v14 hat jede Ebene (Level) eine eigene Hintergrundfarbe (background.color, als Zahl),
+ * die den Szenenbereich füllt. Scene#backgroundColor färbt nur den Bereich dahinter.
+ */
+async function applyBaseColor(scene: any, hex: string): Promise<void> {
+  const color = parseInt(hex.replace("#", ""), 16);
+  try {
+    const levels: any[] = [...(scene.levels?.contents ?? [])];
+    if (levels.length) {
+      await scene.updateEmbeddedDocuments("Level", levels.map(l => ({ _id: l.id, background: { color } })));
+    } else {
+      const [level] = await scene.createEmbeddedDocuments("Level", [{ name: scene.name, background: { color } }]);
+      if (level) await scene.update({ initialLevel: level.id });
+    }
+  } catch (err) {
+    console.warn(`${ID} | Hintergrundfarbe der Ebene konnte nicht gesetzt werden`, err);
+  }
 }
 
 /** SL: markiert die aktuelle Szene als Siedlungsszene bzw. entfernt die Markierung. */

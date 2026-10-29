@@ -1,6 +1,6 @@
 import { ID } from "./constants";
-import { BUILDINGS } from "./data";
-import type { Building, BuildingType, Cell, PlacementCheck } from "./types";
+import { BUILDINGS, DEFAULT_TERRAIN, ROCK_CHANCE, TERRAIN } from "./data";
+import type { Building, BuildingType, Cell, PlacementCheck, TerrainData } from "./types";
 
 export const cellKey = (x: number, y: number): string => `${x},${y}`;
 
@@ -52,10 +52,27 @@ export function checkPlacement(scene: any, cells: Cell[]): PlacementCheck {
   const cols = Math.floor(scene.width / size);
   const rows = Math.floor(scene.height / size);
   const taken = new Set<string>();
+  const terrain = getTerrain(scene);
   for (const b of getBuildings(scene)) for (const [x, y] of b.cells) taken.add(cellKey(x, y));
   for (const [x, y] of cells) {
     if (x < 0 || y < 0 || x >= cols || y >= rows) return { ok: false, reason: "SIEDLUNG.errors.outOfBounds" };
+    if (!TERRAIN[terrainAt(terrain, x, y)]?.buildable) return { ok: false, reason: "SIEDLUNG.errors.terrain" };
     if (taken.has(cellKey(x, y))) return { ok: false, reason: "SIEDLUNG.errors.occupied" };
   }
   return { ok: true };
+}
+
+export function getTerrain(scene: any = canvas?.scene): TerrainData | null {
+  return scene?.getFlag(ID, "terrain") ?? null;
+}
+
+export function terrainAt(terrain: TerrainData | null, x: number, y: number): string {
+  if (!terrain || x < 0 || y < 0 || x >= terrain.cols || y >= terrain.rows) return DEFAULT_TERRAIN;
+  return terrain.cells[y * terrain.cols + x] ?? DEFAULT_TERRAIN;
+}
+
+export function generateTerrain(cols: number, rows: number, rockChance = ROCK_CHANCE): TerrainData {
+  let cells = "";
+  for (let i = 0; i < cols * rows; i++) cells += Math.random() < rockChance ? "r" : DEFAULT_TERRAIN;
+  return { cols, rows, cells };
 }
