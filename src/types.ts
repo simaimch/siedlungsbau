@@ -56,3 +56,13 @@ export interface TerrainData {
   rows: number;
   cells: string;
 }
+
+export interface OrderMessage {
+  action: "order";
+  sceneId: string;
+  typeId: string;
+  /** Vom Auftraggeber gewählter Name des Gebäudes. */
+  name: string;
+  cells: Cell[];
+  userId: string;
+}

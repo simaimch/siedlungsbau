@@ -2,15 +2,16 @@ import { ID, SOCKET, STATUS } from "./constants";
 import { DEFAULT_TERRAIN, TERRAIN } from "./data";
 import { getBuildings, getType, canonical, checkPlacement, isSettlementScene, generateTerrain } from "./store";
 import type { Building, Cell, OrderMessage } from "./types";
+import { escapeHTML, sanitizeName } from "./util";
 
 const t = (key: string, data?: Record<string, string>): string =>
   data ? game.i18n.format(key, data) : game.i18n.localize(key);
 const speaker = () => ({ alias: t("SIEDLUNG.title") });
 
 /** Spieler/SL: Auftrag stellen. Spieler schicken ihn per Socket an die aktive SL. */
-export function requestOrder(typeId: string, cells: Cell[]): void {
+export function requestOrder(typeId: string, cells: Cell[], name: string): void {
   if (!isSettlementScene()) return;
-  const msg: OrderMessage = { action: "order", sceneId: canvas.scene.id, typeId, cells, userId: game.user.id };
+  const msg: OrderMessage = { action: "order", sceneId: canvas.scene.id, typeId, name, cells, userId: game.user.id };
   if (game.user.isGM) {
     void handleOrder(msg);
     return;
@@ -30,7 +31,7 @@ export function registerSocket(): void {
 }
 
 /** Läuft nur auf dem Client der aktiven SL und prüft alles erneut. */
-async function handleOrder({ sceneId, typeId, cells, userId }: OrderMessage): Promise<void> {
+async function handleOrder({ sceneId, typeId, name, cells, userId }: OrderMessage): Promise<void> {
   const scene = game.scenes.get(sceneId);
   const type = getType(typeId);
   const user = game.users.get(userId);
@@ -52,16 +53,19 @@ async function handleOrder({ sceneId, typeId, cells, userId }: OrderMessage): Pr
   }
 
   const buildings: Building[] = foundry.utils.deepClone(getBuildings(scene));
+  const finalName = sanitizeName(name, type.name);
   buildings.push({
     id: foundry.utils.randomID(),
     typeId: type.id,
-    name: type.name,
+    name: finalName,
     category: type.category,
     cells,
     status: STATUS.ORDERED
   });
   await scene.setFlag(ID, "buildings", buildings);
-  await ChatMessage.create({ speaker: speaker(), content: t("SIEDLUNG.chat.ordered", { user: user.name, name: type.name }) });
+  // Bei eigenem Namen zusätzlich den Typ nennen: "Zum Eber (Kleine Taverne)"
+  const label = finalName === type.name ? escapeHTML(finalName) : `${escapeHTML(finalName)} (${escapeHTML(type.name)})`;
+  await ChatMessage.create({ speaker: speaker(), content: t("SIEDLUNG.chat.ordered", { user: escapeHTML(user.name), name: label }) });
 }
 
 export async function completeBuilding(id: string): Promise<void> {
@@ -71,7 +75,7 @@ export async function completeBuilding(id: string): Promise<void> {
   if (!b || b.status === STATUS.DONE) return;
   b.status = STATUS.DONE;
   await canvas.scene.setFlag(ID, "buildings", buildings);
-  await ChatMessage.create({ speaker: speaker(), content: t("SIEDLUNG.chat.completed", { name: b.name }) });
+  await ChatMessage.create({ speaker: speaker(), content: t("SIEDLUNG.chat.completed", { name: escapeHTML(b.name) }) });
 }
 
 export async function removeBuilding(id: string): Promise<void> {

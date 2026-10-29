@@ -52,6 +52,11 @@
     },
     "notes": {
       "notSettlement": "Dies ist keine Siedlungsszene. Markiere sie über das Flaggen-Werkzeug oder erstelle eine neue Siedlungs-Szene."
+    },
+    "nameDialog": {
+      "title": "Gebäude benennen",
+      "label": "Name",
+      "confirm": "Beauftragen"
     }
   }
 }

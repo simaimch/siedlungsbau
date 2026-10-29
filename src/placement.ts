@@ -2,8 +2,11 @@ import { transformCells, bounds, checkPlacement } from "./store";
 import { fillRect, outline } from "./render";
 import { requestOrder } from "./service";
 import type { BuildingType, Cell } from "./types";
+import { askBuildingName } from "./dialog";
 
 export class Placement {
+  /** Solange der Namensdialog offen ist, werden weitere Klicks ignoriert. */
+  static busy = false;
   static type: BuildingType | null = null;
   static rotation = 0;
   static mirror = false;
@@ -66,20 +69,35 @@ export class Placement {
   };
 
   static _onDown = (event: any): void => {
+    
     if (event.button === 2) {
       Placement._rightDown = { x: event.global.x, y: event.global.y };
       return;
     }
     if (event.button !== 0 || !Placement.pos || !Placement.type) return;
+    if (Placement.busy) return;
     const cells = Placement._cells();
     const res = checkPlacement(canvas.scene, cells);
     if (!res.ok) {
       ui.notifications.warn(game.i18n.localize(res.reason!));
       return;
     }
-    requestOrder(Placement.type.id, cells);
-    if (!event.shiftKey) Placement.stop();
+    void Placement._confirm(Placement.type, cells, event.shiftKey);
   };
+
+  /** Fragt den Namen ab und erteilt dann den Auftrag. Bei Abbruch des Dialogs bleibt die Platzierung aktiv. */
+  static async _confirm(type: BuildingType, cells: Cell[], keep: boolean): Promise<void> {
+    const sceneId: string = canvas.scene.id;
+    this.busy = true;
+    try {
+      const name = await askBuildingName(type.name);
+      if (name === null || canvas.scene?.id !== sceneId) return;
+      requestOrder(type.id, cells, name);
+      if (!keep) this.stop();
+    } finally {
+      this.busy = false;
+    }
+  }
 
   /** Rechtsklick (ohne Ziehen) bricht die Platzierung ab; Rechts-Ziehen verschiebt weiter die Ansicht. */
   static _onUp = (event: any): void => {
