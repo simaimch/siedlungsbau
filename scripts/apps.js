@@ -1,6 +1,6 @@
 import { ID, STATUS } from "./constants.js";
 import { BUILDINGS, CATEGORIES } from "./data.js";
-import { getBuildings, getType, bounds } from "./store.js";
+import { getBuildings, getType, bounds, isSettlementScene } from "./store.js";
 import { buildingCenter } from "./render.js";
 import { Placement } from "./placement.js";
 import { completeBuilding, removeBuilding } from "./service.js";
@@ -35,7 +35,7 @@ export class PaletteApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #onSelect(event, target) {
     const type = getType(target.dataset.id);
-    if (type) Placement.start(type);
+    if (type && isSettlementScene()) Placement.start(type);
   }
 }
 
@@ -97,4 +97,8 @@ export function toggleApp(App) {
 
 export function refreshOrders() {
   foundry.applications.instances.get(OrdersApp.DEFAULT_OPTIONS.id)?.render();
+}
+
+export function closeApps() {
+  for (const App of [PaletteApp, OrdersApp]) foundry.applications.instances.get(App.DEFAULT_OPTIONS.id)?.close();
 }

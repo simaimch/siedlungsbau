@@ -7,6 +7,11 @@ export function getBuildings(scene = canvas.scene) {
   return scene?.getFlag(ID, "buildings") ?? [];
 }
 
+/** Nur Szenen mit gesetzter Markierung sind Siedlungsszenen. */
+export function isSettlementScene(scene = canvas?.scene) {
+  return scene?.getFlag(ID, "enabled") === true;
+}
+
 export function getType(typeId) {
   return BUILDINGS.find(b => b.id === typeId);
 }

@@ -1,8 +1,18 @@
 {
   "SIEDLUNG": {
     "title": "Siedlung",
-    "tools": { "build": "Bauen", "orders": "Aufträge", "createScene": "Siedlungs-Szene erstellen" },
-    "palette": { "title": "Gebäude", "fields": "Felder" },
+    "tools": {
+      "build": "Bauen",
+      "orders": "Aufträge",
+      "createScene": "Siedlungs-Szene erstellen",
+      "markScene": "Szene als Siedlungsszene markieren",
+      "unmarkScene": "Siedlungsmarkierung entfernen",
+      "info": "Hinweis"
+    },
+    "palette": {
+      "title": "Gebäude",
+      "fields": "Felder"
+    },
     "orders": {
       "title": "Bauaufträge",
       "empty": "Es gibt noch keine Gebäude oder Aufträge.",
@@ -15,7 +25,9 @@
       "remove": "Entfernen",
       "removeConfirm": "Dieses Gebäude bzw. diesen Auftrag wirklich entfernen?"
     },
-    "placement": { "hint": "Linksklick = beauftragen (Shift = mehrfach), R = drehen, Shift+R = spiegeln, Esc = abbrechen." },
+    "placement": {
+      "hint": "Linksklick = beauftragen (Shift = mehrfach), R = drehen, Shift+R = spiegeln, Esc = abbrechen."
+    },
     "chat": {
       "ordered": "<strong>{user}</strong> hat <strong>{name}</strong> in Auftrag gegeben.",
       "completed": "<strong>{name}</strong> wurde fertiggestellt.",
@@ -25,9 +37,20 @@
       "noSquareGrid": "Diese Szene hat kein Quadratraster.",
       "noGM": "Es ist keine Spielleitung online, die den Auftrag entgegennehmen kann.",
       "outOfBounds": "Das Gebäude liegt außerhalb der Karte.",
-      "occupied": "Mindestens ein Feld ist bereits belegt."
+      "occupied": "Mindestens ein Feld ist bereits belegt.",
+      "padding": "Diese Szene hat Padding. Die Rasterberechnung geht von Padding 0 aus, Gebäude können versetzt erscheinen."
     },
-    "scene": { "name": "Name", "cols": "Breite (Felder)", "rows": "Höhe (Felder)", "create": "Erstellen" },
-    "building": { "underConstruction": "im Bau" }
+    "scene": {
+      "name": "Name",
+      "cols": "Breite (Felder)",
+      "rows": "Höhe (Felder)",
+      "create": "Erstellen"
+    },
+    "building": {
+      "underConstruction": "im Bau"
+    },
+    "notes": {
+      "notSettlement": "Dies ist keine Siedlungsszene. Markiere sie über das Flaggen-Werkzeug oder erstelle eine neue Siedlungs-Szene."
+    }
   }
 }

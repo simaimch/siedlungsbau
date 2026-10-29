@@ -1,11 +1,12 @@
 import { ID, SOCKET, STATUS } from "./constants.js";
-import { getBuildings, getType, canonical, checkPlacement } from "./store.js";
+import { getBuildings, getType, canonical, checkPlacement, isSettlementScene } from "./store.js";
 
 const t = (k, d) => (d ? game.i18n.format(k, d) : game.i18n.localize(k));
 const speaker = () => ({ alias: t("SIEDLUNG.title") });
 
 /** Spieler/SL: Auftrag stellen. Spieler schicken ihn per Socket an die aktive SL. */
 export function requestOrder(typeId, cells) {
+  if (!isSettlementScene()) return;
   const msg = { action: "order", sceneId: canvas.scene.id, typeId, cells, userId: game.user.id };
   if (game.user.isGM) return handleOrder(msg);
   if (!game.users.activeGM) return ui.notifications.error(t("SIEDLUNG.errors.noGM"));
@@ -24,7 +25,7 @@ async function handleOrder({ sceneId, typeId, cells, userId }) {
   const scene = game.scenes.get(sceneId);
   const type = getType(typeId);
   const user = game.users.get(userId);
-  if (!scene || !type || !user) return;
+  if (!scene || !type || !user || !isSettlementScene(scene)) return;
   const valid = Array.isArray(cells) && cells.length === type.cells.length
     && cells.every(c => Array.isArray(c) && c.length === 2 && c.every(Number.isInteger));
   if (!valid || canonical(cells) !== canonical(type.cells)) return;
@@ -96,7 +97,18 @@ export async function createSettlementScene() {
     padding: 0,
     grid: { type: CONST.GRID_TYPES.SQUARE, size, distance: 5, units: "m" },
     background: { color: "#4a5d3a" },
-    tokenVision: false
+    tokenVision: false,
+    flags: { [ID]: { enabled: true } }
   });
   await scene.view();
+}
+
+/** SL: markiert die aktuelle Szene als Siedlungsszene bzw. entfernt die Markierung. */
+export async function toggleSettlementScene() {
+  const scene = canvas.scene;
+  if (!game.user.isGM || !scene) return;
+  const enable = !isSettlementScene(scene);
+  if (enable && scene.grid.type !== CONST.GRID_TYPES.SQUARE) return ui.notifications.error(t("SIEDLUNG.errors.noSquareGrid"));
+  if (enable && scene.padding) ui.notifications.warn(t("SIEDLUNG.errors.padding"));
+  await scene.setFlag(ID, "enabled", enable);
 }
