@@ -40,7 +40,8 @@
     "chat": {
       "ordered": "<strong>{user}</strong> hat <strong>{name}</strong> in Auftrag gegeben.",
       "completed": "<strong>{name}</strong> wurde fertiggestellt.",
-      "rejected": "Dein Bauauftrag für <strong>{name}</strong> wurde abgelehnt: {reason}"
+      "rejected": "Dein Bauauftrag für <strong>{name}</strong> wurde abgelehnt: {reason}",
+      "removed": "<strong>{name}</strong> wurde abgerissen."
     },
     "errors": {
       "noSquareGrid": "Diese Szene hat kein Quadratraster.",

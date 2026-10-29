@@ -122,9 +122,10 @@ function statLine(r: StatReport): string {
   return `<li>${escapeHTML(stat.name)}: ${r.before} → <strong>${r.after}</strong> (${signed(delta)}; ${parts.join(", ")})${label ? ` – ${escapeHTML(label)}` : ""}${limited}</li>`;
 }
 
-/** SL: wendet die einmaligen Wirkungen eines fertiggestellten Gebäudes an; liefert Chat-Zeilen. */
-export async function applyOnceEffects(effects: StatEffect[]): Promise<string[]> {
+/** SL: wendet die einmaligen Wirkungen eines fertiggestellten Gebäudes an (reverse: nimmt sie beim Abriss zurück); liefert Chat-Zeilen. */
+export async function applyOnceEffects(effects: StatEffect[], reverse = false): Promise<string[]> {
   const once = sumEffects(effects, "once");
+  if (reverse) for (const id of Object.keys(once)) once[id] = -once[id];
   if (!Object.keys(once).length || !canvas.scene) return [];
   const state = getSettlement();
   const { values, reports } = applyStatChanges(getStats(), state.stats, {}, once);

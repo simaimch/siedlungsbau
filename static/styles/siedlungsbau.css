@@ -29,7 +29,8 @@
 .siedlung-building-editor { display: flex; flex-direction: column; gap: 0.5rem; }
 .siedlung-building-editor .size { display: flex; align-items: center; gap: 6px; }
 .siedlung-building-editor .size input { width: 4rem; }
-.siedlung-building-editor .shape-grid { display: grid; grid-template-columns: repeat(var(--w), 28px); gap: 2px; justify-content: center; max-height: 60vh; overflow: auto; padding: 4px; }
+.siedlung-building-editor .shape-grid { display: grid; grid-template-columns: repeat(var(--w), 28px); gap: 2px; justify-content: center; padding: 4px; }
+.siedlung-building-editor > * { flex-shrink: 0; }
 .siedlung-building-editor .cell { width: 28px; height: 28px; padding: 0; line-height: 1; border: 1px solid var(--color-border-light-tertiary, #888); background: transparent; }
 .siedlung-building-editor .cell.on { background: var(--color-text-hyperlink, #4a90d9); }
 .siedlung-building-editor footer { display: flex; justify-content: flex-end; gap: 6px; }

@@ -90,8 +90,17 @@ export async function completeBuilding(id: string): Promise<void> {
 
 export async function removeBuilding(id: string): Promise<void> {
   if (!game.user.isGM) return;
-  const buildings = getBuildings().filter(x => x.id !== id);
+  const all = getBuildings();
+  const removed = all.find(x => x.id === id);
+  const buildings = all.filter(x => x.id !== id);
   await canvas.scene.setFlag(ID, "buildings", buildings);
+  // Abriss eines fertigen Gebäudes nimmt dessen einmalige Wirkungen zurück
+  if (removed?.status === STATUS.DONE) {
+    const lines = await applyOnceEffects(costsOf(removed).statEffects, true);
+    if (lines.length) {
+      await ChatMessage.create({ speaker: speaker(), content: `${t("SIEDLUNG.chat.removed", { name: escapeHTML(removed.name) })}<ul>${lines.join("")}</ul>` });
+    }
+  }
 }
 
 /** SL: erstellt eine leere Szene mit Quadratraster, 1 Feld = 5 m. */
