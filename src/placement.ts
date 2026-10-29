@@ -9,6 +9,7 @@ export class Placement {
   static mirror = false;
   static pos: { x: number; y: number } | null = null;
   static g: any = null;
+  static _rightDown: { x: number; y: number } | null = null;
 
   static start(type: BuildingType): void {
     this.stop();
@@ -21,6 +22,7 @@ export class Placement {
     canvas.interface.addChild(this.g);
     canvas.stage.on("pointermove", this._onMove);
     canvas.stage.on("pointerdown", this._onDown);
+    canvas.stage.on("pointerup", this._onUp);
     window.addEventListener("keydown", this._onKey, true);
     ui.notifications.info(game.i18n.localize("SIEDLUNG.placement.hint"));
   }
@@ -29,6 +31,8 @@ export class Placement {
     if (!this.type) return;
     canvas.stage?.off("pointermove", this._onMove);
     canvas.stage?.off("pointerdown", this._onDown);
+    canvas.stage?.off("pointerup", this._onUp);
+    this._rightDown = null;
     window.removeEventListener("keydown", this._onKey, true);
     this.g?.destroy();
     this.g = null;
@@ -62,6 +66,10 @@ export class Placement {
   };
 
   static _onDown = (event: any): void => {
+    if (event.button === 2) {
+      Placement._rightDown = { x: event.global.x, y: event.global.y };
+      return;
+    }
     if (event.button !== 0 || !Placement.pos || !Placement.type) return;
     const cells = Placement._cells();
     const res = checkPlacement(canvas.scene, cells);
@@ -71,6 +79,14 @@ export class Placement {
     }
     requestOrder(Placement.type.id, cells);
     if (!event.shiftKey) Placement.stop();
+  };
+
+  /** Rechtsklick (ohne Ziehen) bricht die Platzierung ab; Rechts-Ziehen verschiebt weiter die Ansicht. */
+  static _onUp = (event: any): void => {
+    if (event.button !== 2 || !Placement._rightDown) return;
+    const moved = Math.hypot(event.global.x - Placement._rightDown.x, event.global.y - Placement._rightDown.y);
+    Placement._rightDown = null;
+    if (moved < 5) Placement.stop();
   };
 
   static _onKey = (event: KeyboardEvent): void => {
