@@ -25,7 +25,11 @@ export const BUILDINGS: BuildingType[] = [
 
 export const TERRAIN: Record<string, TerrainType> = {
   g: { label: "Gras", color: "#a8d672", buildable: true },
-  r: { label: "Fels", color: "#808080", buildable: false }
+  r: { label: "Fels", color: "#808080", buildable: false },
+  u: { label: "Ufer", color: "#fdf182", buildable: false },
+  s: { label: "Wasser", color: "#6ce3f8", buildable: false },
+  t: { label: "Wasser", color: "#57acbb", buildable: false },
+  w: { label: "Wald", color: "#32a55e", buildable: false },
 };
 /** Standardgelände: wird nicht gezeichnet, sondern ist die Hintergrundfarbe der Szene. */
 export const DEFAULT_TERRAIN = "g";

@@ -71,8 +71,3 @@ export function terrainAt(terrain: TerrainData | null, x: number, y: number): st
   return terrain.cells[y * terrain.cols + x] ?? DEFAULT_TERRAIN;
 }
 
-export function generateTerrain(cols: number, rows: number, rockChance = ROCK_CHANCE): TerrainData {
-  let cells = "";
-  for (let i = 0; i < cols * rows; i++) cells += Math.random() < rockChance ? "r" : DEFAULT_TERRAIN;
-  return { cols, rows, cells };
-}

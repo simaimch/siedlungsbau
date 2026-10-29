@@ -1,6 +1,7 @@
 import { ID, SOCKET, STATUS } from "./constants";
 import { DEFAULT_TERRAIN, TERRAIN } from "./data";
-import { getBuildings, getType, canonical, checkPlacement, isSettlementScene, generateTerrain } from "./store";
+import { getBuildings, getType, canonical, checkPlacement, isSettlementScene } from "./store";
+import { generateTerrain } from "./terrain/generateTerrain";
 import type { Building, Cell, OrderMessage } from "./types";
 import { escapeHTML, sanitizeName } from "./util";
 
