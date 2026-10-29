@@ -1,6 +1,7 @@
 // Reine Rechenlogik der Arbeitswoche (ohne Foundry-Abhängigkeiten, daher einzeln testbar).
 import { clampStat, defaultStatValue } from "./stats";
-import type { Building, CostEntry, CostKind, Progress, SettlementState, StatEffect, StatType } from "./types";
+import { sumEntries, tickEffects } from "./effects";
+import type { ActiveEffect, Building, CostEntry, CostKind, Progress, SettlementState, StatEffect, StatType } from "./types";
 
 export interface Costs {
   buildCost: CostEntry[];
@@ -21,11 +22,16 @@ export interface ResourceReport {
   built: number;
   /** Betriebskosten, die nicht gedeckt werden konnten */
   shortfall: number;
+  /** Saldo durch aktive Effekte (bereits in produced/consumed enthalten) */
+  effect: number;
 }
 
 export interface LaborReport {
   id: string;
+  /** Basiskapazität (ohne Effekte) */
   capacity: number;
+  /** Zuschlag durch aktive Effekte */
+  effect: number;
   /** durch Betrieb hinzugekommen (Gebäude mit negativen Personal-Betriebskosten) */
   produced: number;
   /** durch den Betrieb fertiger Gebäude gebunden */
@@ -95,6 +101,8 @@ export interface WeekResult {
   progress: BuildingReport[];
   /** Namen der Bauaufträge, die diese Woche nichts erhalten haben */
   stalled: string[];
+  /** Effekte: weiterhin aktiv (mit neuer Restdauer) und ausgelaufen */
+  effects: { active: ActiveEffect[]; expired: ActiveEffect[] };
 }
 
 const KEY = { resource: "resources", worker: "workers" } as const;
@@ -156,11 +164,20 @@ export function computeWeek(state: SettlementState, buildings: Building[], costs
     }
   }
 
+  // Aktive Effekte: Ressourcen wirken wie Betrieb (positiv = Produktion), Arbeiter erhöhen die Wochenkapazität
+  const activeEffects = state.effects ?? [];
+  const effRes = sumEntries(activeEffects, "resource");
+  const effLab = sumEntries(activeEffects, "worker");
+  for (const [id, n] of Object.entries(effRes)) {
+    if (n > 0) add(prodRes, id, n);
+    else if (n < 0) add(wantRes, id, -n);
+  }
+
   const reports = new Map<string, ResourceReport>();
   const report = (id: string): ResourceReport => {
     let r = reports.get(id);
     if (!r) {
-      r = { id, before: have(id), after: have(id), produced: 0, consumed: 0, built: 0, shortfall: 0 };
+      r = { id, before: have(id), after: have(id), produced: 0, consumed: 0, built: 0, shortfall: 0, effect: effRes[id] ?? 0 };
       reports.set(id, r);
     }
     return r;
@@ -178,14 +195,16 @@ export function computeWeek(state: SettlementState, buildings: Building[], costs
 
   const pool: Record<string, number> = {};
   const laborReports = new Map<string, LaborReport>();
-  for (const id of new Set([...Object.keys(state.workers), ...Object.keys(wantLab), ...Object.keys(prodLab)])) {
+  for (const id of new Set([...Object.keys(state.workers), ...Object.keys(wantLab), ...Object.keys(prodLab), ...Object.keys(effLab)])) {
     const capacity = state.workers[id] ?? 0;
-    const effective = capacity + (prodLab[id] ?? 0);
+    const effect = effLab[id] ?? 0;
+    const effective = Math.max(0, capacity + effect) + (prodLab[id] ?? 0);
     const committed = Math.min(effective, wantLab[id] ?? 0);
     pool[id] = effective - committed;
     laborReports.set(id, {
       id,
       capacity,
+      effect,
       produced: prodLab[id] ?? 0,
       committed,
       shortfall: (wantLab[id] ?? 0) - committed,
@@ -255,8 +274,11 @@ export function computeWeek(state: SettlementState, buildings: Building[], costs
   const statValues = applied.values;
   const statReports = applied.reports;
 
+  const ticked = tickEffects(activeEffects);
+
   return {
-    state: { ...state, week: state.week + 1, resources: stock, workers: { ...state.workers }, stats: statValues },
+    state: { ...state, week: state.week + 1, resources: stock, workers: { ...state.workers }, stats: statValues, effects: ticked.active },
+    effects: ticked,
     stats: statReports,
     buildings: updated,
     resources: [...reports.values()],

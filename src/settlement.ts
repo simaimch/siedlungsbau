@@ -3,9 +3,10 @@ import { getBuildings, costsOf } from "./store";
 import { getAsset, getStats } from "./definitions";
 import { clampStat, describeInterval } from "./stats";
 import { applyStatChanges, computeWeek, sumEffects } from "./week";
+import { normalizeEffects } from "./effects";
 import type { StatReport, WeekResult } from "./week";
 import { escapeHTML } from "./util";
-import type { CostKind, SettlementState, StatEffect } from "./types";
+import type { ActiveEffect, CostKind, SettlementState, StatEffect } from "./types";
 
 const t = (key: string, data?: Record<string, string | number>): string =>
   data ? game.i18n.format(key, data) : game.i18n.localize(key);
@@ -17,7 +18,8 @@ export function getSettlement(scene: any = canvas?.scene): SettlementState {
     week: Number.isFinite(raw?.week) ? raw.week : 1,
     resources: { ...(raw?.resources ?? {}) },
     workers: { ...(raw?.workers ?? {}) },
-    stats: { ...(raw?.stats ?? {}) }
+    stats: { ...(raw?.stats ?? {}) },
+    effects: normalizeEffects(raw?.effects)
   };
 }
 
@@ -37,6 +39,33 @@ export async function setStat(id: string, amount: number): Promise<void> {
   if (!stat) return;
   const state = getSettlement();
   state.stats[id] = clampStat(stat, amount);
+  await canvas.scene.setFlag(ID, "settlement", state);
+}
+
+/** SL: fügt einen aktiven Effekt hinzu. */
+export async function addEffect(effect: Omit<ActiveEffect, "id">): Promise<void> {
+  if (!game.user.isGM || !canvas.scene) return;
+  const state = getSettlement();
+  const [fx] = normalizeEffects([{ ...effect, id: foundry.utils.randomID() }]);
+  if (!fx) return;
+  state.effects.push(fx);
+  await canvas.scene.setFlag(ID, "settlement", state);
+}
+
+/** SL: entfernt einen aktiven Effekt sofort. */
+export async function removeEffect(id: string): Promise<void> {
+  if (!game.user.isGM || !canvas.scene) return;
+  const state = getSettlement();
+  state.effects = state.effects.filter(e => e.id !== id);
+  await canvas.scene.setFlag(ID, "settlement", state);
+}
+
+/** SL: ändert die Restdauer eines Effekts (0 entfernt ihn). */
+export async function setEffectDuration(id: string, weeks: number): Promise<void> {
+  if (!game.user.isGM || !canvas.scene) return;
+  const state = getSettlement();
+  const n = Number.isFinite(weeks) ? Math.floor(weeks) : 0;
+  state.effects = n < 1 ? state.effects.filter(e => e.id !== id) : state.effects.map(e => (e.id === id ? { ...e, remaining: n } : e));
   await canvas.scene.setFlag(ID, "settlement", state);
 }
 
@@ -67,8 +96,9 @@ function renderReport(result: WeekResult): string {
     .filter(r => r.before !== r.after || r.shortfall > 0)
     .map(r => {
       const detail: string[] = [];
-      const upkeepNet = r.produced - r.consumed;
+      const upkeepNet = r.produced - r.consumed - r.effect;
       if (upkeepNet !== 0) detail.push(`${t("SIEDLUNG.week.upkeep")} ${signed(upkeepNet)}`);
+      if (r.effect !== 0) detail.push(`${t("SIEDLUNG.week.effects")} ${signed(r.effect)}`);
       if (r.built > 0) detail.push(`${t("SIEDLUNG.week.build")} ${signed(-r.built)}`);
       return `<tr><td>${label("resource", r.id)}</td><td>${r.before} → <strong>${r.after}</strong></td><td>${detail.join(", ")}</td></tr>`;
     });
@@ -82,10 +112,10 @@ function renderReport(result: WeekResult): string {
   if (statLines.length) parts.push(`<p><strong>${t("SIEDLUNG.week.stats")}</strong></p><ul>${statLines.join("")}</ul>`);
 
   // Arbeitskraft
-  const labor = result.labor.filter(l => l.capacity > 0 || l.used > 0 || l.committed > 0);
+  const labor = result.labor.filter(l => l.capacity > 0 || l.used > 0 || l.committed > 0 || l.effect !== 0);
   if (labor.length) {
     const lines = labor.map(l => {
-      const bound = l.committed > 0 ? ` (${t("SIEDLUNG.week.laborBound", { bound: l.committed })})` : "";
+      const bound = (l.committed > 0 ? ` (${t("SIEDLUNG.week.laborBound", { bound: l.committed })})` : "") + (l.effect ? ` (${t("SIEDLUNG.week.effects")} ${signed(l.effect)})` : "");
       return `<li>${dot(getAsset("worker", l.id)?.color ?? "#888")}${t("SIEDLUNG.week.laborLine", { name: plain("worker", l.id), used: l.used, available: l.available })}${bound}</li>`;
     });
     parts.push(`<p><strong>${t("SIEDLUNG.week.labor")}</strong></p><ul>${lines.join("")}</ul>`);
@@ -93,6 +123,13 @@ function renderReport(result: WeekResult): string {
   for (const l of result.labor.filter(x => x.shortfall > 0)) {
     parts.push(`<p>⚠ ${t("SIEDLUNG.week.laborShortfall", { name: plain("worker", l.id), amount: l.shortfall })}</p>`);
   }
+
+  // Effekte
+  const fxLines = [
+    ...result.effects.active.map(fx => `<li>${escapeHTML(fx.name)}: ${t("SIEDLUNG.week.effectRemaining", { weeks: fx.remaining })}</li>`),
+    ...result.effects.expired.map(fx => `<li>${escapeHTML(fx.name)}: <strong>${t("SIEDLUNG.week.effectExpired")}</strong></li>`)
+  ];
+  if (fxLines.length) parts.push(`<p><strong>${t("SIEDLUNG.week.effectsTitle")}</strong></p><ul>${fxLines.join("")}</ul>`);
 
   // Baufortschritt
   if (result.progress.length) {

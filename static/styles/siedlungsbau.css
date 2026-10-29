@@ -146,3 +146,19 @@
 /* Gelände-Reiter im Editor: Spalten kommen von .asset-list, hier nur Feinheiten */
 .siedlung-definitions .terrain-defs input[type="checkbox"] { justify-self: center; }
 .siedlung-definitions .terrain-defs li > span:last-child { text-align: center; opacity: 0.6; }
+
+/* Aktive Effekte */
+.siedlung-settlement .effect-list { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.siedlung-settlement .effect-head { display: flex; align-items: center; gap: 6px; }
+.siedlung-settlement .effect-head strong { flex: 1; }
+.siedlung-settlement .effect-head .weeks input { width: 3.5rem; }
+.siedlung-settlement .effect-list .chips { display: flex; flex-wrap: wrap; gap: 2px 8px; font-size: var(--font-size-12, 12px); }
+.siedlung-settlement .effect-list .chip { white-space: nowrap; }
+.siedlung-settlement .effect-list .chip i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; }
+.siedlung-settlement .stat-list .sub { font-size: var(--font-size-11, 11px); opacity: 0.7; }
+.siedlung-effect-editor { display: flex; flex-direction: column; gap: 0.5rem; }
+.siedlung-effect-editor fieldset.cost-list { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+.siedlung-effect-editor .cost-row { display: grid; grid-template-columns: 1fr 5rem auto; gap: 6px; align-items: center; }
+.siedlung-effect-editor .hint { opacity: 0.7; font-size: var(--font-size-12, 12px); margin: 0; }
+.siedlung-effect-editor footer { display: flex; justify-content: flex-end; gap: 6px; }
+.application.siedlungsbau .siedlung-effect-editor { max-height: 75vh; overflow-y: auto; }

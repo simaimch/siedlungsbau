@@ -82,6 +82,26 @@ export interface SettlementState {
   workers: Record<string, number>;
   /** Werte der Siedlungs-Stats (Moral, Loyalität, ...); fehlende Werte gelten als Standardwert. */
   stats: Record<string, number>;
+  /** Aktive Effekte mit Restdauer in Wochen */
+  effects: ActiveEffect[];
+}
+
+export type EffectKind = "resource" | "worker" | "stat";
+
+/** Eine Veränderung durch einen Effekt: Ressourcen pro Woche, Arbeiter und Werte als Zuschlag, solange er aktiv ist. */
+export interface EffectEntry {
+  kind: EffectKind;
+  id: string;
+  amount: number;
+}
+
+/** Zeitlich begrenzter Effekt, z. B. "Wanderarbeiter": 3 Wochen lang +5 Handwerker. */
+export interface ActiveEffect {
+  id: string;
+  name: string;
+  /** Verbleibende Wochen; bei 0 wird der Effekt entfernt. */
+  remaining: number;
+  entries: EffectEntry[];
 }
 
 export interface OrderMessage {

@@ -171,7 +171,11 @@
       "stats": "Werte",
       "statLimit": "Grenze erreicht",
       "once": "einmalig",
-      "weekly": "pro Woche"
+      "weekly": "pro Woche",
+      "effects": "Effekte",
+      "effectsTitle": "Effekte",
+      "effectRemaining": "Restdauer {weeks} Wo.",
+      "effectExpired": "ausgelaufen"
     },
     "transfer": {
       "menuName": "Daten exportieren/importieren",
@@ -273,6 +277,34 @@
         "hasBuildings": "Auf diesem Gelände stehen Gebäude (in mindestens einer Szene).",
         "defaultBuildable": "Das Standardgelände muss baubar bleiben.",
         "full": "Es sind höchstens 52 Geländearten möglich."
+      }
+    },
+    "effects": {
+      "title": "Aktive Effekte",
+      "none": "Keine aktiven Effekte.",
+      "add": "Effekt hinzufügen",
+      "newEffect": "Neuer Effekt",
+      "defaultName": "Effekt",
+      "name": "Name",
+      "duration": "Dauer (Wochen)",
+      "durationHint": "Verbleibende Wochen; 0 entfernt den Effekt",
+      "weeksShort": "Wo.",
+      "changes": "Veränderungen",
+      "changesHint": "Ressourcen ändern sich in jeder Woche des Effekts. Arbeiter und Werte werden als Zuschlag addiert, solange der Effekt aktiv ist. Negative Zahlen verringern.",
+      "addRow": "Veränderung hinzufügen",
+      "removeRow": "Entfernen",
+      "remove": "Effekt entfernen",
+      "confirmRemove": "Diesen Effekt sofort entfernen?",
+      "groupResource": "Ressourcen (pro Woche)",
+      "groupWorker": "Arbeiter",
+      "groupStat": "Werte",
+      "perWeek": "pro Woche",
+      "baseNote": "Basis {base}, Effekte {bonus}",
+      "effective": "Aktuell",
+      "errors": {
+        "duration": "Die Dauer muss mindestens 1 Woche betragen.",
+        "noEntries": "Der Effekt braucht mindestens eine Veränderung ungleich 0.",
+        "noTargets": "Es gibt keine Ressourcen, Arbeiter oder Werte."
       }
     }
   }

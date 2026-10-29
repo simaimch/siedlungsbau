@@ -1,0 +1,34 @@
+<div class="siedlung-effect-editor">
+  <div class="form-group">
+    <label>{{localize "SIEDLUNG.effects.name"}}</label>
+    <input type="text" name="name" value="{{name}}" maxlength="60" autocomplete="off" placeholder="{{localize 'SIEDLUNG.effects.defaultName'}}">
+  </div>
+  <div class="form-group">
+    <label>{{localize "SIEDLUNG.effects.duration"}}</label>
+    <input type="number" name="remaining" value="{{remaining}}" min="1" step="1">
+  </div>
+
+  <fieldset class="cost-list">
+    <legend>{{localize "SIEDLUNG.effects.changes"}}</legend>
+    <p class="hint">{{localize "SIEDLUNG.effects.changesHint"}}</p>
+    {{#each rows}}
+    <div class="cost-row effect-row">
+      <select name="target">
+        {{#each groups}}
+        <optgroup label="{{label}}">
+          {{#each options}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+        </optgroup>
+        {{/each}}
+      </select>
+      <input type="number" name="amount" value="{{amount}}" step="any">
+      <button type="button" data-action="removeRow" data-index="{{index}}" title="{{localize 'SIEDLUNG.effects.removeRow'}}"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    {{/each}}
+    <button type="button" data-action="addRow"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.effects.addRow"}}</button>
+  </fieldset>
+
+  <footer>
+    <button type="button" data-action="save"><i class="fa-solid fa-check"></i> {{localize "SIEDLUNG.effects.add"}}</button>
+    <button type="button" data-action="cancel">{{localize "SIEDLUNG.editor.cancel"}}</button>
+  </footer>
+</div>

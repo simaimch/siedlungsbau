@@ -13,8 +13,9 @@
         <div class="stat-row">
           <span class="name">{{name}}</span>
           {{#if label}}<span class="pill" style="background: {{color}}; color: {{textColor}}">{{label}}</span>{{/if}}
-          {{#if ../isGM}}<input type="number" step="any" min="{{min}}" {{#if isInterval}}max="{{max}}"{{/if}} value="{{value}}" data-stat-id="{{id}}">{{else}}<span class="amount">{{value}}</span>{{/if}}
+          {{#if ../isGM}}<input type="number" step="any" min="{{min}}" {{#if isInterval}}max="{{max}}"{{/if}} value="{{base}}" data-stat-id="{{id}}">{{else}}<span class="amount">{{value}}</span>{{/if}}
         </div>
+        {{#if note}}<div class="sub">{{localize "SIEDLUNG.effects.effective"}} {{value}} · {{note}}</div>{{/if}}
         {{#if isInterval}}<div class="bar"><span style="width: {{percent}}%; background: {{color}}"></span></div>{{/if}}
       </li>
       {{/each}}
@@ -42,11 +43,38 @@
       <li>
         <i class="dot" style="background: {{color}}"></i>
         <span class="name">{{name}}</span>
-        {{#if ../isGM}}<input type="number" step="1" min="0" value="{{capacity}}" data-stock-kind="worker" data-id="{{id}}">{{else}}<span class="amount">{{capacity}}</span>{{/if}}
-        <span class="sub">{{free}} {{localize "SIEDLUNG.settlement.free"}}{{#if bound}} ({{bound}} {{localize "SIEDLUNG.settlement.bound"}}){{/if}}</span>
+        {{#if ../isGM}}<input type="number" step="1" min="0" value="{{base}}" data-stock-kind="worker" data-id="{{id}}">{{else}}<span class="amount">{{capacity}}</span>{{/if}}
+        <span class="sub">{{free}} {{localize "SIEDLUNG.settlement.free"}}{{#if bound}} ({{bound}} {{localize "SIEDLUNG.settlement.bound"}}){{/if}}{{#if note}} · {{localize "SIEDLUNG.effects.effective"}} {{capacity}} ({{note}}){{/if}}</span>
       </li>
       {{/each}}
     </ul>
+  </section>
+
+  <section class="effects">
+    <h4>{{localize "SIEDLUNG.effects.title"}}</h4>
+    {{#if effects.length}}
+    <ul class="effect-list">
+      {{#each effects}}
+      <li>
+        <div class="effect-head">
+          <strong>{{name}}</strong>
+          {{#if ../isGM}}
+          <span class="weeks"><input type="number" min="0" step="1" value="{{remaining}}" data-effect-id="{{id}}" title="{{localize 'SIEDLUNG.effects.durationHint'}}"> {{localize "SIEDLUNG.effects.weeksShort"}}</span>
+          <button type="button" data-action="removeEffect" data-id="{{id}}" title="{{localize 'SIEDLUNG.effects.remove'}}"><i class="fa-solid fa-trash"></i></button>
+          {{else}}
+          <span class="weeks">{{remaining}} {{localize "SIEDLUNG.effects.weeksShort"}}</span>
+          {{/if}}
+        </div>
+        <div class="chips">
+          {{#each entries}}<span class="chip">{{#if color}}<i style="background: {{color}}"></i>{{/if}}{{text}}&nbsp;{{name}}{{#if perWeek}}&nbsp;{{localize "SIEDLUNG.effects.perWeek"}}{{/if}}</span>{{/each}}
+        </div>
+      </li>
+      {{/each}}
+    </ul>
+    {{else}}
+    <p class="empty">{{localize "SIEDLUNG.effects.none"}}</p>
+    {{/if}}
+    {{#if isGM}}<button type="button" data-action="addEffect"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.effects.add"}}</button>{{/if}}
   </section>
 
   <section>

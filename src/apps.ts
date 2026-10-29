@@ -9,7 +9,9 @@ import { Placement } from "./placement";
 import { TERRAIN_APP_ID } from "./terrain-brush";
 import { completeBuilding, removeBuilding } from "./service";
 import { sanitizeName } from "./util";
-import { getSettlement, setAmount, setStat, advanceWeek } from "./settlement";
+import { getSettlement, setAmount, setStat, advanceWeek, removeEffect, setEffectDuration } from "./settlement";
+import { openEffectEditor } from "./effect-editor";
+import { sumEntries } from "./effects";
 import { clampStat, contrastText, defaultStatValue, describeInterval, stripGradient } from "./stats";
 import { openStatEditor } from "./stat-editor";
 import { isBuiltinTerrain, isDefaultTerrain, nextTerrainId } from "./terrain-defs";
@@ -134,7 +136,11 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
     classes: [ID],
     window: { title: "SIEDLUNG.settlement.title", icon: "fa-solid fa-warehouse", resizable: true },
     position: { width: 400, height: 560 },
-    actions: { nextWeek: SettlementApp.#onNextWeek }
+    actions: {
+      nextWeek: SettlementApp.#onNextWeek,
+      addEffect: SettlementApp.#onAddEffect,
+      removeEffect: SettlementApp.#onRemoveEffect
+    }
   };
 
   static PARTS = {
@@ -146,24 +152,51 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { resources, workers } = getDefinitions();
     const buildings = getBuildings();
     const committed = laborCommitted(buildings, costsOf);
+    const effStat = sumEntries(state.effects, "stat");
+    const effWorker = sumEntries(state.effects, "worker");
+    const signed = (n: number): string => (n > 0 ? `+${n}` : `−${-n}`);
     const statRows = getStats().map(stat => {
-      const value = clampStat(stat, state.stats[stat.id] ?? defaultStatValue(stat));
-      if (stat.kind === "open") return { id: stat.id, name: stat.name, isInterval: false, value, min: 0, max: 0, label: "", color: "", textColor: "", percent: 0 };
+      // Basiswert (von der SL einstellbar) plus Zuschlag durch aktive Effekte
+      const base = clampStat(stat, state.stats[stat.id] ?? defaultStatValue(stat));
+      const bonus = effStat[stat.id] ?? 0;
+      const value = clampStat(stat, base + bonus);
+      const note = bonus ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(Math.round(bonus * 100) / 100) }) : "";
+      if (stat.kind === "open") return { id: stat.id, name: stat.name, isInterval: false, value, base, note, min: 0, max: 0, label: "", color: "", textColor: "", percent: 0 };
       const d = describeInterval(stat, value);
       return {
-        id: stat.id, name: stat.name, isInterval: true, value, min: stat.min, max: stat.max,
+        id: stat.id, name: stat.name, isInterval: true, value, base, note, min: stat.min, max: stat.max,
         label: d.name, color: d.color, textColor: contrastText(d.color), percent: Math.round(d.fraction * 100)
       };
     });
+    const effects = state.effects.map(fx => ({
+      id: fx.id,
+      name: fx.name,
+      remaining: fx.remaining,
+      entries: fx.entries.map(e => {
+        const target = e.kind === "stat" ? getStats().find(s => s.id === e.id) : getAsset(e.kind, e.id);
+        return {
+          name: target?.name ?? e.id,
+          color: e.kind === "stat" ? "" : ((target as { color?: string } | undefined)?.color ?? "#888"),
+          text: signed(e.amount),
+          perWeek: e.kind === "resource"
+        };
+      })
+    }));
     return {
       stats: statRows,
+      effects,
       isGM: game.user.isGM,
       weekLabel: game.i18n.format("SIEDLUNG.settlement.week", { week: state.week }),
       resources: resources.map(r => ({ id: r.id, name: r.name, color: r.color, amount: state.resources[r.id] ?? 0 })),
       workers: workers.map(w => {
-        const capacity = state.workers[w.id] ?? 0;
+        const base = state.workers[w.id] ?? 0;
+        const bonus = effWorker[w.id] ?? 0;
+        const capacity = Math.max(0, base + bonus);
         const bound = committed[w.id] ?? 0;
-        return { id: w.id, name: w.name, color: w.color, capacity, bound: bound > 0 ? bound : 0, free: Math.max(0, capacity - bound) };
+        return {
+          id: w.id, name: w.name, color: w.color, base, capacity, bound: bound > 0 ? bound : 0, free: Math.max(0, capacity - bound),
+          note: bonus ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(bonus) }) : ""
+        };
       }),
       construction: buildings
         .filter(b => b.status === STATUS.ORDERED)
@@ -179,10 +212,22 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const el of inputs) {
       el.addEventListener("change", () => void setAmount(el.dataset.stockKind as CostKind, el.dataset.id ?? "", Number(el.value)));
     }
+    const durationInputs = this.element.querySelectorAll("[data-effect-id]") as NodeListOf<HTMLInputElement>;
+    for (const el of durationInputs) {
+      el.addEventListener("change", () => void setEffectDuration(el.dataset.effectId ?? "", Number(el.value)));
+    }
     const statInputs = this.element.querySelectorAll("[data-stat-id]") as NodeListOf<HTMLInputElement>;
     for (const el of statInputs) {
       el.addEventListener("change", () => void setStat(el.dataset.statId ?? "", Number(el.value)));
     }
+  }
+
+  static #onAddEffect(): void {
+    openEffectEditor();
+  }
+
+  static async #onRemoveEffect(_event: Event, target: HTMLElement): Promise<void> {
+    if (await confirm(t("SIEDLUNG.effects.remove"), t("SIEDLUNG.effects.confirmRemove"))) void removeEffect(target.dataset.id ?? "");
   }
 
   static async #onNextWeek(): Promise<void> {
