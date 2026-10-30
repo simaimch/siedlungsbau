@@ -38,11 +38,6 @@ A settlement-building module for **Foundry VTT v14**.
 ### Data import / export
 - Export and import categories, resources, workers, stats, terrain types, laws and building types as JSON (module settings → *Export/Import data*).
 
-## Requirements
-- Foundry VTT **v14**
-- Game system **Pathfinder 2e** (`pf2e`)
-- A scene with a **square grid** and no padding
-
 ## Installation
 
 ### Via manifest URL (recommended)
