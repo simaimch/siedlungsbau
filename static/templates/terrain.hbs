@@ -9,6 +9,17 @@
     </button>
     {{/each}}
   </div>
+  <fieldset class="expand">
+    <legend>{{localize "SIEDLUNG.expand.title"}}</legend>
+    <p class="hint">{{localize "SIEDLUNG.expand.hint"}}</p>
+    <div class="expand-grid">
+      <label class="top">{{localize "SIEDLUNG.expand.top"}}<input type="number" name="expand-top" value="0" min="0" max="200"></label>
+      <label class="left">{{localize "SIEDLUNG.expand.left"}}<input type="number" name="expand-left" value="0" min="0" max="200"></label>
+      <label class="right">{{localize "SIEDLUNG.expand.right"}}<input type="number" name="expand-right" value="0" min="0" max="200"></label>
+      <label class="bottom">{{localize "SIEDLUNG.expand.bottom"}}<input type="number" name="expand-bottom" value="0" min="0" max="200"></label>
+    </div>
+    <button type="button" data-action="expand"><i class="fa-solid fa-up-down-left-right"></i> {{localize "SIEDLUNG.expand.button"}}</button>
+  </fieldset>
   <footer>
     <button type="button" data-action="regenerate" title="{{localize 'SIEDLUNG.mapgen.regenerateHint'}}"><i class="fa-solid fa-dice"></i> {{localize "SIEDLUNG.mapgen.regenerateButton"}}</button>
   </footer>

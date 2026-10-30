@@ -402,6 +402,17 @@
         "south": "Südrand",
         "west": "Westrand"
       }
+    },
+    "expand": {
+      "title": "Karte erweitern",
+      "hint": "Felder, die links, rechts, oben oder unten angefügt werden. Sie übernehmen das Gelände der angrenzenden Reihe, Gebäude und Szenenobjekte wandern bei Bedarf mit.",
+      "top": "Oben",
+      "bottom": "Unten",
+      "left": "Links",
+      "right": "Rechts",
+      "button": "Erweitern",
+      "none": "Bitte gib bei mindestens einer Seite eine Zahl größer 0 an (maximal {max} Felder Kantenlänge).",
+      "done": "Karte erweitert: jetzt {cols} × {rows} Felder."
     }
   }
 }

@@ -209,3 +209,10 @@
 .siedlung-mapgen .form-group label.river { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .siedlung-terrain footer { margin-top: 8px; }
 .siedlung-terrain footer button { width: 100%; }
+
+/* Karte erweitern */
+.siedlung-terrain fieldset.expand { margin-top: 8px; }
+.siedlung-terrain .expand .hint { margin-bottom: 6px; }
+.siedlung-terrain .expand-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; margin-bottom: 6px; }
+.siedlung-terrain .expand-grid label { display: flex; flex-direction: column; font-size: var(--font-size-12, 12px); }
+.siedlung-terrain .expand button { width: 100%; }
