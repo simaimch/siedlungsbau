@@ -1,6 +1,7 @@
 import { ID } from "./constants";
 import { TERRAIN } from "./data";
 import { TerrainBrush, TERRAIN_APP_ID } from "./terrain-brush";
+import { regenerateMap } from "./mapgen-service";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -11,7 +12,7 @@ export class TerrainApp extends HandlebarsApplicationMixin(ApplicationV2) {
     classes: [ID],
     window: { title: "SIEDLUNG.terrain.title", icon: "fa-solid fa-paintbrush", resizable: true },
     position: { width: 260, height: "auto" as const },
-    actions: { pick: TerrainApp.#onPick }
+    actions: { pick: TerrainApp.#onPick, regenerate: TerrainApp.#onRegenerate }
   };
 
   static PARTS = {
@@ -29,6 +30,11 @@ export class TerrainApp extends HandlebarsApplicationMixin(ApplicationV2) {
       })),
       active: TerrainBrush.code !== null
     };
+  }
+
+  static #onRegenerate(): void {
+    TerrainBrush.stop();
+    void regenerateMap();
   }
 
   static #onPick(_event: Event, target: HTMLElement): void {

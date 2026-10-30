@@ -380,6 +380,28 @@
         "name": "Siedlung: Wartezeit für Gesetze (Wochen)",
         "hint": "So viele Wochen muss gewartet werden, bis dasselbe Gesetz nach einer Änderung durch Spieler erneut geändert werden kann. 0 = keine Wartezeit."
       }
+    },
+    "mapgen": {
+      "createTitle": "Karte generieren",
+      "regenerateTitle": "Karte neu generieren",
+      "regenerate": "Neu generieren",
+      "regenerateButton": "Karte neu generieren",
+      "regenerateHint": "Würfelt die Karte mit neuen Einstellungen neu aus. Felder mit Gebäuden bleiben Gras.",
+      "regenerated": "Die Karte wurde neu generiert.",
+      "hint": "Wähle für jeden Rand ein Gelände und ob dort ein Fluss in die Karte eintritt. Der Fluss schlängelt sich zur Mitte: Bei einem See münden alle Flüsse dort, ohne See verbinden sich zwei Ränder miteinander (bei mehr als zwei treffen sie sich in der Mitte). Alles wird zufällig und unregelmäßig umgesetzt.",
+      "none": "– kein Randgelände –",
+      "river": "Fluss ab hier",
+      "lake": "See in der Mitte",
+      "rocks": "Felsen (%)",
+      "seed": "Seed",
+      "seedPlaceholder": "leer = zufällig",
+      "noWater": "Für Flüsse und See fehlt die Geländeart „Wasser“; sie werden übersprungen.",
+      "edges": {
+        "north": "Nordrand",
+        "east": "Ostrand",
+        "south": "Südrand",
+        "west": "Westrand"
+      }
     }
   }
 }

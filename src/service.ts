@@ -3,8 +3,8 @@ import { getBuildings, getType, canonical, checkPlacement, isSettlementScene, co
 import { TERRAIN, DEFAULT_TERRAIN } from "./data";
 import { escapeHTML, sanitizeName } from "./util";
 import type { Building, Cell, OrderMessage } from "./types";
-import { generateTerrain } from "./terrain/generateTerrain";
 import { applyOnceEffects } from "./settlement";
+import { generateNewMap } from "./mapgen-service";
 
 const t = (key: string, data?: Record<string, string>): string =>
   data ? game.i18n.format(key, data) : game.i18n.localize(key);
@@ -125,6 +125,8 @@ export async function createSettlementScene(): Promise<void> {
     rejectClose: false
   });
   if (!result) return;
+  const generated = await generateNewMap(result.cols, result.rows);
+  if (!generated) return;
   const size = 100;
   const scene = await Scene.create({
     name: result.name,
@@ -134,7 +136,7 @@ export async function createSettlementScene(): Promise<void> {
     grid: { type: CONST.GRID_TYPES.SQUARE, size, distance: 5, units: "m" },
     backgroundColor: TERRAIN[DEFAULT_TERRAIN].color,
     tokenVision: false,
-    flags: { [ID]: { enabled: true, terrain: generateTerrain(result.cols, result.rows) } }
+    flags: { [ID]: { enabled: true, terrain: generated.terrain, mapgen: generated.mapgen } }
   });
   await applyBaseColor(scene, TERRAIN[DEFAULT_TERRAIN].color);
   await scene.view();

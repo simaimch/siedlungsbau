@@ -200,3 +200,12 @@
 .siedlung-law-editor footer { display: flex; justify-content: flex-end; gap: 6px; }
 .application.siedlungsbau .siedlung-laws { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 .application.siedlungsbau .siedlung-law-editor { max-height: 75vh; overflow-y: auto; }
+
+/* Kartengenerierung */
+.siedlung-mapgen .hint { margin: 0 0 6px; opacity: 0.7; font-size: var(--font-size-12, 12px); }
+.siedlung-mapgen .form-group { display: flex; align-items: center; gap: 8px; }
+.siedlung-mapgen .form-group > label:first-child { flex: 0 0 7rem; }
+.siedlung-mapgen .form-group select { flex: 1; }
+.siedlung-mapgen .form-group label.river { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.siedlung-terrain footer { margin-top: 8px; }
+.siedlung-terrain footer button { width: 100%; }
