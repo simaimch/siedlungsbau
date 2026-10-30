@@ -32,6 +32,8 @@ function cleanupHTML(cleanup: Cleanup): string {
   if (cleanup.costEntries > 0) lines.push(t("SIEDLUNG.transfer.cleanupCosts", { count: cleanup.costEntries }));
   if (cleanup.statEffects > 0) lines.push(t("SIEDLUNG.transfer.cleanupEffects", { count: cleanup.statEffects }));
   if (cleanup.lawEntries > 0) lines.push(t("SIEDLUNG.transfer.cleanupLawEntries", { count: cleanup.lawEntries }));
+  if (cleanup.triggerParts > 0) lines.push(t("SIEDLUNG.transfer.cleanupTriggerParts", { count: cleanup.triggerParts }));
+  if (cleanup.removedTriggers.length) lines.push(t("SIEDLUNG.transfer.cleanupTriggers", { names: cleanup.removedTriggers.map(escapeHTML).join(", ") }));
   if (cleanup.removedLaws.length) lines.push(t("SIEDLUNG.transfer.cleanupLaws", { names: cleanup.removedLaws.map(escapeHTML).join(", ") }));
   if (cleanup.removedBuildings.length) {
     lines.push(t("SIEDLUNG.transfer.cleanupBuildings", { names: cleanup.removedBuildings.map(escapeHTML).join(", ") }));
@@ -135,7 +137,7 @@ export class DataTransferApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await replaceDefinitions(defs);
     this._importText = "";
     const note =
-      cleanup.costEntries || cleanup.removedBuildings.length || cleanup.statEffects || cleanup.lawEntries || cleanup.removedLaws.length
+      cleanup.costEntries || cleanup.removedBuildings.length || cleanup.statEffects || cleanup.lawEntries || cleanup.removedLaws.length || cleanup.triggerParts || cleanup.removedTriggers.length
         ? ` ${t("SIEDLUNG.transfer.doneCleanup", { costs: cleanup.costEntries, buildings: cleanup.removedBuildings.length })}`
         : "";
     ui.notifications.info(t("SIEDLUNG.transfer.done") + note);

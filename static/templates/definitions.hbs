@@ -6,6 +6,7 @@
     <button type="button" class="{{#if isStats}}active{{/if}}" data-action="switchTab" data-tab="stat">{{localize "SIEDLUNG.editor.tabs.stat"}}</button>
     <button type="button" class="{{#if isTerrain}}active{{/if}}" data-action="switchTab" data-tab="terrain">{{localize "SIEDLUNG.editor.tabs.terrain"}}</button>
     <button type="button" class="{{#if isLaws}}active{{/if}}" data-action="switchTab" data-tab="laws">{{localize "SIEDLUNG.editor.tabs.laws"}}</button>
+    <button type="button" class="{{#if isTriggers}}active{{/if}}" data-action="switchTab" data-tab="triggers">{{localize "SIEDLUNG.editor.tabs.triggers"}}</button>
   </nav>
 
   {{#if isBuildings}}
@@ -108,6 +109,26 @@
       </ul>
     </details>
     {{/each}}
+  </section>
+  {{else if isTriggers}}
+  <section>
+    <header>
+      <h3>{{localize "SIEDLUNG.triggers.title"}}</h3>
+      <button type="button" data-action="addTrigger"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.editor.add"}}</button>
+    </header>
+    <p class="hint">{{localize "SIEDLUNG.triggers.hint"}}</p>
+    <ul class="trigger-defs">
+      {{#each triggers}}
+      <li>
+        <span class="name">{{name}}{{#if hidden}} <i class="fa-solid fa-eye-slash" title="{{localize 'SIEDLUNG.triggers.hidden'}}"></i>{{/if}}{{#if off}} <i class="fa-solid fa-power-off" title="{{localize 'SIEDLUNG.triggers.offByDefault'}}"></i>{{/if}}</span>
+        <button type="button" data-action="editTrigger" data-id="{{id}}" title="{{localize 'SIEDLUNG.editor.edit'}}"><i class="fa-solid fa-pencil"></i></button>
+        <button type="button" data-action="deleteTrigger" data-id="{{id}}" title="{{localize 'SIEDLUNG.triggers.delete'}}"><i class="fa-solid fa-trash"></i></button>
+        <div class="meta">{{summary}}</div>
+      </li>
+      {{else}}
+      <li class="empty">{{localize "SIEDLUNG.triggers.none"}}</li>
+      {{/each}}
+    </ul>
   </section>
   {{else if isTerrain}}
   <section>

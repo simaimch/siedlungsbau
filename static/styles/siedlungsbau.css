@@ -216,3 +216,19 @@
 .siedlung-terrain .expand-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; margin-bottom: 6px; }
 .siedlung-terrain .expand-grid label { display: flex; flex-direction: column; font-size: var(--font-size-12, 12px); }
 .siedlung-terrain .expand button { width: 100%; }
+
+/* Getriggerte Effekte */
+.siedlung-settlement .triggers li.idle { opacity: 0.6; }
+.siedlung-settlement .triggers .switch { display: flex; align-items: center; gap: 3px; font-size: var(--font-size-12, 12px); }
+.siedlung-settlement .triggers .state { font-size: var(--font-size-11, 11px); opacity: 0.8; }
+.siedlung-settlement .triggers .sub { font-size: var(--font-size-11, 11px); opacity: 0.7; }
+.siedlung-definitions .trigger-defs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.siedlung-definitions .trigger-defs li { display: grid; grid-template-columns: 1fr auto auto; gap: 4px 6px; align-items: center; }
+.siedlung-definitions .trigger-defs .meta { grid-column: 1 / -1; font-size: var(--font-size-11, 11px); opacity: 0.7; }
+.siedlung-trigger-editor { display: flex; flex-direction: column; gap: 0.5rem; }
+.siedlung-trigger-editor fieldset.cost-list { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+.siedlung-trigger-editor .cond-row { display: grid; grid-template-columns: 1fr 4rem 5rem 2rem; gap: 6px; align-items: center; }
+.siedlung-trigger-editor .entry-row { display: grid; grid-template-columns: 1fr 5rem 9rem 2rem; gap: 6px; align-items: center; }
+.siedlung-trigger-editor .hint { opacity: 0.7; font-size: var(--font-size-12, 12px); margin: 0; }
+.siedlung-trigger-editor footer { display: flex; justify-content: flex-end; gap: 6px; }
+.application.siedlungsbau .siedlung-trigger-editor { max-height: 75vh; overflow-y: auto; }

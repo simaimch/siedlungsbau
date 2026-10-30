@@ -4,8 +4,9 @@ import { DEFAULT_STATS } from "./stat-defaults";
 import { TERRAIN, DEFAULT_TERRAIN } from "./data";
 import { normalizeTerrain } from "./terrain-defs";
 import { normalizeLawCategories, normalizeLaws } from "./laws";
+import { normalizeTriggers } from "./triggers";
 import { DEFAULT_LAWS, DEFAULT_LAW_CATEGORIES } from "./law-defaults";
-import type { BuildingType, Category, CostEntry, CostKind, Definitions, PricedType, StatEffect, StatType, TerrainEntry, Law, LawCategory, EffectEntry } from "./types";
+import type { BuildingType, Category, CostEntry, CostKind, Definitions, PricedType, StatEffect, StatType, TerrainEntry, Law, LawCategory, EffectEntry, Trigger } from "./types";
 
 export const SETTING_DEFINITIONS = "definitions";
 
@@ -35,7 +36,8 @@ export function getDefinitions(): Required<Definitions> {
     terrain: normalizeTerrain(raw?.terrain),
     // Fehlen Gesetze ganz (ältere Speicherstände), gilt das mitgelieferte Beispiel; eine leere Liste bleibt leer
     lawCategories: Array.isArray(raw?.lawCategories) ? normalizeLawCategories(raw?.lawCategories) : structuredClone(DEFAULT_LAW_CATEGORIES),
-    laws: Array.isArray(raw?.laws) ? normalizeLaws(raw?.laws) : structuredClone(DEFAULT_LAWS)
+    laws: Array.isArray(raw?.laws) ? normalizeLaws(raw?.laws) : structuredClone(DEFAULT_LAWS),
+    triggers: normalizeTriggers(raw?.triggers)
   };
 }
 
@@ -50,6 +52,7 @@ export const getWeights = (): Record<string, number> =>
   Object.fromEntries(getResources().map(r => [r.id, typeof r.weight === "number" && r.weight >= 0 ? r.weight : 1]));
 export const getLawCategories = (): LawCategory[] => getDefinitions().lawCategories;
 export const getLaws = (): Law[] => getDefinitions().laws;
+export const getTriggers = (): Trigger[] => getDefinitions().triggers;
 export const getTerrainTypes = (): TerrainEntry[] => getDefinitions().terrain;
 
 export const assetKey = (kind: CostKind): "resources" | "workers" => (kind === "resource" ? "resources" : "workers");

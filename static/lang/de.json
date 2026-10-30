@@ -114,7 +114,8 @@
         "worker": "Arbeiter",
         "stat": "Werte",
         "terrain": "Gelände",
-        "laws": "Gesetze"
+        "laws": "Gesetze",
+        "triggers": "Trigger"
       },
       "add": "Hinzufügen",
       "newResource": "Neue Ressource",
@@ -211,7 +212,9 @@
       "doneCleanup": "Bereinigt: {costs} Kostenposten, {buildings} Gebäude entfernt.",
       "cleanupEffects": "{count} Wirkungen auf nicht mehr vorhandene Werte werden entfernt.",
       "cleanupLaws": "Gesetze ohne Kategorie werden entfernt: {names}",
-      "cleanupLawEntries": "{count} Wirkungen von Gesetzen auf nicht mehr vorhandene Einträge werden entfernt."
+      "cleanupLawEntries": "{count} Wirkungen von Gesetzen auf nicht mehr vorhandene Einträge werden entfernt.",
+      "cleanupTriggerParts": "{count} Bedingungen oder Wirkungen von Triggern, die auf nicht mehr vorhandene Einträge verweisen, werden entfernt.",
+      "cleanupTriggers": "Trigger ohne gültige Bedingung oder Wirkung werden entfernt: {names}"
     },
     "stats": {
       "title": "Siedlungs-Werte",
@@ -413,6 +416,41 @@
       "button": "Erweitern",
       "none": "Bitte gib bei mindestens einer Seite eine Zahl größer 0 an (maximal {max} Felder Kantenlänge).",
       "done": "Karte erweitert: jetzt {cols} × {rows} Felder."
+    },
+    "triggers": {
+      "title": "Getriggerte Effekte",
+      "hint": "Ein Trigger wirkt automatisch, solange alle seine Bedingungen erfüllt sind. Er wird beim Wochenwechsel gegen den Stand zu Wochenbeginn geprüft. Pro Siedlung lässt er sich in der Siedlungs-Übersicht ein- und ausschalten.",
+      "none": "Noch keine Trigger.",
+      "new": "Neuer Trigger",
+      "edit": "Trigger bearbeiten",
+      "defaultName": "Neuer Trigger",
+      "name": "Name",
+      "description": "Beschreibung (für Spieler sichtbar)",
+      "conditions": "Bedingungen",
+      "conditionsHint": "Alle Bedingungen müssen gleichzeitig erfüllt sein. Werte und Arbeiter zählen mit Zuschlägen aus Effekten und Gesetzen, Vorräte wie gelagert.",
+      "addCondition": "Bedingung hinzufügen",
+      "entries": "Wirkung",
+      "entriesHint": "Ressourcen wirken pro Woche, Arbeiter als Zuschlag auf die Wochenkapazität. Bei Werten wählst du, ob der Basiswert jede Woche verändert wird oder ein Zuschlag gilt, solange die Bedingung erfüllt ist.",
+      "modeWeekly": "Basiswert pro Woche",
+      "modeModifier": "Zuschlag solange aktiv",
+      "modeHint": "Wie ein Wert verändert wird",
+      "modeWeeklyShort": "pro Woche (Basiswert)",
+      "modeModifierShort": "(Zuschlag)",
+      "defaultOn": "In neuen und bisher unveränderten Siedlungen eingeschaltet",
+      "hiddenLabel": "Vor Spielern verbergen (wirkt, wird ihnen aber nicht angezeigt)",
+      "hidden": "Für Spieler versteckt",
+      "offByDefault": "Standardmäßig ausgeschaltet",
+      "delete": "Trigger löschen",
+      "confirmDelete": "Diesen Trigger wirklich löschen? Er verschwindet in allen Siedlungen.",
+      "sectionTitle": "Getriggerte Effekte",
+      "active": "aktiv",
+      "firing": "ausgelöst",
+      "waiting": "wartet",
+      "condition": "Bedingung:",
+      "reportTitle": "Ausgelöste Effekte",
+      "errors": {
+        "noConditions": "Mindestens eine gültige Bedingung ist nötig."
+      }
     }
   }
 }

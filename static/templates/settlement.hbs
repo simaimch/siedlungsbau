@@ -77,6 +77,29 @@
     {{#if isGM}}<button type="button" data-action="addEffect"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.effects.add"}}</button>{{/if}}
   </section>
 
+  {{#if triggerRows.length}}
+  <section class="triggers">
+    <h4>{{localize "SIEDLUNG.triggers.sectionTitle"}}</h4>
+    <ul class="effect-list">
+      {{#each triggerRows}}
+      <li class="{{#if firing}}firing{{else}}idle{{/if}}">
+        <div class="effect-head">
+          <strong>{{name}}</strong>
+          {{#if hidden}}<i class="fa-solid fa-eye-slash" title="{{localize 'SIEDLUNG.triggers.hidden'}}"></i>{{/if}}
+          {{#if ../isGM}}<label class="switch"><input type="checkbox" data-trigger-id="{{id}}" {{#if on}}checked{{/if}}> {{localize "SIEDLUNG.triggers.active"}}</label>{{/if}}
+          <span class="state">{{#if firing}}{{localize "SIEDLUNG.triggers.firing"}}{{else}}{{localize "SIEDLUNG.triggers.waiting"}}{{/if}}</span>
+        </div>
+        {{#if ../isGM}}<div class="sub">{{localize "SIEDLUNG.triggers.condition"}} {{#each conditions}}{{#unless @first}} ∧ {{/unless}}{{this}}{{/each}}</div>{{/if}}
+        {{#if description}}<div class="sub">{{description}}</div>{{/if}}
+        <div class="chips">
+          {{#each entries}}<span class="chip">{{#if color}}<i style="background: {{color}}"></i>{{/if}}{{text}}&nbsp;{{name}}{{#if perWeek}}&nbsp;{{localize "SIEDLUNG.effects.perWeek"}}{{/if}}{{#if mode}}&nbsp;{{mode}}{{/if}}</span>{{/each}}
+        </div>
+      </li>
+      {{/each}}
+    </ul>
+  </section>
+  {{/if}}
+
   <section>
     <h4>{{localize "SIEDLUNG.settlement.underConstruction"}}</h4>
     {{#if construction.length}}

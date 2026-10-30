@@ -2,16 +2,17 @@
 import { GOLD_ID } from "./constants";
 import { DEFAULT_DEFINITIONS } from "./data";
 import { isConnected, transformCells } from "./store";
+import { COMPARE_OPS } from "./triggers";
 import { sortedPoints, validateInterval } from "./stats";
 import { BUILTIN_TERRAIN, normalizeTerrain } from "./terrain-defs";
-import type { BuildingType, Category, Cell, CostEntry, Definitions, PricedType, StatEffect, StatPoint, StatType, TerrainEntry, Law, LawCategory, LawOption, EffectEntry } from "./types";
+import type { BuildingType, Category, Cell, CostEntry, Definitions, PricedType, StatEffect, StatPoint, StatType, TerrainEntry, Law, LawCategory, LawOption, CompareOp, EffectEntry, Trigger } from "./types";
 
 export const FORMAT_VERSION = 1;
 
-export type SectionKey = "categories" | "resources" | "workers" | "stats" | "terrain" | "lawCategories" | "laws" | "buildings";
+export type SectionKey = "categories" | "resources" | "workers" | "stats" | "terrain" | "lawCategories" | "laws" | "triggers" | "buildings";
 
 /** Reihenfolge, in der Bereiche exportiert und angewendet werden. */
-export const SECTIONS: SectionKey[] = ["categories", "resources", "workers", "stats", "terrain", "lawCategories", "laws", "buildings"];
+export const SECTIONS: SectionKey[] = ["categories", "resources", "workers", "stats", "terrain", "lawCategories", "laws", "triggers", "buildings"];
 
 export const SECTION_LABELS: Record<SectionKey, string> = {
   categories: "Kategorien",
@@ -21,6 +22,7 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   terrain: "Gelände",
   lawCategories: "Gesetzeskategorien",
   laws: "Gesetze",
+  triggers: "Trigger",
   buildings: "Gebäude"
 };
 
@@ -34,7 +36,7 @@ const MAX_SHAPE = 50;
 /** Formatiertes JSON; Rasterfelder ([x, y]) stehen dabei jeweils in einer Zeile. */
 export function exportDefinitions(defs: Definitions): string {
   const json = JSON.stringify(
-    { version: FORMAT_VERSION, categories: defs.categories, resources: defs.resources, workers: defs.workers, stats: defs.stats, terrain: defs.terrain ?? [], lawCategories: defs.lawCategories ?? [], laws: defs.laws ?? [], buildings: defs.buildings },
+    { version: FORMAT_VERSION, categories: defs.categories, resources: defs.resources, workers: defs.workers, stats: defs.stats, terrain: defs.terrain ?? [], lawCategories: defs.lawCategories ?? [], laws: defs.laws ?? [], triggers: defs.triggers ?? [], buildings: defs.buildings },
     null,
     2
   );
@@ -130,6 +132,35 @@ function parseLaw(raw: unknown): Parsed<Law> {
   }
   const description = text(raw.description, 300);
   return { id, name, category, ...(description ? { description } : {}), options };
+}
+
+function parseTrigger(raw: unknown): Parsed<Trigger> {
+  if (!isObj(raw)) return "Kein Objekt.";
+  const id = text(raw.id, 100);
+  const name = text(raw.name, 60);
+  if (!id) return "„id“ fehlt.";
+  if (!name) return "„name“ fehlt.";
+  if (!Array.isArray(raw.conditions) || !raw.conditions.length) return "„conditions“ muss mindestens eine Bedingung enthalten.";
+  const conditions: Trigger["conditions"] = [];
+  for (const c of raw.conditions) {
+    if (!isObj(c)) return "„conditions“ enthält einen ungültigen Eintrag.";
+    const cid = text(c.id, 100);
+    if (c.kind !== "resource" && c.kind !== "worker" && c.kind !== "stat") return "„conditions“: „kind“ muss „resource“, „worker“ oder „stat“ sein.";
+    if (!cid) return "„conditions“: „id“ fehlt.";
+    if (!COMPARE_OPS.includes(c.op as CompareOp)) return "„conditions“: „op“ muss <, <=, >, >=, == oder != sein.";
+    if (typeof c.value !== "number" || !Number.isFinite(c.value)) return "„conditions“: „value“ muss eine Zahl sein.";
+    conditions.push({ kind: c.kind, id: cid, op: c.op as CompareOp, value: Math.round(c.value * 100) / 100 });
+  }
+  const base = parseEntries(raw.entries, "entries");
+  if (typeof base === "string") return base;
+  if (!base.length) return "„entries“ muss mindestens eine Wirkung enthalten.";
+  const rawEntries = raw.entries as Record<string, unknown>[];
+  const entries: Trigger["entries"] = base.map((e, i) => (e.kind === "stat" && rawEntries[i].mode === "modifier" ? { ...e, mode: "modifier" as const } : e));
+  const description = text(raw.description, 300);
+  return {
+    id, name, ...(description ? { description } : {}), conditions, entries,
+    ...(raw.hidden === true ? { hidden: true } : {}), ...(raw.defaultOn === false ? { defaultOn: false } : {})
+  };
 }
 
 function parseAsset(raw: unknown): Parsed<PricedType> {
@@ -272,14 +303,14 @@ export function parseImport(input: string): ParsedImport {
   if (!isObj(raw)) return { data: {}, errors: ["Der Import muss ein JSON-Objekt sein."] };
 
   const data: Partial<Definitions> = {};
-  const parsers = { categories: parseCategory, resources: parseAsset, workers: parseAsset, stats: parseStat, terrain: parseTerrain, lawCategories: parseLawCategory, laws: parseLaw, buildings: parseBuilding } as const;
+  const parsers = { categories: parseCategory, resources: parseAsset, workers: parseAsset, stats: parseStat, terrain: parseTerrain, lawCategories: parseLawCategory, laws: parseLaw, triggers: parseTrigger, buildings: parseBuilding } as const;
   for (const key of SECTIONS) {
     if (raw[key] === undefined) continue;
     const list = parseSection(key, raw[key], parsers[key] as (e: unknown) => Parsed<{ id: string }>, errors);
     if (list) (data as Record<string, unknown>)[key] = list;
   }
   if (!errors.length && !Object.keys(data).length) {
-    errors.push("Der Import enthält keinen bekannten Bereich (categories, resources, workers, stats, terrain, lawCategories, laws, buildings).");
+    errors.push("Der Import enthält keinen bekannten Bereich (categories, resources, workers, stats, terrain, lawCategories, laws, triggers, buildings).");
   }
   return { data, errors };
 }
@@ -294,8 +325,8 @@ export interface MissingEntry {
   name: string;
 }
 
-const nameOf = (key: SectionKey, e: Category | PricedType | BuildingType | StatType | TerrainEntry | LawCategory | Law): string =>
-  key === "categories" || key === "terrain" || key === "lawCategories" ? (e as Category | TerrainEntry | LawCategory).label : (e as PricedType | BuildingType | StatType | Law).name;
+const nameOf = (key: SectionKey, e: Category | PricedType | BuildingType | StatType | TerrainEntry | LawCategory | Law | Trigger): string =>
+  key === "categories" || key === "terrain" || key === "lawCategories" ? (e as Category | TerrainEntry | LawCategory).label : (e as PricedType | BuildingType | StatType | Law | Trigger).name;
 
 /**
  * Bestehende Einträge, die im Import fehlen – nur in Bereichen, die der Import enthält.
@@ -307,7 +338,7 @@ export function findMissing(current: Definitions, imported: Partial<Definitions>
     const incoming = imported[key] as { id: string }[] | undefined;
     if (!incoming) continue;
     const ids = new Set(incoming.map(e => e.id));
-    for (const e of (current[key] ?? []) as (Category | PricedType | BuildingType | StatType | TerrainEntry | LawCategory | Law)[]) {
+    for (const e of (current[key] ?? []) as (Category | PricedType | BuildingType | StatType | TerrainEntry | LawCategory | Law | Trigger)[]) {
       // Goldmünzen und mitgelieferte Geländearten sind unlöschbar und gelten nicht als fehlend
       if (ids.has(e.id) || (key === "resources" && e.id === GOLD_ID) || (key === "terrain" && BUILTIN_TERRAIN.some(b => b.id === e.id))) continue;
       missing.push({ section: key, id: e.id, name: nameOf(key, e) });
@@ -330,6 +361,10 @@ export interface Cleanup {
   removedLaws: string[];
   /** Einträge in Ausprägungen von Gesetzen, die auf nicht mehr vorhandene Ressourcen, Arbeiter oder Werte verwiesen */
   lawEntries: number;
+  /** Trigger, die keine gültige Bedingung oder Wirkung mehr haben */
+  removedTriggers: string[];
+  /** Bedingungen und Wirkungen von Triggern, die auf nicht mehr vorhandene Einträge verwiesen */
+  triggerParts: number;
   /** Goldmünzen wurden wiederhergestellt, weil der Import sie nicht enthielt */
   restoredGold: boolean;
 }
@@ -417,5 +452,19 @@ export function applyImport(current: Definitions, imported: Partial<Definitions>
       o.entries = kept;
     }
   }
-  return { defs: next, cleanup: { costEntries, removedBuildings, restoredGold, statEffects, removedLaws, lawEntries } };
+  // Trigger: Bedingungen und Wirkungen müssen auf Vorhandenes zeigen, sonst entfällt der Verweis (ohne Rest der Trigger)
+  next.triggers = next.triggers ?? [];
+  let triggerParts = 0;
+  const removedTriggers: string[] = [];
+  next.triggers = next.triggers.filter(tr => {
+    const conditions = tr.conditions.filter(c => targets[c.kind].has(c.id));
+    const entries = tr.entries.filter(e => targets[e.kind].has(e.id));
+    triggerParts += tr.conditions.length - conditions.length + tr.entries.length - entries.length;
+    tr.conditions = conditions;
+    tr.entries = entries;
+    if (conditions.length && entries.length) return true;
+    removedTriggers.push(tr.name);
+    return false;
+  });
+  return { defs: next, cleanup: { costEntries, removedBuildings, restoredGold, statEffects, removedLaws, lawEntries, removedTriggers, triggerParts } };
 }

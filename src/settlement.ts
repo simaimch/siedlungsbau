@@ -1,13 +1,15 @@
 import { ID } from "./constants";
 import { getBuildings, costsOf } from "./store";
-import { getAsset, getLaws, getStats, getWeights } from "./definitions";
-import { clampStat, describeInterval } from "./stats";
+import { entryChips, getAsset, getLaws, getStats, getTriggers, getWeights, getResources, getWorkers } from "./definitions";
+import { clampStat, defaultStatValue, describeInterval } from "./stats";
 import { applyStatChanges, computeWeek, sumEffects } from "./week";
-import { normalizeEffects } from "./effects";
+import { normalizeEffects, sumEntries } from "./effects";
+import { firedTriggers, normalizeTriggerSwitches, triggerEffects } from "./triggers";
+import type { Snapshot } from "./triggers";
 import { lawEffects, normalizeLawStates } from "./laws";
 import type { StatReport, WeekResult } from "./week";
 import { escapeHTML } from "./util";
-import type { ActiveEffect, CostKind, SettlementState, StatEffect } from "./types";
+import type { ActiveEffect, CostKind, SettlementState, StatEffect, Trigger } from "./types";
 
 const t = (key: string, data?: Record<string, string | number>): string =>
   data ? game.i18n.format(key, data) : game.i18n.localize(key);
@@ -22,7 +24,8 @@ export function getSettlement(scene: any = canvas?.scene): SettlementState {
     stats: { ...(raw?.stats ?? {}) },
     effects: normalizeEffects(raw?.effects),
     laws: normalizeLawStates(raw?.laws),
-    lawChanges: Number.isFinite(raw?.lawChanges) && raw.lawChanges > 0 ? Math.floor(raw.lawChanges) : 0
+    lawChanges: Number.isFinite(raw?.lawChanges) && raw.lawChanges > 0 ? Math.floor(raw.lawChanges) : 0,
+    triggers: normalizeTriggerSwitches(raw?.triggers)
   };
 }
 
@@ -47,6 +50,35 @@ export async function setStat(id: string, amount: number): Promise<void> {
 
 /** Dauerhafte Effekte der aktiven Ausprägungen aller Gesetze der Siedlung. */
 export const permanentEffects = (state: SettlementState): ActiveEffect[] => lawEffects(getLaws(), state.laws);
+
+/**
+ * Momentaufnahme für die Bedingungen der Trigger: Werte und Arbeiter mit Zuschlägen aus Effekten und Gesetzen
+ * (aber ohne die Wirkung der Trigger selbst, damit sie sich nicht gegenseitig im Kreis auslösen), Vorräte wie gelagert.
+ */
+export function triggerSnapshot(state: SettlementState): Snapshot {
+  const fx = [...state.effects, ...permanentEffects(state)];
+  const bonusStat = sumEntries(fx, "stat");
+  const bonusWorker = sumEntries(fx, "worker");
+  const snap: Snapshot = { stat: {}, resource: {}, worker: {} };
+  for (const s of getStats()) snap.stat[s.id] = clampStat(s, clampStat(s, state.stats[s.id] ?? defaultStatValue(s)) + (bonusStat[s.id] ?? 0));
+  for (const r of getResources()) snap.resource[r.id] = state.resources[r.id] ?? 0;
+  for (const w of getWorkers()) snap.worker[w.id] = Math.max(0, (state.workers[w.id] ?? 0) + (bonusWorker[w.id] ?? 0));
+  return snap;
+}
+
+/** Aktuell ausgelöste Trigger der Siedlung samt ihrer zerlegten Wirkung. */
+export function currentTriggers(state: SettlementState): { fired: Trigger[] } & ReturnType<typeof triggerEffects> {
+  const fired = firedTriggers(getTriggers(), state.triggers, triggerSnapshot(state));
+  return { fired, ...triggerEffects(fired) };
+}
+
+/** SL: schaltet einen Trigger für die aktuelle Siedlung ein oder aus. */
+export async function setTriggerEnabled(id: string, enabled: boolean): Promise<void> {
+  if (!game.user.isGM || !canvas.scene) return;
+  const state = getSettlement();
+  state.triggers[id] = enabled;
+  await canvas.scene.setFlag(ID, "settlement", state);
+}
 
 /** SL: fügt einen aktiven Effekt hinzu. */
 export async function addEffect(effect: Omit<ActiveEffect, "id">): Promise<void> {
@@ -79,9 +111,13 @@ export async function setEffectDuration(id: string, weeks: number): Promise<void
 export async function advanceWeek(): Promise<void> {
   const scene = canvas.scene;
   if (!game.user.isGM || !scene) return;
-  const result = computeWeek(getSettlement(scene), getBuildings(scene), costsOf, getStats(), getWeights(), permanentEffects(getSettlement(scene)));
+  const before = getSettlement(scene);
+  // Trigger werden gegen den Stand zu Beginn der Woche geprüft und wirken in dieser Wochenrechnung
+  const trig = currentTriggers(before);
+  const permanent = [...permanentEffects(before), ...(trig.effect ? [trig.effect] : [])];
+  const result = computeWeek(before, getBuildings(scene), costsOf, getStats(), getWeights(), permanent, trig.statWeekly);
   await scene.update({ flags: { [ID]: { settlement: result.state, buildings: result.buildings } } });
-  await ChatMessage.create({ speaker: { alias: t("SIEDLUNG.title") }, content: renderReport(result) });
+  await ChatMessage.create({ speaker: { alias: t("SIEDLUNG.title") }, content: renderReport(result, trig.fired) });
 }
 
 const dot = (color: string): string =>
@@ -89,7 +125,7 @@ const dot = (color: string): string =>
 const signed = (n: number): string => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "±0");
 const percent = (f: number): string => `${Math.round(f * 100)} %`;
 
-function renderReport(result: WeekResult): string {
+function renderReport(result: WeekResult, fired: Trigger[] = []): string {
   const label = (kind: CostKind, id: string): string => {
     const asset = getAsset(kind, id);
     return `${dot(asset?.color ?? "#888")}${escapeHTML(asset?.name ?? id)}`;
@@ -136,6 +172,19 @@ function renderReport(result: WeekResult): string {
     ...result.effects.expired.map(fx => `<li>${escapeHTML(fx.name)}: <strong>${t("SIEDLUNG.week.effectExpired")}</strong></li>`)
   ];
   if (fxLines.length) parts.push(`<p><strong>${t("SIEDLUNG.week.effectsTitle")}</strong></p><ul>${fxLines.join("")}</ul>`);
+
+  // Ausgelöste Trigger (für Spieler sichtbar sind die Namen und Wirkungen, nicht versteckte Trigger)
+  const shown = fired.filter(f => !f.hidden);
+  if (shown.length) {
+    const lines = shown.map(f => {
+      const chips = entryChips(f.entries).map((c, i) => {
+        const mode = f.entries[i].kind === "stat" ? ` ${t(f.entries[i].mode === "modifier" ? "SIEDLUNG.triggers.modeModifierShort" : "SIEDLUNG.triggers.modeWeeklyShort")}` : "";
+        return `${c.text} ${escapeHTML(c.name)}${mode}`;
+      });
+      return `<li><strong>${escapeHTML(f.name)}</strong>: ${chips.join(", ")}</li>`;
+    });
+    parts.push(`<p><strong>${t("SIEDLUNG.triggers.reportTitle")}</strong></p><ul>${lines.join("")}</ul>`);
+  }
 
   // Baufortschritt
   if (result.progress.length) {

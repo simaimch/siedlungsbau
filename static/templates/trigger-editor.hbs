@@ -1,0 +1,69 @@
+<div class="siedlung-trigger-editor">
+  <div class="form-group">
+    <label>{{localize "SIEDLUNG.triggers.name"}}</label>
+    <input type="text" name="name" value="{{name}}" maxlength="60" autocomplete="off" placeholder="{{localize 'SIEDLUNG.triggers.defaultName'}}">
+  </div>
+  <div class="form-group">
+    <label>{{localize "SIEDLUNG.triggers.description"}}</label>
+    <textarea name="description" rows="2" maxlength="300">{{description}}</textarea>
+  </div>
+
+  <fieldset class="cost-list">
+    <legend>{{localize "SIEDLUNG.triggers.conditions"}}</legend>
+    <p class="hint">{{localize "SIEDLUNG.triggers.conditionsHint"}}</p>
+    {{#each conditions}}
+    <div class="cond-row">
+      <select name="target">
+        {{#each groups}}
+        <optgroup label="{{label}}">
+          {{#each options}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+        </optgroup>
+        {{/each}}
+      </select>
+      <select name="op">
+        {{#each ops}}<option value="{{op}}" {{#if selected}}selected{{/if}}>{{op}}</option>{{/each}}
+      </select>
+      <input type="number" name="value" value="{{value}}" step="any">
+      {{#if ../canRemoveCondition}}<button type="button" data-action="removeCondition" data-index="{{index}}" title="{{localize 'SIEDLUNG.effects.removeRow'}}"><i class="fa-solid fa-xmark"></i></button>{{else}}<span></span>{{/if}}
+    </div>
+    {{/each}}
+    <button type="button" data-action="addCondition"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.triggers.addCondition"}}</button>
+  </fieldset>
+
+  <fieldset class="cost-list">
+    <legend>{{localize "SIEDLUNG.triggers.entries"}}</legend>
+    <p class="hint">{{localize "SIEDLUNG.triggers.entriesHint"}}</p>
+    {{#each entries}}
+    <div class="entry-row">
+      <select name="target">
+        {{#each groups}}
+        <optgroup label="{{label}}">
+          {{#each options}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+        </optgroup>
+        {{/each}}
+      </select>
+      <input type="number" name="amount" value="{{amount}}" step="any">
+      {{#if isStat}}
+      <select name="mode" title="{{localize 'SIEDLUNG.triggers.modeHint'}}">
+        <option value="weekly" {{#if weekly}}selected{{/if}}>{{localize "SIEDLUNG.triggers.modeWeekly"}}</option>
+        <option value="modifier" {{#if modifier}}selected{{/if}}>{{localize "SIEDLUNG.triggers.modeModifier"}}</option>
+      </select>
+      {{else}}<span></span>{{/if}}
+      <button type="button" data-action="removeEntry" data-index="{{index}}" title="{{localize 'SIEDLUNG.effects.removeRow'}}"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    {{/each}}
+    <button type="button" data-action="addEntry"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.effects.addRow"}}</button>
+  </fieldset>
+
+  <div class="form-group">
+    <label class="checkbox"><input type="checkbox" name="defaultOn" {{#if defaultOn}}checked{{/if}}> {{localize "SIEDLUNG.triggers.defaultOn"}}</label>
+  </div>
+  <div class="form-group">
+    <label class="checkbox"><input type="checkbox" name="hidden" {{#if hidden}}checked{{/if}}> {{localize "SIEDLUNG.triggers.hiddenLabel"}}</label>
+  </div>
+
+  <footer>
+    <button type="button" data-action="save"><i class="fa-solid fa-check"></i> {{localize "SIEDLUNG.editor.save"}}</button>
+    <button type="button" data-action="cancel">{{localize "SIEDLUNG.editor.cancel"}}</button>
+  </footer>
+</div>

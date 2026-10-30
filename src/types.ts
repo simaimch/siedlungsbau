@@ -22,6 +22,8 @@ export interface Definitions {
   /** Kategorien der Gesetze, z. B. "Öffentliche Sicherheit" */
   lawCategories?: LawCategory[];
   laws?: Law[];
+  /** Getriggerte Effekte: wirken, solange ihre Bedingungen erfüllt sind */
+  triggers?: Trigger[];
 }
 
 export type CostKind = "resource" | "worker";
@@ -93,6 +95,8 @@ export interface SettlementState {
   laws: Record<string, LawState>;
   /** Wie viele Gesetze die Spieler in dieser Woche bereits geändert haben */
   lawChanges: number;
+  /** Pro Siedlung abweichende Schaltung getriggerter Effekte (ID → an/aus); fehlend = Voreinstellung des Triggers */
+  triggers: Record<string, boolean>;
 }
 
 export interface LawCategory {
@@ -242,4 +246,36 @@ export interface LawChangeMessage {
   lawId: string;
   optionId: string;
   userId: string;
+}
+
+export type CompareOp = "<" | "<=" | ">" | ">=" | "==" | "!=";
+
+/** Bedingung eines Triggers: Vergleich eines Werts, Vorrats oder einer Arbeiterart mit einer Zahl. */
+export interface TriggerCondition {
+  kind: EffectKind;
+  id: string;
+  op: CompareOp;
+  value: number;
+}
+
+/**
+ * Wirkung eines Triggers. Bei Werten (Stats) ist "weekly" (Standard) eine Änderung des Basiswerts pro Woche,
+ * "modifier" ein Zuschlag, solange die Bedingung erfüllt ist. Ressourcen wirken pro Woche, Arbeiter als Zuschlag.
+ */
+export interface TriggerEntry extends EffectEntry {
+  mode?: "weekly" | "modifier";
+}
+
+/** Getriggerter Effekt, z. B. "Zufriedenheit unter 30 → Loyalität sinkt um 1 pro Woche". */
+export interface Trigger {
+  id: string;
+  name: string;
+  description?: string;
+  /** Alle Bedingungen müssen erfüllt sein (UND) */
+  conditions: TriggerCondition[];
+  entries: TriggerEntry[];
+  /** Für Spieler nur sichtbar, wenn nicht versteckt */
+  hidden?: boolean;
+  /** Voreinstellung in Siedlungen ohne eigene Schaltung (Standard: an) */
+  defaultOn?: boolean;
 }

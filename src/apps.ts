@@ -1,7 +1,7 @@
 import { ID, STATUS, GOLD_ID } from "./constants";
 import { getBuildings, getTerrain, terrainAt, getType, bounds, isSettlementScene, isConnected, cellKey, transformCells, costsOf } from "./store";
 import {
-  getDefinitions, getCategories, getCategory, getResources, getWorkers, getStats, getTerrainTypes, getWeights, getAsset, assetKey, isGold, costChips, effectChips,
+  getDefinitions, getCategories, getCategory, getResources, getWorkers, getStats, getTerrainTypes, getWeights, getAsset, assetKey, isGold, costChips, effectChips, entryChips, getTriggers,
   saveDefinitions, resetDefinitions
 } from "./definitions";
 import { buildingCenter } from "./render";
@@ -9,16 +9,18 @@ import { Placement } from "./placement";
 import { TERRAIN_APP_ID } from "./terrain-brush";
 import { completeBuilding, removeBuilding } from "./service";
 import { sanitizeName } from "./util";
-import { getSettlement, setAmount, setStat, advanceWeek, removeEffect, setEffectDuration, permanentEffects } from "./settlement";
+import { getSettlement, setAmount, setStat, advanceWeek, removeEffect, setEffectDuration, permanentEffects, currentTriggers, setTriggerEnabled } from "./settlement";
 import { openLawEditor } from "./law-editor";
 import { lawEffectsVisible } from "./laws-service";
 import { openEffectEditor } from "./effect-editor";
 import { sumEntries } from "./effects";
+import { isTriggerOn, triggerEffects } from "./triggers";
+import { openTriggerEditor } from "./trigger-editor";
 import { clampStat, contrastText, defaultStatValue, describeInterval, stripGradient } from "./stats";
 import { openStatEditor } from "./stat-editor";
 import { isBuiltinTerrain, isDefaultTerrain, nextTerrainId } from "./terrain-defs";
 import { fractions, laborCommitted } from "./week";
-import type { Building, BuildingType, Cell, CostEntry, CostKind, StatEffect } from "./types";
+import type { ActiveEffect, Building, BuildingType, Cell, CostEntry, CostKind, StatEffect, Trigger, TriggerCondition } from "./types";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -157,8 +159,14 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Zeitliche Effekte plus aktive Ausprägungen der Gesetze; Spieler sehen die Aufschlüsselung der Gesetze nur, wenn erlaubt
     const lawFx = permanentEffects(state);
     const showLaw = game.user.isGM || lawEffectsVisible();
-    const effStat = sumEntries([...state.effects, ...lawFx], "stat");
-    const effWorker = sumEntries([...state.effects, ...lawFx], "worker");
+    // Ausgelöste Trigger: Zuschläge wirken sofort in der Anzeige, Änderungen des Basiswerts erst beim Wochenwechsel
+    const trig = currentTriggers(state);
+    const trigFx = trig.effect ? [trig.effect] : [];
+    const hiddenFx = currentTriggersHidden(trig.fired);
+    const hiddenStat = game.user.isGM ? {} : sumEntries(hiddenFx, "stat");
+    const hiddenWorker = game.user.isGM ? {} : sumEntries(hiddenFx, "worker");
+    const effStat = sumEntries([...state.effects, ...lawFx, ...trigFx], "stat");
+    const effWorker = sumEntries([...state.effects, ...lawFx, ...trigFx], "worker");
     const lawStat = sumEntries(lawFx, "stat");
     const lawWorker = sumEntries(lawFx, "worker");
     const signed = (n: number): string => (n > 0 ? `+${n}` : `−${-n}`);
@@ -167,7 +175,7 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const base = clampStat(stat, state.stats[stat.id] ?? defaultStatValue(stat));
       const bonus = effStat[stat.id] ?? 0;
       const value = clampStat(stat, base + bonus);
-      const note = bonus && (showLaw || !lawStat[stat.id]) ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(Math.round(bonus * 100) / 100) }) : "";
+      const note = bonus && (showLaw || !lawStat[stat.id]) && !hiddenStat[stat.id] ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(Math.round(bonus * 100) / 100) }) : "";
       if (stat.kind === "open") return { id: stat.id, name: stat.name, isInterval: false, value, base, note, min: 0, max: 0, label: "", color: "", textColor: "", percent: 0 };
       const d = describeInterval(stat, value);
       return {
@@ -189,9 +197,26 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
         };
       })
     }));
+    const firedIds = new Set(trig.fired.map(f => f.id));
+    const triggerRows = getTriggers()
+      .filter(tr => (game.user.isGM ? true : firedIds.has(tr.id) && !tr.hidden))
+      .map(tr => ({
+        id: tr.id,
+        name: tr.name,
+        description: tr.description ?? "",
+        on: isTriggerOn(tr, state.triggers),
+        firing: firedIds.has(tr.id),
+        hidden: !!tr.hidden,
+        conditions: tr.conditions.map(c => conditionText(c)),
+        entries: entryChips(tr.entries).map((c, i) => ({
+          ...c,
+          mode: tr.entries[i].kind === "stat" ? t(tr.entries[i].mode === "modifier" ? "SIEDLUNG.triggers.modeModifierShort" : "SIEDLUNG.triggers.modeWeeklyShort") : ""
+        }))
+      }));
     return {
       stats: statRows,
       effects,
+      triggerRows,
       isGM: game.user.isGM,
       weekLabel: game.i18n.format("SIEDLUNG.settlement.week", { week: state.week }),
       resources: resources.map(r => ({ id: r.id, name: r.name, color: r.color, amount: state.resources[r.id] ?? 0 })),
@@ -202,7 +227,7 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const bound = committed[w.id] ?? 0;
         return {
           id: w.id, name: w.name, color: w.color, base, capacity, bound: bound > 0 ? bound : 0, free: Math.max(0, capacity - bound),
-          note: bonus && (showLaw || !lawWorker[w.id]) ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(bonus) }) : ""
+          note: bonus && (showLaw || !lawWorker[w.id]) && !hiddenWorker[w.id] ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(bonus) }) : ""
         };
       }),
       construction: buildings
@@ -223,6 +248,10 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const el of durationInputs) {
       el.addEventListener("change", () => void setEffectDuration(el.dataset.effectId ?? "", Number(el.value)));
     }
+    const switches = this.element.querySelectorAll("[data-trigger-id]") as NodeListOf<HTMLInputElement>;
+    for (const el of switches) {
+      el.addEventListener("change", () => void setTriggerEnabled(el.dataset.triggerId ?? "", el.checked));
+    }
     const statInputs = this.element.querySelectorAll("[data-stat-id]") as NodeListOf<HTMLInputElement>;
     for (const el of statInputs) {
       el.addEventListener("change", () => void setStat(el.dataset.statId ?? "", Number(el.value)));
@@ -240,6 +269,19 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onNextWeek(): Promise<void> {
     if (await confirm(t("SIEDLUNG.settlement.nextWeek"), t("SIEDLUNG.settlement.confirmNextWeek"))) await advanceWeek();
   }
+}
+
+/** Fertiger Effekt aus den versteckten ausgelösten Triggern (nur für die Anzeige-Notizen der Spieler). */
+function currentTriggersHidden(fired: Trigger[]): ActiveEffect[] {
+  const hidden = fired.filter(f => f.hidden);
+  const { effect } = triggerEffects(hidden);
+  return effect ? [effect] : [];
+}
+
+/** Bedingung als Text, z. B. "Zufriedenheit < 30". */
+export function conditionText(c: TriggerCondition): string {
+  const target = c.kind === "stat" ? getStats().find(x => x.id === c.id) : getAsset(c.kind, c.id);
+  return `${target?.name ?? c.id} ${c.op} ${c.value}`;
 }
 
 /** "Material 40 %, Arbeit 20 %" für einen Bauauftrag. */
@@ -292,6 +334,9 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       addLaw: DefinitionsApp.#onAddLaw,
       editLaw: DefinitionsApp.#onEditLaw,
       deleteLaw: DefinitionsApp.#onDeleteLaw,
+      addTrigger: DefinitionsApp.#onAddTrigger,
+      editTrigger: DefinitionsApp.#onEditTrigger,
+      deleteTrigger: DefinitionsApp.#onDeleteTrigger,
       resetDefaults: DefinitionsApp.#onReset
     }
   };
@@ -325,6 +370,14 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       isStats: tab === "stat",
       isTerrain: tab === "terrain",
       isLaws: tab === "laws",
+      isTriggers: tab === "triggers",
+      triggers: getTriggers().map(tr => ({
+        id: tr.id,
+        name: tr.name,
+        summary: `${tr.conditions.map(conditionText).join(" ∧ ")} → ${entryChips(tr.entries).map(c => `${c.text} ${c.name}`).join(", ")}`,
+        hidden: !!tr.hidden,
+        off: tr.defaultOn === false
+      })),
       lawCategories: getDefinitions().lawCategories,
       lawGroups: getDefinitions().lawCategories.map(c => ({
         id: c.id,
@@ -491,7 +544,8 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     const inUse =
       getDefinitions().buildings.some(b => [...b.buildCost, ...b.upkeep].some(e => e.kind === kind && e.id === id)) ||
-      getDefinitions().laws.some(l => l.options.some(o => o.entries.some(e => e.kind === kind && e.id === id)));
+      getDefinitions().laws.some(l => l.options.some(o => o.entries.some(e => e.kind === kind && e.id === id))) ||
+      getTriggers().some(x => [...x.entries, ...x.conditions].some(e => e.kind === kind && e.id === id));
     if (inUse) {
       ui.notifications.warn(t("SIEDLUNG.editor.errors.assetInUse"));
       return;
@@ -540,6 +594,22 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  static #onAddTrigger(): void {
+    openTriggerEditor(null);
+  }
+
+  static #onEditTrigger(_event: Event, target: HTMLElement): void {
+    openTriggerEditor(target.dataset.id ?? null);
+  }
+
+  static async #onDeleteTrigger(_event: Event, target: HTMLElement): Promise<void> {
+    const id = target.dataset.id;
+    if (!(await confirm(t("SIEDLUNG.triggers.delete"), t("SIEDLUNG.triggers.confirmDelete")))) return;
+    await saveDefinitions(defs => {
+      defs.triggers = defs.triggers.filter(x => x.id !== id);
+    });
+  }
+
   static async #onAddTerrain(): Promise<void> {
     const id = nextTerrainId(getTerrainTypes());
     if (!id) {
@@ -584,7 +654,8 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const id = target.dataset.id;
     if (
       getDefinitions().buildings.some(b => (b.statEffects ?? []).some(e => e.id === id)) ||
-      getDefinitions().laws.some(l => l.options.some(o => o.entries.some(e => e.kind === "stat" && e.id === id)))
+      getDefinitions().laws.some(l => l.options.some(o => o.entries.some(e => e.kind === "stat" && e.id === id))) ||
+      getTriggers().some(x => [...x.entries, ...x.conditions].some(e => e.kind === "stat" && e.id === id))
     ) {
       ui.notifications.warn(t("SIEDLUNG.stats.errors.inUse"));
       return;

@@ -171,7 +171,9 @@ export function computeWeek(
   stats: StatType[] = [],
   weights: Weights = {},
   /** Dauerhafte Effekte (aktive Ausprägungen der Gesetze); werden nicht heruntergezählt */
-  permanent: ActiveEffect[] = []
+  permanent: ActiveEffect[] = [],
+  /** Änderungen des Basiswerts pro Woche durch ausgelöste Trigger */
+  triggerStats: StatEffect[] = []
 ): WeekResult {
   const stock: Record<string, number> = { ...state.resources };
   const have = (id: string): number => stock[id] ?? 0;
@@ -294,7 +296,7 @@ export function computeWeek(
   // --- 3. Werte ---------------------------------------------------------
   // Wöchentliche Wirkungen: nur Gebäude, die zu Beginn der Woche fertig waren.
   // Einmalige Wirkungen: Gebäude, die in dieser Woche fertig geworden sind.
-  const weeklyEffects: StatEffect[] = [];
+  const weeklyEffects: StatEffect[] = [...triggerStats];
   const onceEffects: StatEffect[] = [];
   buildings.forEach((b, i) => {
     const effects = costsOf(b).statEffects ?? [];
