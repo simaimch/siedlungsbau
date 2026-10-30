@@ -3,7 +3,9 @@ import { DEFAULT_DEFINITIONS } from "./data";
 import { DEFAULT_STATS } from "./stat-defaults";
 import { TERRAIN, DEFAULT_TERRAIN } from "./data";
 import { normalizeTerrain } from "./terrain-defs";
-import type { BuildingType, Category, CostEntry, CostKind, Definitions, PricedType, StatEffect, StatType, TerrainEntry } from "./types";
+import { normalizeLawCategories, normalizeLaws } from "./laws";
+import { DEFAULT_LAWS, DEFAULT_LAW_CATEGORIES } from "./law-defaults";
+import type { BuildingType, Category, CostEntry, CostKind, Definitions, PricedType, StatEffect, StatType, TerrainEntry, Law, LawCategory, EffectEntry } from "./types";
 
 export const SETTING_DEFINITIONS = "definitions";
 
@@ -11,7 +13,7 @@ export const SETTING_DEFINITIONS = "definitions";
  * Aktuelle Definitionen (Welt-Einstellung; für alle lesbar, nur von der SL änderbar). Nur lesen, nicht verändern.
  * Fehlende Teile (z. B. aus älteren Speicherständen) werden durch Standardwerte bzw. leere Kosten ergänzt.
  */
-export function getDefinitions(): Definitions {
+export function getDefinitions(): Required<Definitions> {
   const raw = game.settings.get(ID, SETTING_DEFINITIONS) as Partial<Definitions> | undefined;
   const list = <T>(value: T[] | undefined, fallback: T[] | undefined): T[] => (Array.isArray(value) ? value : (fallback ?? []));
   const buildings: BuildingType[] = list(raw?.buildings, DEFAULT_DEFINITIONS.buildings).map(b => ({
@@ -30,7 +32,10 @@ export function getDefinitions(): Definitions {
     workers: list(raw?.workers, DEFAULT_DEFINITIONS.workers),
     // Ältere Speicherstände ohne Stats bekommen die Standard-Stats
     stats: list(raw?.stats, DEFAULT_DEFINITIONS.stats ?? DEFAULT_STATS),
-    terrain: normalizeTerrain(raw?.terrain)
+    terrain: normalizeTerrain(raw?.terrain),
+    // Fehlen Gesetze ganz (ältere Speicherstände), gilt das mitgelieferte Beispiel; eine leere Liste bleibt leer
+    lawCategories: Array.isArray(raw?.lawCategories) ? normalizeLawCategories(raw?.lawCategories) : structuredClone(DEFAULT_LAW_CATEGORIES),
+    laws: Array.isArray(raw?.laws) ? normalizeLaws(raw?.laws) : structuredClone(DEFAULT_LAWS)
   };
 }
 
@@ -43,6 +48,8 @@ export const getStats = (): StatType[] => getDefinitions().stats;
 /** Baugewicht je Ressource (fehlend = 1), für die Berechnung des Materialfortschritts. */
 export const getWeights = (): Record<string, number> =>
   Object.fromEntries(getResources().map(r => [r.id, typeof r.weight === "number" && r.weight >= 0 ? r.weight : 1]));
+export const getLawCategories = (): LawCategory[] => getDefinitions().lawCategories;
+export const getLaws = (): Law[] => getDefinitions().laws;
 export const getTerrainTypes = (): TerrainEntry[] => getDefinitions().terrain;
 
 export const assetKey = (kind: CostKind): "resources" | "workers" => (kind === "resource" ? "resources" : "workers");
@@ -65,9 +72,9 @@ export function costChips(entries: CostEntry[]): { name: string; color: string; 
 }
 
 /** SL: ändert eine Kopie der Definitionen und speichert sie. */
-export async function saveDefinitions(mutate: (defs: Definitions) => void): Promise<void> {
+export async function saveDefinitions(mutate: (defs: Required<Definitions>) => void): Promise<void> {
   if (!game.user.isGM) return;
-  const defs: Definitions = foundry.utils.deepClone(getDefinitions());
+  const defs: Required<Definitions> = foundry.utils.deepClone(getDefinitions());
   mutate(defs);
   await commit(defs);
 }
@@ -124,4 +131,17 @@ export function effectChips(effects: StatEffect[]): { name: string; text: string
     if (stat) chips.push({ name: stat.name, text: e.amount > 0 ? `+${e.amount}` : `−${-e.amount}`, once: e.mode === "once" });
   }
   return chips;
+}
+
+/** Einträge von Effekten und Ausprägungen für die Anzeige: Name, Farbe (nur Ressourcen/Arbeiter), Vorzeichen-Text. */
+export function entryChips(entries: EffectEntry[]): { name: string; color: string; text: string; perWeek: boolean }[] {
+  return entries.map(e => {
+    const target = e.kind === "stat" ? getStats().find(s => s.id === e.id) : getAsset(e.kind, e.id);
+    return {
+      name: target?.name ?? e.id,
+      color: e.kind === "stat" ? "" : ((target as { color?: string } | undefined)?.color ?? "#888"),
+      text: e.amount > 0 ? `+${e.amount}` : `−${-e.amount}`,
+      perWeek: e.kind === "resource"
+    };
+  });
 }

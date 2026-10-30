@@ -1,0 +1,48 @@
+<div class="siedlung-law-editor">
+  <div class="form-group">
+    <label>{{localize "SIEDLUNG.lawEditor.name"}}</label>
+    <input type="text" name="name" value="{{name}}" maxlength="60" autocomplete="off">
+  </div>
+  <div class="form-group">
+    <label>{{localize "SIEDLUNG.lawEditor.category"}}</label>
+    <select name="category">
+      {{#each categories}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+    </select>
+  </div>
+  <div class="form-group">
+    <label>{{localize "SIEDLUNG.lawEditor.description"}}</label>
+    <textarea name="description" rows="2" maxlength="300">{{description}}</textarea>
+  </div>
+
+  <p class="hint">{{localize "SIEDLUNG.lawEditor.optionsHint"}}</p>
+  {{#each options}}
+  <fieldset class="option-block" data-id="{{id}}">
+    <legend>{{#if isFirst}}{{localize "SIEDLUNG.lawEditor.defaultMark"}}{{else}}{{localize "SIEDLUNG.lawEditor.option"}}{{/if}}</legend>
+    <div class="option-head">
+      <input type="text" name="optname" value="{{name}}" maxlength="60" placeholder="{{localize 'SIEDLUNG.lawEditor.optionName'}}" autocomplete="off">
+      {{#if canMoveUp}}<button type="button" data-action="moveOption" data-index="{{index}}" title="{{localize 'SIEDLUNG.lawEditor.moveUp'}}"><i class="fa-solid fa-arrow-up"></i></button>{{/if}}
+      {{#if canRemove}}<button type="button" data-action="removeOption" data-index="{{index}}" title="{{localize 'SIEDLUNG.lawEditor.removeOption'}}"><i class="fa-solid fa-trash"></i></button>{{/if}}
+    </div>
+    {{#each rows}}
+    <div class="cost-row effect-row">
+      <select name="target">
+        {{#each groups}}
+        <optgroup label="{{label}}">
+          {{#each options}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+        </optgroup>
+        {{/each}}
+      </select>
+      <input type="number" name="amount" value="{{amount}}" step="any">
+      <button type="button" data-action="removeEntry" data-index="{{../index}}" data-row="{{rowIndex}}" title="{{localize 'SIEDLUNG.effects.removeRow'}}"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    {{/each}}
+    <button type="button" data-action="addEntry" data-index="{{index}}"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.effects.addRow"}}</button>
+  </fieldset>
+  {{/each}}
+  <button type="button" data-action="addOption"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.lawEditor.addOption"}}</button>
+
+  <footer>
+    <button type="button" data-action="save"><i class="fa-solid fa-check"></i> {{localize "SIEDLUNG.editor.save"}}</button>
+    <button type="button" data-action="cancel">{{localize "SIEDLUNG.editor.cancel"}}</button>
+  </footer>
+</div>

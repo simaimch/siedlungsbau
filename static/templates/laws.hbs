@@ -1,0 +1,47 @@
+<div class="siedlung-laws">
+  {{#if limitNote}}<p class="hint">{{limitNote}}</p>{{/if}}
+  {{#if empty}}
+  <p class="empty">{{localize "SIEDLUNG.laws.empty"}}</p>
+  {{/if}}
+  {{#each groups}}
+  <section>
+    <h4>{{label}}</h4>
+    {{#each laws}}
+    <div class="law {{#if hidden}}is-hidden{{/if}}">
+      <div class="law-head">
+        <strong>{{name}}</strong>
+        {{#if locked}}<i class="fa-solid fa-lock" title="{{localize 'SIEDLUNG.laws.lockedHint'}}"></i>{{/if}}
+        {{#if hidden}}<i class="fa-solid fa-eye-slash" title="{{localize 'SIEDLUNG.laws.hiddenHint'}}"></i>{{/if}}
+        {{#if @root.isGM}}
+        <span class="gm-tools">
+          <button type="button" class="{{#if hidden}}on{{/if}}" data-action="lawHidden" data-law="{{id}}" title="{{localize 'SIEDLUNG.laws.toggleHidden'}}"><i class="fa-solid fa-eye-slash"></i></button>
+          <button type="button" class="{{#if locked}}on{{/if}}" data-action="lawLocked" data-law="{{id}}" title="{{localize 'SIEDLUNG.laws.toggleLocked'}}"><i class="fa-solid fa-lock"></i></button>
+        </span>
+        {{/if}}
+      </div>
+      {{#if description}}<p class="hint">{{description}}</p>{{/if}}
+      {{#if waitNote}}<p class="hint">{{waitNote}}</p>{{/if}}
+      <ul class="options">
+        {{#each options}}
+        <li class="{{#if current}}current{{/if}} {{#if grayed}}grayed{{/if}} {{#if hiddenOption}}is-hidden{{/if}}">
+          <button type="button" class="pick" data-action="pick" data-law="{{../id}}" data-option="{{id}}" {{#unless pickable}}disabled{{/unless}} title="{{title}}">
+            <i class="mark fa-solid {{#if current}}fa-circle-dot{{else}}fa-circle{{/if}}"></i>
+            <span class="name">{{name}}</span>
+            {{#if effects.length}}
+            <span class="chips">{{#each effects}}<span class="chip">{{#if color}}<i style="background: {{color}}"></i>{{/if}}{{text}}&nbsp;{{name}}{{#if perWeek}}&nbsp;{{localize "SIEDLUNG.effects.perWeek"}}{{/if}}</span>{{/each}}</span>
+            {{/if}}
+          </button>
+          {{#if @root.isGM}}
+          <span class="gm-tools">
+            <button type="button" class="{{#if grayed}}on{{/if}}" data-action="optionDisabled" data-law="{{../id}}" data-option="{{id}}" title="{{localize 'SIEDLUNG.laws.toggleDisabled'}}"><i class="fa-solid fa-ban"></i></button>
+            <button type="button" class="{{#if hiddenOption}}on{{/if}}" data-action="optionHidden" data-law="{{../id}}" data-option="{{id}}" title="{{localize 'SIEDLUNG.laws.toggleHidden'}}"><i class="fa-solid fa-eye-slash"></i></button>
+          </span>
+          {{/if}}
+        </li>
+        {{/each}}
+      </ul>
+    </div>
+    {{/each}}
+  </section>
+  {{/each}}
+</div>

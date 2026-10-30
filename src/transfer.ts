@@ -4,14 +4,14 @@ import { DEFAULT_DEFINITIONS } from "./data";
 import { isConnected, transformCells } from "./store";
 import { sortedPoints, validateInterval } from "./stats";
 import { BUILTIN_TERRAIN, normalizeTerrain } from "./terrain-defs";
-import type { BuildingType, Category, Cell, CostEntry, Definitions, PricedType, StatEffect, StatPoint, StatType, TerrainEntry } from "./types";
+import type { BuildingType, Category, Cell, CostEntry, Definitions, PricedType, StatEffect, StatPoint, StatType, TerrainEntry, Law, LawCategory, LawOption, EffectEntry } from "./types";
 
 export const FORMAT_VERSION = 1;
 
-export type SectionKey = "categories" | "resources" | "workers" | "stats" | "terrain" | "buildings";
+export type SectionKey = "categories" | "resources" | "workers" | "stats" | "terrain" | "lawCategories" | "laws" | "buildings";
 
 /** Reihenfolge, in der Bereiche exportiert und angewendet werden. */
-export const SECTIONS: SectionKey[] = ["categories", "resources", "workers", "stats", "terrain", "buildings"];
+export const SECTIONS: SectionKey[] = ["categories", "resources", "workers", "stats", "terrain", "lawCategories", "laws", "buildings"];
 
 export const SECTION_LABELS: Record<SectionKey, string> = {
   categories: "Kategorien",
@@ -19,6 +19,8 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   workers: "Arbeiter",
   stats: "Werte",
   terrain: "Gelände",
+  lawCategories: "Gesetzeskategorien",
+  laws: "Gesetze",
   buildings: "Gebäude"
 };
 
@@ -32,7 +34,7 @@ const MAX_SHAPE = 50;
 /** Formatiertes JSON; Rasterfelder ([x, y]) stehen dabei jeweils in einer Zeile. */
 export function exportDefinitions(defs: Definitions): string {
   const json = JSON.stringify(
-    { version: FORMAT_VERSION, categories: defs.categories, resources: defs.resources, workers: defs.workers, stats: defs.stats, terrain: defs.terrain ?? [], buildings: defs.buildings },
+    { version: FORMAT_VERSION, categories: defs.categories, resources: defs.resources, workers: defs.workers, stats: defs.stats, terrain: defs.terrain ?? [], lawCategories: defs.lawCategories ?? [], laws: defs.laws ?? [], buildings: defs.buildings },
     null,
     2
   );
@@ -78,6 +80,56 @@ function parseTerrain(raw: unknown): Parsed<TerrainEntry> {
   if (typeof raw.color !== "string" || !HEX.test(raw.color)) return "„color“ muss das Format #rrggbb haben.";
   if (typeof raw.buildable !== "boolean") return "„buildable“ muss true oder false sein.";
   return { id, label, color: raw.color, buildable: raw.buildable };
+}
+
+function parseLawCategory(raw: unknown): Parsed<LawCategory> {
+  if (!isObj(raw)) return "Kein Objekt.";
+  const id = text(raw.id, 100);
+  const label = text(raw.label, 40);
+  if (!id) return "„id“ fehlt.";
+  if (!label) return "„label“ fehlt.";
+  return { id, label };
+}
+
+function parseEntries(raw: unknown, field: string): Parsed<EffectEntry[]> {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw)) return `„${field}“ muss eine Liste sein.`;
+  const out: EffectEntry[] = [];
+  for (const e of raw) {
+    if (!isObj(e)) return `„${field}“ enthält einen ungültigen Eintrag.`;
+    const id = text(e.id, 100);
+    if (e.kind !== "resource" && e.kind !== "worker" && e.kind !== "stat") return `„${field}“: „kind“ muss „resource“, „worker“ oder „stat“ sein.`;
+    if (!id) return `„${field}“: „id“ fehlt.`;
+    if (typeof e.amount !== "number" || !Number.isFinite(e.amount) || e.amount === 0) return `„${field}“: „amount“ muss eine Zahl ungleich 0 sein.`;
+    out.push({ kind: e.kind, id, amount: e.kind === "stat" ? Math.round(e.amount * 100) / 100 : Math.round(e.amount) || (e.amount > 0 ? 1 : -1) });
+  }
+  return out;
+}
+
+function parseLaw(raw: unknown): Parsed<Law> {
+  if (!isObj(raw)) return "Kein Objekt.";
+  const id = text(raw.id, 100);
+  const name = text(raw.name, 60);
+  const category = text(raw.category, 100);
+  if (!id) return "„id“ fehlt.";
+  if (!name) return "„name“ fehlt.";
+  if (!category) return "„category“ fehlt.";
+  if (!Array.isArray(raw.options) || !raw.options.length) return "„options“ muss mindestens eine Ausprägung enthalten.";
+  const options: LawOption[] = [];
+  const seen = new Set<string>();
+  for (const o of raw.options) {
+    if (!isObj(o)) return "„options“ enthält einen ungültigen Eintrag.";
+    const oid = text(o.id, 100);
+    const oname = text(o.name, 60);
+    if (!oid || !oname) return "Eine Ausprägung braucht „id“ und „name“.";
+    if (seen.has(oid)) return `Die Ausprägung „${oid}“ kommt doppelt vor.`;
+    seen.add(oid);
+    const entries = parseEntries(o.entries, "entries");
+    if (typeof entries === "string") return entries;
+    options.push({ id: oid, name: oname, entries });
+  }
+  const description = text(raw.description, 300);
+  return { id, name, category, ...(description ? { description } : {}), options };
 }
 
 function parseAsset(raw: unknown): Parsed<PricedType> {
@@ -220,14 +272,14 @@ export function parseImport(input: string): ParsedImport {
   if (!isObj(raw)) return { data: {}, errors: ["Der Import muss ein JSON-Objekt sein."] };
 
   const data: Partial<Definitions> = {};
-  const parsers = { categories: parseCategory, resources: parseAsset, workers: parseAsset, stats: parseStat, terrain: parseTerrain, buildings: parseBuilding } as const;
+  const parsers = { categories: parseCategory, resources: parseAsset, workers: parseAsset, stats: parseStat, terrain: parseTerrain, lawCategories: parseLawCategory, laws: parseLaw, buildings: parseBuilding } as const;
   for (const key of SECTIONS) {
     if (raw[key] === undefined) continue;
     const list = parseSection(key, raw[key], parsers[key] as (e: unknown) => Parsed<{ id: string }>, errors);
     if (list) (data as Record<string, unknown>)[key] = list;
   }
   if (!errors.length && !Object.keys(data).length) {
-    errors.push("Der Import enthält keinen bekannten Bereich (categories, resources, workers, stats, terrain, buildings).");
+    errors.push("Der Import enthält keinen bekannten Bereich (categories, resources, workers, stats, terrain, lawCategories, laws, buildings).");
   }
   return { data, errors };
 }
@@ -242,8 +294,8 @@ export interface MissingEntry {
   name: string;
 }
 
-const nameOf = (key: SectionKey, e: Category | PricedType | BuildingType | StatType | TerrainEntry): string =>
-  key === "categories" || key === "terrain" ? (e as Category | TerrainEntry).label : (e as PricedType | BuildingType | StatType).name;
+const nameOf = (key: SectionKey, e: Category | PricedType | BuildingType | StatType | TerrainEntry | LawCategory | Law): string =>
+  key === "categories" || key === "terrain" || key === "lawCategories" ? (e as Category | TerrainEntry | LawCategory).label : (e as PricedType | BuildingType | StatType | Law).name;
 
 /**
  * Bestehende Einträge, die im Import fehlen – nur in Bereichen, die der Import enthält.
@@ -255,7 +307,7 @@ export function findMissing(current: Definitions, imported: Partial<Definitions>
     const incoming = imported[key] as { id: string }[] | undefined;
     if (!incoming) continue;
     const ids = new Set(incoming.map(e => e.id));
-    for (const e of (current[key] ?? []) as (Category | PricedType | BuildingType | StatType | TerrainEntry)[]) {
+    for (const e of (current[key] ?? []) as (Category | PricedType | BuildingType | StatType | TerrainEntry | LawCategory | Law)[]) {
       // Goldmünzen und mitgelieferte Geländearten sind unlöschbar und gelten nicht als fehlend
       if (ids.has(e.id) || (key === "resources" && e.id === GOLD_ID) || (key === "terrain" && BUILTIN_TERRAIN.some(b => b.id === e.id))) continue;
       missing.push({ section: key, id: e.id, name: nameOf(key, e) });
@@ -274,6 +326,10 @@ export interface Cleanup {
   removedBuildings: string[];
   /** Wirkungen auf Werte, die nicht (mehr) existieren */
   statEffects: number;
+  /** Gesetze, deren Kategorie nicht (mehr) existiert */
+  removedLaws: string[];
+  /** Einträge in Ausprägungen von Gesetzen, die auf nicht mehr vorhandene Ressourcen, Arbeiter oder Werte verwiesen */
+  lawEntries: number;
   /** Goldmünzen wurden wiederhergestellt, weil der Import sie nicht enthielt */
   restoredGold: boolean;
 }
@@ -342,5 +398,24 @@ export function applyImport(current: Definitions, imported: Partial<Definitions>
     statEffects += (b.statEffects ?? []).length - kept.length;
     b.statEffects = kept;
   }
-  return { defs: next, cleanup: { costEntries, removedBuildings, restoredGold, statEffects } };
+  // Gesetze: Kategorie muss existieren, Einträge müssen auf Vorhandenes zeigen
+  next.lawCategories = next.lawCategories ?? [];
+  next.laws = next.laws ?? [];
+  const lawCategoryIds = new Set(next.lawCategories.map(c => c.id));
+  const removedLaws: string[] = [];
+  next.laws = next.laws.filter(l => {
+    if (lawCategoryIds.has(l.category)) return true;
+    removedLaws.push(l.name);
+    return false;
+  });
+  const targets = { resource: resourceIds, worker: workerIds, stat: statIds } as const;
+  let lawEntries = 0;
+  for (const l of next.laws) {
+    for (const o of l.options) {
+      const kept = o.entries.filter(e => targets[e.kind].has(e.id));
+      lawEntries += o.entries.length - kept.length;
+      o.entries = kept;
+    }
+  }
+  return { defs: next, cleanup: { costEntries, removedBuildings, restoredGold, statEffects, removedLaws, lawEntries } };
 }

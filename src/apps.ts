@@ -9,7 +9,9 @@ import { Placement } from "./placement";
 import { TERRAIN_APP_ID } from "./terrain-brush";
 import { completeBuilding, removeBuilding } from "./service";
 import { sanitizeName } from "./util";
-import { getSettlement, setAmount, setStat, advanceWeek, removeEffect, setEffectDuration } from "./settlement";
+import { getSettlement, setAmount, setStat, advanceWeek, removeEffect, setEffectDuration, permanentEffects } from "./settlement";
+import { openLawEditor } from "./law-editor";
+import { lawEffectsVisible } from "./laws-service";
 import { openEffectEditor } from "./effect-editor";
 import { sumEntries } from "./effects";
 import { clampStat, contrastText, defaultStatValue, describeInterval, stripGradient } from "./stats";
@@ -152,15 +154,20 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { resources, workers } = getDefinitions();
     const buildings = getBuildings();
     const committed = laborCommitted(buildings, costsOf);
-    const effStat = sumEntries(state.effects, "stat");
-    const effWorker = sumEntries(state.effects, "worker");
+    // Zeitliche Effekte plus aktive Ausprägungen der Gesetze; Spieler sehen die Aufschlüsselung der Gesetze nur, wenn erlaubt
+    const lawFx = permanentEffects(state);
+    const showLaw = game.user.isGM || lawEffectsVisible();
+    const effStat = sumEntries([...state.effects, ...lawFx], "stat");
+    const effWorker = sumEntries([...state.effects, ...lawFx], "worker");
+    const lawStat = sumEntries(lawFx, "stat");
+    const lawWorker = sumEntries(lawFx, "worker");
     const signed = (n: number): string => (n > 0 ? `+${n}` : `−${-n}`);
     const statRows = getStats().map(stat => {
       // Basiswert (von der SL einstellbar) plus Zuschlag durch aktive Effekte
       const base = clampStat(stat, state.stats[stat.id] ?? defaultStatValue(stat));
       const bonus = effStat[stat.id] ?? 0;
       const value = clampStat(stat, base + bonus);
-      const note = bonus ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(Math.round(bonus * 100) / 100) }) : "";
+      const note = bonus && (showLaw || !lawStat[stat.id]) ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(Math.round(bonus * 100) / 100) }) : "";
       if (stat.kind === "open") return { id: stat.id, name: stat.name, isInterval: false, value, base, note, min: 0, max: 0, label: "", color: "", textColor: "", percent: 0 };
       const d = describeInterval(stat, value);
       return {
@@ -195,7 +202,7 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const bound = committed[w.id] ?? 0;
         return {
           id: w.id, name: w.name, color: w.color, base, capacity, bound: bound > 0 ? bound : 0, free: Math.max(0, capacity - bound),
-          note: bonus ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(bonus) }) : ""
+          note: bonus && (showLaw || !lawWorker[w.id]) ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(bonus) }) : ""
         };
       }),
       construction: buildings
@@ -280,6 +287,11 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       deleteStat: DefinitionsApp.#onDeleteStat,
       addTerrain: DefinitionsApp.#onAddTerrain,
       deleteTerrain: DefinitionsApp.#onDeleteTerrain,
+      addLawCategory: DefinitionsApp.#onAddLawCategory,
+      deleteLawCategory: DefinitionsApp.#onDeleteLawCategory,
+      addLaw: DefinitionsApp.#onAddLaw,
+      editLaw: DefinitionsApp.#onEditLaw,
+      deleteLaw: DefinitionsApp.#onDeleteLaw,
       resetDefaults: DefinitionsApp.#onReset
     }
   };
@@ -312,6 +324,13 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       isWorker: tab === "worker",
       isStats: tab === "stat",
       isTerrain: tab === "terrain",
+      isLaws: tab === "laws",
+      lawCategories: getDefinitions().lawCategories,
+      lawGroups: getDefinitions().lawCategories.map(c => ({
+        id: c.id,
+        label: c.label,
+        laws: getDefinitions().laws.filter(l => l.category === c.id).map(l => ({ id: l.id, name: l.name, count: l.options.length }))
+      })),
       terrain: getTerrainTypes().map(e => ({ ...e, fixed: isBuiltinTerrain(e.id), noToggle: isDefaultTerrain(e.id) })),
       categories,
       groups,
@@ -336,6 +355,15 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const el of catInputs) el.addEventListener("change", () => void this._onCategoryField(el));
     const assetInputs = this.element.querySelectorAll("[data-asset-field]") as NodeListOf<HTMLInputElement>;
     for (const el of assetInputs) el.addEventListener("change", () => void this._onAssetField(el));
+    const lawCatInputs = this.element.querySelectorAll("[data-lawcat-field]") as NodeListOf<HTMLInputElement>;
+    for (const el of lawCatInputs) {
+      el.addEventListener("change", () => {
+        void saveDefinitions(defs => {
+          const c = defs.lawCategories.find(x => x.id === el.dataset.id);
+          if (c) c.label = sanitizeName(el.value, c.label);
+        }).then(() => this.render());
+      });
+    }
     const terrainInputs = this.element.querySelectorAll("[data-terrain-field]") as NodeListOf<HTMLInputElement>;
     for (const el of terrainInputs) el.addEventListener("change", () => void this._onTerrainField(el));
   }
@@ -461,7 +489,9 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications.warn(t("SIEDLUNG.editor.errors.goldProtected"));
       return;
     }
-    const inUse = getDefinitions().buildings.some(b => [...b.buildCost, ...b.upkeep].some(e => e.kind === kind && e.id === id));
+    const inUse =
+      getDefinitions().buildings.some(b => [...b.buildCost, ...b.upkeep].some(e => e.kind === kind && e.id === id)) ||
+      getDefinitions().laws.some(l => l.options.some(o => o.entries.some(e => e.kind === kind && e.id === id)));
     if (inUse) {
       ui.notifications.warn(t("SIEDLUNG.editor.errors.assetInUse"));
       return;
@@ -469,6 +499,44 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!(await confirm(t("SIEDLUNG.editor.deleteAsset"), t("SIEDLUNG.editor.confirmDeleteAsset")))) return;
     await saveDefinitions(defs => {
       defs[assetKey(kind)] = defs[assetKey(kind)].filter(a => a.id !== id);
+    });
+  }
+
+  static async #onAddLawCategory(): Promise<void> {
+    await saveDefinitions(defs => {
+      defs.lawCategories.push({ id: foundry.utils.randomID(), label: t("SIEDLUNG.lawEditor.newCategory") });
+    });
+  }
+
+  static async #onDeleteLawCategory(_event: Event, target: HTMLElement): Promise<void> {
+    const id = target.dataset.id;
+    if (getDefinitions().laws.some(l => l.category === id)) {
+      ui.notifications.warn(t("SIEDLUNG.lawEditor.errors.categoryNotEmpty"));
+      return;
+    }
+    if (!(await confirm(t("SIEDLUNG.lawEditor.deleteCategory"), t("SIEDLUNG.lawEditor.confirmDeleteCategory")))) return;
+    await saveDefinitions(defs => {
+      defs.lawCategories = defs.lawCategories.filter(c => c.id !== id);
+    });
+  }
+
+  static #onAddLaw(): void {
+    if (!getDefinitions().lawCategories.length) {
+      ui.notifications.warn(t("SIEDLUNG.lawEditor.errors.noCategory"));
+      return;
+    }
+    openLawEditor(null);
+  }
+
+  static #onEditLaw(_event: Event, target: HTMLElement): void {
+    openLawEditor(target.dataset.id ?? null);
+  }
+
+  static async #onDeleteLaw(_event: Event, target: HTMLElement): Promise<void> {
+    const id = target.dataset.id;
+    if (!(await confirm(t("SIEDLUNG.lawEditor.delete"), t("SIEDLUNG.lawEditor.confirmDelete")))) return;
+    await saveDefinitions(defs => {
+      defs.laws = defs.laws.filter(l => l.id !== id);
     });
   }
 
@@ -514,7 +582,10 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async #onDeleteStat(_event: Event, target: HTMLElement): Promise<void> {
     const id = target.dataset.id;
-    if (getDefinitions().buildings.some(b => (b.statEffects ?? []).some(e => e.id === id))) {
+    if (
+      getDefinitions().buildings.some(b => (b.statEffects ?? []).some(e => e.id === id)) ||
+      getDefinitions().laws.some(l => l.options.some(o => o.entries.some(e => e.kind === "stat" && e.id === id)))
+    ) {
       ui.notifications.warn(t("SIEDLUNG.stats.errors.inUse"));
       return;
     }
@@ -821,4 +892,5 @@ export const refreshOrders = (): void => refreshApp(OrdersApp);
 export function closeApps(): void {
   for (const App of [PaletteApp, OrdersApp, SettlementApp]) foundry.applications.instances.get(App.DEFAULT_OPTIONS.id)?.close();
   foundry.applications.instances.get(TERRAIN_APP_ID)?.close();
+  foundry.applications.instances.get(`${ID}-laws`)?.close();
 }

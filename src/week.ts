@@ -164,7 +164,15 @@ export function laborCommitted(buildings: Building[], costsOf: CostsOf): Record<
  *    Arbeit kommt aus dem Wochenvorrat an Arbeitskraft, aber nur so weit, dass der Arbeitsanteil nie über dem
  *    Materialanteil liegt. Ist alles geliefert, gilt das Gebäude als fertig.
  */
-export function computeWeek(state: SettlementState, buildings: Building[], costsOf: CostsOf, stats: StatType[] = [], weights: Weights = {}): WeekResult {
+export function computeWeek(
+  state: SettlementState,
+  buildings: Building[],
+  costsOf: CostsOf,
+  stats: StatType[] = [],
+  weights: Weights = {},
+  /** Dauerhafte Effekte (aktive Ausprägungen der Gesetze); werden nicht heruntergezählt */
+  permanent: ActiveEffect[] = []
+): WeekResult {
   const stock: Record<string, number> = { ...state.resources };
   const have = (id: string): number => stock[id] ?? 0;
   const add = (map: Record<string, number>, id: string, n: number): void => {
@@ -187,7 +195,8 @@ export function computeWeek(state: SettlementState, buildings: Building[], costs
   }
 
   // Aktive Effekte: Ressourcen wirken wie Betrieb (positiv = Produktion), Arbeiter erhöhen die Wochenkapazität
-  const activeEffects = state.effects ?? [];
+  const timedEffects = state.effects ?? [];
+  const activeEffects = [...timedEffects, ...permanent];
   const effRes = sumEntries(activeEffects, "resource");
   const effLab = sumEntries(activeEffects, "worker");
   for (const [id, n] of Object.entries(effRes)) {
@@ -296,10 +305,10 @@ export function computeWeek(state: SettlementState, buildings: Building[], costs
   const statValues = applied.values;
   const statReports = applied.reports;
 
-  const ticked = tickEffects(activeEffects);
+  const ticked = tickEffects(timedEffects);
 
   return {
-    state: { ...state, week: state.week + 1, resources: stock, workers: { ...state.workers }, stats: statValues, effects: ticked.active },
+    state: { ...state, week: state.week + 1, resources: stock, workers: { ...state.workers }, stats: statValues, effects: ticked.active, lawChanges: 0 },
     effects: ticked,
     stats: statReports,
     buildings: updated,

@@ -19,6 +19,9 @@ export interface Definitions {
   stats: StatType[];
   /** Geländearten; leer/fehlend = nur die mitgelieferten */
   terrain: TerrainEntry[];
+  /** Kategorien der Gesetze, z. B. "Öffentliche Sicherheit" */
+  lawCategories?: LawCategory[];
+  laws?: Law[];
 }
 
 export type CostKind = "resource" | "worker";
@@ -86,6 +89,47 @@ export interface SettlementState {
   stats: Record<string, number>;
   /** Aktive Effekte mit Restdauer in Wochen */
   effects: ActiveEffect[];
+  /** Zustand der Gesetze dieser Siedlung (aktive Ausprägung, Sperren, Sichtbarkeit) */
+  laws: Record<string, LawState>;
+  /** Wie viele Gesetze die Spieler in dieser Woche bereits geändert haben */
+  lawChanges: number;
+}
+
+export interface LawCategory {
+  id: string;
+  label: string;
+}
+
+/** Eine Ausprägung eines Gesetzes; wirkt wie ein dauerhafter Effekt, solange sie aktiv ist. */
+export interface LawOption {
+  id: string;
+  name: string;
+  entries: EffectEntry[];
+}
+
+export interface Law {
+  id: string;
+  name: string;
+  category: string;
+  description?: string;
+  /** Die erste Ausprägung gilt, solange keine andere gewählt wurde. */
+  options: LawOption[];
+}
+
+/** Zustand eines Gesetzes in einer Siedlung. */
+export interface LawState {
+  /** Aktive Ausprägung; null = erste Ausprägung */
+  option: string | null;
+  /** Woche der letzten Änderung durch Spieler (für die Wartezeit); null = nie */
+  since: number | null;
+  /** Für Spieler versteckt */
+  hidden: boolean;
+  /** Ausprägung kann von Spielern nicht geändert werden */
+  locked: boolean;
+  /** Ausprägungen, die ausgegraut und für Spieler nicht wählbar sind */
+  disabled: string[];
+  /** Ausprägungen, die für Spieler versteckt sind */
+  hiddenOptions: string[];
 }
 
 export type EffectKind = "resource" | "worker" | "stat";
@@ -188,5 +232,14 @@ export interface BuildingActionMessage {
   buildingId: string;
   /** nur bei "rename" */
   name?: string;
+  userId: string;
+}
+
+/** Spieler (oder SL) wählt eine andere Ausprägung eines Gesetzes; die aktive SL prüft und führt aus. */
+export interface LawChangeMessage {
+  action: "law";
+  sceneId: string;
+  lawId: string;
+  optionId: string;
   userId: string;
 }

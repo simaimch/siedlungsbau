@@ -11,7 +11,8 @@
       "editor": "Gebäude-Editor",
       "select": "Auswahl",
       "settlement": "Siedlungs-Übersicht",
-      "terrain": "Gelände bearbeiten"
+      "terrain": "Gelände bearbeiten",
+      "laws": "Gesetze"
     },
     "palette": {
       "title": "Gebäude",
@@ -105,14 +106,15 @@
         "noCategory": "Lege zuerst eine Kategorie an.",
         "categoryNotEmpty": "Die Kategorie enthält noch Gebäude. Verschiebe oder lösche sie zuerst.",
         "goldProtected": "Goldmünzen sind die Basiswährung und können nicht gelöscht werden.",
-        "assetInUse": "Dieser Eintrag wird noch in den Kosten von Gebäuden verwendet. Entferne ihn dort zuerst."
+        "assetInUse": "Dieser Eintrag wird noch in Kosten von Gebäuden oder Wirkungen von Gesetzen verwendet. Entferne ihn dort zuerst."
       },
       "tabs": {
         "buildings": "Gebäude",
         "resource": "Ressourcen",
         "worker": "Arbeiter",
         "stat": "Werte",
-        "terrain": "Gelände"
+        "terrain": "Gelände",
+        "laws": "Gesetze"
       },
       "add": "Hinzufügen",
       "newResource": "Neue Ressource",
@@ -207,7 +209,9 @@
       "goldNote": "Goldmünzen sind die Basiswährung und bleiben immer erhalten.",
       "done": "Import übernommen.",
       "doneCleanup": "Bereinigt: {costs} Kostenposten, {buildings} Gebäude entfernt.",
-      "cleanupEffects": "{count} Wirkungen auf nicht mehr vorhandene Werte werden entfernt."
+      "cleanupEffects": "{count} Wirkungen auf nicht mehr vorhandene Werte werden entfernt.",
+      "cleanupLaws": "Gesetze ohne Kategorie werden entfernt: {names}",
+      "cleanupLawEntries": "{count} Wirkungen von Gesetzen auf nicht mehr vorhandene Einträge werden entfernt."
     },
     "stats": {
       "title": "Siedlungs-Werte",
@@ -239,7 +243,7 @@
         "pointName": "Jeder Stützpunkt braucht einen Namen.",
         "pointColor": "Ein Stützpunkt hat eine ungültige Farbe.",
         "pointDuplicate": "Zwei Stützpunkte haben denselben Wert.",
-        "inUse": "Dieser Wert wird noch von Gebäuden verändert. Entferne die Wirkung dort zuerst."
+        "inUse": "Dieser Wert wird noch von Gebäuden oder Gesetzen verändert. Entferne die Wirkung dort zuerst."
       }
     },
     "info": {
@@ -307,6 +311,74 @@
         "duration": "Die Dauer muss mindestens 1 Woche betragen.",
         "noEntries": "Der Effekt braucht mindestens eine Veränderung ungleich 0.",
         "noTargets": "Es gibt keine Ressourcen, Arbeiter oder Werte."
+      }
+    },
+    "laws": {
+      "title": "Gesetze",
+      "empty": "Es gibt keine sichtbaren Gesetze.",
+      "noCategory": "Ohne Kategorie",
+      "limitNote": "Ihr könnt diese Woche noch {left} von {limit} Gesetzen ändern. Nach einer Änderung dauert es {cooldown} Wochen, bis dasselbe Gesetz erneut geändert werden kann.",
+      "waitNote": "Wieder änderbar in {weeks} Wochen.",
+      "lockedHint": "Gesperrt: Die Ausprägung kann nicht geändert werden.",
+      "hiddenHint": "Für Spieler versteckt",
+      "toggleHidden": "Für Spieler verstecken / zeigen",
+      "toggleLocked": "Änderungen sperren / freigeben",
+      "toggleDisabled": "Ausgrauen (nicht wählbar) / freigeben",
+      "confirmChange": "„{law}“ auf „{option}“ ändern? Danach gilt eine Wartezeit, und diese Änderung zählt zum Wochenlimit.",
+      "rejected": "Deine Änderung am Gesetz <strong>{name}</strong> wurde abgelehnt: {reason}",
+      "changed": "<strong>{user}</strong> hat das Gesetz <strong>{law}</strong> geändert: {from} → <strong>{to}</strong>.",
+      "reasons": {
+        "unknown": "Diese Ausprägung gibt es nicht.",
+        "same": "Diese Ausprägung ist bereits aktiv.",
+        "hidden": "Dieses Gesetz ist nicht verfügbar.",
+        "locked": "Dieses Gesetz ist gesperrt.",
+        "optionDisabled": "Diese Ausprägung ist nicht wählbar.",
+        "optionHidden": "Diese Ausprägung ist nicht verfügbar.",
+        "cooldown": "Dieses Gesetz kann erst in {weeks} Wochen wieder geändert werden.",
+        "quota": "In dieser Woche können keine weiteren Gesetze geändert werden (Limit: {limit})."
+      }
+    },
+    "lawEditor": {
+      "categories": "Kategorien",
+      "laws": "Gesetze",
+      "hint": "Jedes Gesetz hat Ausprägungen mit Wirkungen. Die aktive Ausprägung wirkt wie ein dauerhafter Effekt.",
+      "optionsShort": "Ausprägungen",
+      "delete": "Gesetz löschen",
+      "confirmDelete": "Dieses Gesetz löschen?",
+      "deleteCategory": "Kategorie löschen",
+      "confirmDeleteCategory": "Diese Kategorie löschen?",
+      "newCategory": "Neue Kategorie",
+      "new": "Neues Gesetz",
+      "edit": "Gesetz bearbeiten",
+      "name": "Name",
+      "category": "Kategorie",
+      "description": "Beschreibung",
+      "optionsHint": "Die erste Ausprägung ist die Standardausprägung. Ressourcen ändern sich in jeder Woche, Arbeiter und Werte werden als Zuschlag addiert, solange die Ausprägung aktiv ist.",
+      "defaultMark": "Standard-Ausprägung",
+      "option": "Ausprägung",
+      "optionName": "Name der Ausprägung",
+      "moveUp": "Nach oben",
+      "removeOption": "Ausprägung entfernen",
+      "addOption": "Ausprägung hinzufügen",
+      "defaultName": "Neues Gesetz",
+      "defaultOption": "Ausprägung",
+      "errors": {
+        "noCategory": "Lege zuerst eine Gesetzeskategorie an.",
+        "categoryNotEmpty": "Diese Kategorie enthält noch Gesetze."
+      }
+    },
+    "settings": {
+      "lawEffectsVisible": {
+        "name": "Siedlung: Wirkungen der Gesetze sichtbar",
+        "hint": "Spieler sehen, welche Wirkungen die Ausprägungen der Gesetze haben. Die Spielleitung sieht sie immer."
+      },
+      "lawChangesPerWeek": {
+        "name": "Siedlung: Gesetzesänderungen pro Woche",
+        "hint": "Wie viele Gesetze die Spieler pro Woche ändern können. 0 = Spieler können keine Gesetze ändern."
+      },
+      "lawCooldownWeeks": {
+        "name": "Siedlung: Wartezeit für Gesetze (Wochen)",
+        "hint": "So viele Wochen muss gewartet werden, bis dasselbe Gesetz nach einer Änderung durch Spieler erneut geändert werden kann. 0 = keine Wartezeit."
       }
     }
   }

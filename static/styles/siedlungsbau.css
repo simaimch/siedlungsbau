@@ -167,3 +167,36 @@
 .siedlung-definitions .asset-list.with-weight li { grid-template-columns: 40px 1fr 6rem 5rem 2.2rem; }
 .siedlung-definitions .asset-list li > button { width: 100%; padding: 0; }
 .siedlung-definitions .asset-list.with-weight li.asset-head { font-size: var(--font-size-11, 11px); }
+
+/* Gesetze */
+.siedlung-laws { display: flex; flex-direction: column; gap: 0.6rem; }
+.siedlung-laws h4 { margin: 0 0 4px; border-bottom: 1px solid var(--color-border-light-tertiary, #888); }
+.siedlung-laws .hint { margin: 0; opacity: 0.7; font-size: var(--font-size-12, 12px); }
+.siedlung-laws .law { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+.siedlung-laws .law.is-hidden { opacity: 0.7; border-left: 3px dashed #b5656b; padding-left: 6px; }
+.siedlung-laws .law-head { display: flex; align-items: center; gap: 6px; }
+.siedlung-laws .law-head strong { flex: 0 1 auto; }
+.siedlung-laws .gm-tools { margin-left: auto; display: inline-flex; gap: 2px; }
+.siedlung-laws .gm-tools button { width: 1.8rem; height: 1.6rem; padding: 0; line-height: 1; opacity: 0.5; }
+.siedlung-laws .gm-tools button.on { opacity: 1; outline: 1px solid var(--color-text-hyperlink, #4a90d9); }
+.siedlung-laws .options { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.siedlung-laws .options li { display: flex; align-items: stretch; gap: 4px; }
+.siedlung-laws .options li.is-hidden .pick { border-style: dashed; }
+.siedlung-laws .options li.grayed .pick { opacity: 0.45; }
+.siedlung-laws .options li.current .pick { outline: 2px solid var(--color-text-hyperlink, #4a90d9); }
+.siedlung-laws .pick { flex: 1; display: grid; grid-template-columns: 1.2rem 1fr; align-items: center; gap: 2px 6px; height: auto; padding: 4px 6px; text-align: left; }
+.siedlung-laws .pick .chips { grid-column: 2; display: flex; flex-wrap: wrap; gap: 1px 8px; font-size: var(--font-size-11, 11px); opacity: 0.85; }
+.siedlung-laws .pick .chip { white-space: nowrap; }
+.siedlung-laws .pick .chip i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; }
+.siedlung-definitions .law-cat-list, .siedlung-definitions .law-def-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.siedlung-definitions .law-cat-list li { display: grid; grid-template-columns: 1fr 2.2rem; gap: 6px; align-items: center; }
+.siedlung-definitions .law-def-list li { display: grid; grid-template-columns: 1fr auto 2.2rem 2.2rem; gap: 6px; align-items: center; }
+.siedlung-law-editor { display: flex; flex-direction: column; gap: 0.5rem; }
+.siedlung-law-editor fieldset.option-block { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+.siedlung-law-editor .option-head { display: flex; gap: 6px; }
+.siedlung-law-editor .option-head input { flex: 1; }
+.siedlung-law-editor .cost-row { display: grid; grid-template-columns: 1fr 5rem auto; gap: 6px; align-items: center; }
+.siedlung-law-editor .hint { opacity: 0.7; font-size: var(--font-size-12, 12px); margin: 0; }
+.siedlung-law-editor footer { display: flex; justify-content: flex-end; gap: 6px; }
+.application.siedlungsbau .siedlung-laws { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.application.siedlungsbau .siedlung-law-editor { max-height: 75vh; overflow-y: auto; }

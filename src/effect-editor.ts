@@ -16,12 +16,28 @@ interface EditorState {
   rows: { key: string; amount: number }[];
 }
 
-const keyOf = (kind: EffectKind, id: string): string => `${kind}:${id}`;
-function parseKey(key: string): { kind: EffectKind; id: string } | null {
+export const targetKey = (kind: EffectKind, id: string): string => `${kind}:${id}`;
+export function parseTargetKey(key: string): { kind: EffectKind; id: string } | null {
   const i = key.indexOf(":");
   const kind = key.slice(0, i);
   if (kind !== "resource" && kind !== "worker" && kind !== "stat") return null;
   return { kind, id: key.slice(i + 1) };
+}
+
+export interface EffectTargetGroup {
+  kind: EffectKind;
+  label: string;
+  options: { key: string; name: string }[];
+}
+
+/** Alle Dinge, die ein Effekt verändern kann (Ressourcen, Arbeiter, Werte), gruppiert nach Art. */
+export function effectTargets(): EffectTargetGroup[] {
+  const groups: EffectTargetGroup[] = [
+    { kind: "resource", label: t("SIEDLUNG.effects.groupResource"), options: getResources().map(a => ({ key: targetKey("resource", a.id), name: a.name })) },
+    { kind: "worker", label: t("SIEDLUNG.effects.groupWorker"), options: getWorkers().map(a => ({ key: targetKey("worker", a.id), name: a.name })) },
+    { kind: "stat", label: t("SIEDLUNG.effects.groupStat"), options: getStats().map(a => ({ key: targetKey("stat", a.id), name: a.name })) }
+  ];
+  return groups.filter(g => g.options.length);
 }
 
 /** SL: legt einen aktiven Effekt an – Name, Dauer in Wochen und beliebig viele Veränderungen. */
@@ -46,13 +62,8 @@ export class EffectEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _state: EditorState = { name: "", remaining: 3, rows: [] };
 
   /** Alle wählbaren Ziele, gruppiert nach Art. */
-  _targets(): { kind: EffectKind; label: string; options: { key: string; name: string }[] }[] {
-    const groups: { kind: EffectKind; label: string; options: { key: string; name: string }[] }[] = [
-      { kind: "resource", label: t("SIEDLUNG.effects.groupResource"), options: getResources().map(a => ({ key: keyOf("resource", a.id), name: a.name })) },
-      { kind: "worker", label: t("SIEDLUNG.effects.groupWorker"), options: getWorkers().map(a => ({ key: keyOf("worker", a.id), name: a.name })) },
-      { kind: "stat", label: t("SIEDLUNG.effects.groupStat"), options: getStats().map(a => ({ key: keyOf("stat", a.id), name: a.name })) }
-    ];
-    return groups.filter(g => g.options.length);
+  _targets(): EffectTargetGroup[] {
+    return effectTargets();
   }
 
   async _prepareContext(): Promise<object> {
@@ -107,7 +118,7 @@ export class EffectEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const known = new Set(this._targets().flatMap(g => g.options.map(o => o.key)));
     const sums = new Map<string, EffectEntry>();
     for (const r of s.rows) {
-      const target = parseKey(r.key);
+      const target = parseTargetKey(r.key);
       if (!target || !known.has(r.key) || !Number.isFinite(r.amount)) continue;
       const prev = sums.get(r.key);
       sums.set(r.key, { ...target, amount: normalizeAmount(target.kind, (prev?.amount ?? 0) + r.amount) });

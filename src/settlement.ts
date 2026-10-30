@@ -1,9 +1,10 @@
 import { ID } from "./constants";
 import { getBuildings, costsOf } from "./store";
-import { getAsset, getStats, getWeights } from "./definitions";
+import { getAsset, getLaws, getStats, getWeights } from "./definitions";
 import { clampStat, describeInterval } from "./stats";
 import { applyStatChanges, computeWeek, sumEffects } from "./week";
 import { normalizeEffects } from "./effects";
+import { lawEffects, normalizeLawStates } from "./laws";
 import type { StatReport, WeekResult } from "./week";
 import { escapeHTML } from "./util";
 import type { ActiveEffect, CostKind, SettlementState, StatEffect } from "./types";
@@ -19,7 +20,9 @@ export function getSettlement(scene: any = canvas?.scene): SettlementState {
     resources: { ...(raw?.resources ?? {}) },
     workers: { ...(raw?.workers ?? {}) },
     stats: { ...(raw?.stats ?? {}) },
-    effects: normalizeEffects(raw?.effects)
+    effects: normalizeEffects(raw?.effects),
+    laws: normalizeLawStates(raw?.laws),
+    lawChanges: Number.isFinite(raw?.lawChanges) && raw.lawChanges > 0 ? Math.floor(raw.lawChanges) : 0
   };
 }
 
@@ -41,6 +44,9 @@ export async function setStat(id: string, amount: number): Promise<void> {
   state.stats[id] = clampStat(stat, amount);
   await canvas.scene.setFlag(ID, "settlement", state);
 }
+
+/** Dauerhafte Effekte der aktiven Ausprägungen aller Gesetze der Siedlung. */
+export const permanentEffects = (state: SettlementState): ActiveEffect[] => lawEffects(getLaws(), state.laws);
 
 /** SL: fügt einen aktiven Effekt hinzu. */
 export async function addEffect(effect: Omit<ActiveEffect, "id">): Promise<void> {
@@ -73,7 +79,7 @@ export async function setEffectDuration(id: string, weeks: number): Promise<void
 export async function advanceWeek(): Promise<void> {
   const scene = canvas.scene;
   if (!game.user.isGM || !scene) return;
-  const result = computeWeek(getSettlement(scene), getBuildings(scene), costsOf, getStats(), getWeights());
+  const result = computeWeek(getSettlement(scene), getBuildings(scene), costsOf, getStats(), getWeights(), permanentEffects(getSettlement(scene)));
   await scene.update({ flags: { [ID]: { settlement: result.state, buildings: result.buildings } } });
   await ChatMessage.create({ speaker: { alias: t("SIEDLUNG.title") }, content: renderReport(result) });
 }

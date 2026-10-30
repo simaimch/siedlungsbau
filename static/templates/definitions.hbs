@@ -5,6 +5,7 @@
     <button type="button" class="{{#if isWorker}}active{{/if}}" data-action="switchTab" data-tab="worker">{{localize "SIEDLUNG.editor.tabs.worker"}}</button>
     <button type="button" class="{{#if isStats}}active{{/if}}" data-action="switchTab" data-tab="stat">{{localize "SIEDLUNG.editor.tabs.stat"}}</button>
     <button type="button" class="{{#if isTerrain}}active{{/if}}" data-action="switchTab" data-tab="terrain">{{localize "SIEDLUNG.editor.tabs.terrain"}}</button>
+    <button type="button" class="{{#if isLaws}}active{{/if}}" data-action="switchTab" data-tab="laws">{{localize "SIEDLUNG.editor.tabs.laws"}}</button>
   </nav>
 
   {{#if isBuildings}}
@@ -68,6 +69,45 @@
       </li>
       {{/each}}
     </ul>
+  </section>
+  {{else if isLaws}}
+  <section>
+    <header>
+      <h3>{{localize "SIEDLUNG.lawEditor.categories"}}</h3>
+      <button type="button" data-action="addLawCategory"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.editor.add"}}</button>
+    </header>
+    <ul class="law-cat-list">
+      {{#each lawCategories}}
+      <li>
+        <input type="text" value="{{label}}" data-lawcat-field="label" data-id="{{id}}" maxlength="40">
+        <button type="button" data-action="deleteLawCategory" data-id="{{id}}" title="{{localize 'SIEDLUNG.lawEditor.deleteCategory'}}"><i class="fa-solid fa-trash"></i></button>
+      </li>
+      {{/each}}
+    </ul>
+  </section>
+  <section>
+    <header>
+      <h3>{{localize "SIEDLUNG.lawEditor.laws"}}</h3>
+      <button type="button" data-action="addLaw"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.editor.add"}}</button>
+    </header>
+    <p class="hint">{{localize "SIEDLUNG.lawEditor.hint"}}</p>
+    {{#each lawGroups}}
+    <details open>
+      <summary>{{label}}</summary>
+      <ul class="law-def-list">
+        {{#each laws}}
+        <li>
+          <span class="name">{{name}}</span>
+          <span class="meta">{{count}} {{localize "SIEDLUNG.lawEditor.optionsShort"}}</span>
+          <button type="button" data-action="editLaw" data-id="{{id}}" title="{{localize 'SIEDLUNG.editor.edit'}}"><i class="fa-solid fa-pencil"></i></button>
+          <button type="button" data-action="deleteLaw" data-id="{{id}}" title="{{localize 'SIEDLUNG.lawEditor.delete'}}"><i class="fa-solid fa-trash"></i></button>
+        </li>
+        {{else}}
+        <li class="empty">{{localize "SIEDLUNG.editor.empty"}}</li>
+        {{/each}}
+      </ul>
+    </details>
+    {{/each}}
   </section>
   {{else if isTerrain}}
   <section>

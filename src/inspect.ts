@@ -2,6 +2,9 @@ import { getBuildings, isSettlementScene } from "./store";
 import { Placement } from "./placement";
 import { TerrainBrush } from "./terrain-brush";
 import { registerActionSocket } from "./actions";
+import { registerLawSocket } from "./laws-service";
+import { LawsApp } from "./laws-app";
+import { refreshApp } from "./apps";
 import { openBuildingInfo, refreshBuildingInfo, closeBuildingInfo } from "./info-app";
 import { ID } from "./constants";
 
@@ -34,6 +37,7 @@ const onUp = (event: any): void => {
 };
 
 Hooks.once("ready", registerActionSocket);
+Hooks.once("ready", registerLawSocket);
 
 Hooks.on("canvasReady", () => {
   stage?.off("pointerdown", onDown);
@@ -50,4 +54,5 @@ Hooks.on("updateScene", (scene: any, changes: any) => {
   if (flags === undefined) return;
   if (typeof flags === "object" && "enabled" in flags && !isSettlementScene(scene)) closeBuildingInfo();
   else refreshBuildingInfo();
+  refreshApp(LawsApp);
 });

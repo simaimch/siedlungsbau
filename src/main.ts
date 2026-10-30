@@ -6,6 +6,7 @@ import { Placement } from "./placement";
 import { registerSocket, createSettlementScene, toggleSettlementScene } from "./service";
 import { isSettlementScene } from "./store";
 import { TerrainApp } from "./terrain-app";
+import { LawsApp } from "./laws-app";
 import { TerrainBrush } from "./terrain-brush";
 import "./inspect";
 
@@ -77,6 +78,15 @@ Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
         button: true,
         visible: active,
         onChange: onClick("settlement", () => { if (isSettlementScene()) toggleApp(SettlementApp); })
+      },
+      laws: {
+        name: "laws",
+        title: "SIEDLUNG.tools.laws",
+        icon: "fa-solid fa-gavel",
+        order: 3,
+        button: true,
+        visible: active,
+        onChange: onClick("laws", () => { if (isSettlementScene()) toggleApp(LawsApp); })
       },
       terrain: {
         name: "terrain",
