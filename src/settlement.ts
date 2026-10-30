@@ -1,6 +1,6 @@
 import { ID } from "./constants";
 import { getBuildings, costsOf } from "./store";
-import { getAsset, getStats } from "./definitions";
+import { getAsset, getStats, getWeights } from "./definitions";
 import { clampStat, describeInterval } from "./stats";
 import { applyStatChanges, computeWeek, sumEffects } from "./week";
 import { normalizeEffects } from "./effects";
@@ -73,7 +73,7 @@ export async function setEffectDuration(id: string, weeks: number): Promise<void
 export async function advanceWeek(): Promise<void> {
   const scene = canvas.scene;
   if (!game.user.isGM || !scene) return;
-  const result = computeWeek(getSettlement(scene), getBuildings(scene), costsOf, getStats());
+  const result = computeWeek(getSettlement(scene), getBuildings(scene), costsOf, getStats(), getWeights());
   await scene.update({ flags: { [ID]: { settlement: result.state, buildings: result.buildings } } });
   await ChatMessage.create({ speaker: { alias: t("SIEDLUNG.title") }, content: renderReport(result) });
 }

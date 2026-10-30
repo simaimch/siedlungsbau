@@ -10,6 +10,28 @@ export interface Costs {
 }
 export type CostsOf = (b: Building) => Costs;
 
+/** Baugewicht je Ressourcen-ID; fehlende oder ungültige Einträge zählen als 1. */
+export type Weights = Record<string, number>;
+
+const weightOf = (weights: Weights, id: string): number => {
+  const w = weights[id];
+  return typeof w === "number" && Number.isFinite(w) && w >= 0 ? w : 1;
+};
+
+/**
+ * Materialanteil eines Bauauftrags (0..1), gewichtet nach Baugewicht: Σ(Gewicht · gelieferte Menge) / Σ(Gewicht · Bedarf).
+ * Ist die gewichtete Summe 0 (alle Gewichte 0), zählen alle Ressourcen gleich. Ohne Bedarf gilt der Anteil als erfüllt.
+ */
+export function resourceFraction(buildCost: CostEntry[], p: Progress | undefined, weights: Weights = {}): number {
+  const res = buildCost.filter(e => e.kind === "resource");
+  const weighted = res.reduce((a, e) => a + weightOf(weights, e.id) * e.amount, 0);
+  const w = (id: string): number => (weighted > 0 ? weightOf(weights, id) : 1);
+  const total = res.reduce((a, e) => a + w(e.id) * e.amount, 0);
+  if (total <= 0) return 1;
+  const got = res.reduce((a, e) => a + w(e.id) * Math.min(e.amount, p?.resources?.[e.id] ?? 0), 0);
+  return got / total;
+}
+
 export interface ResourceReport {
   id: string;
   before: number;
@@ -114,12 +136,12 @@ const delivered = (costs: CostEntry[], kind: CostKind, p: Progress | undefined):
   costs.filter(e => e.kind === kind).reduce((a, e) => a + Math.min(e.amount, p?.[KEY[kind]]?.[e.id] ?? 0), 0);
 
 /** Fertigstellungsgrad eines Bauauftrags: Material- und Arbeitsanteil (0..1); ohne Bedarf gilt der Anteil als erfüllt. */
-export function fractions(b: Building, costs: Costs): { res: number; lab: number } {
-  const f = (kind: CostKind): number => {
-    const req = required(costs.buildCost, kind);
-    return req > 0 ? delivered(costs.buildCost, kind, b.progress) / req : 1;
+export function fractions(b: Building, costs: Costs, weights: Weights = {}): { res: number; lab: number } {
+  const req = required(costs.buildCost, "worker");
+  return {
+    res: resourceFraction(costs.buildCost, b.progress, weights),
+    lab: req > 0 ? delivered(costs.buildCost, "worker", b.progress) / req : 1
   };
-  return { res: f("resource"), lab: f("worker") };
 }
 
 /** Netto durch Betrieb fertiger Gebäude gebundene Arbeitskraft je Arbeiterart (negativ = Gebäude liefert Arbeitskraft). */
@@ -142,7 +164,7 @@ export function laborCommitted(buildings: Building[], costsOf: CostsOf): Record<
  *    Arbeit kommt aus dem Wochenvorrat an Arbeitskraft, aber nur so weit, dass der Arbeitsanteil nie über dem
  *    Materialanteil liegt. Ist alles geliefert, gilt das Gebäude als fertig.
  */
-export function computeWeek(state: SettlementState, buildings: Building[], costsOf: CostsOf, stats: StatType[] = []): WeekResult {
+export function computeWeek(state: SettlementState, buildings: Building[], costsOf: CostsOf, stats: StatType[] = [], weights: Weights = {}): WeekResult {
   const stock: Record<string, number> = { ...state.resources };
   const have = (id: string): number => stock[id] ?? 0;
   const add = (map: Record<string, number>, id: string, n: number): void => {
@@ -235,7 +257,7 @@ export function computeWeek(state: SettlementState, buildings: Building[], costs
     }
 
     // Arbeitsanteil darf den Materialanteil nie übersteigen
-    const resFrac = required(buildCost, "resource") > 0 ? delivered(buildCost, "resource", prog) / required(buildCost, "resource") : 1;
+    const resFrac = resourceFraction(buildCost, prog, weights);
     const reqLab = required(buildCost, "worker");
     let allowed = Math.max(0, Math.floor(resFrac * reqLab + 1e-9) - delivered(buildCost, "worker", prog));
     for (const e of buildCost) {
@@ -252,7 +274,7 @@ export function computeWeek(state: SettlementState, buildings: Building[], costs
     }
 
     const complete = buildCost.every(e => (prog[KEY[e.kind]][e.id] ?? 0) >= e.amount);
-    const f = fractions({ ...b, progress: prog }, { buildCost, upkeep: [] });
+    const f = fractions({ ...b, progress: prog }, { buildCost, upkeep: [] }, weights);
     if (gained || complete) progress.push({ id: b.id, name: b.name, res: f.res, lab: f.lab, completed: complete });
     else stalled.push(b.name);
     return { ...b, progress: prog, status: complete ? "done" : "ordered" };

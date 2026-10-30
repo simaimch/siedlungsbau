@@ -88,7 +88,12 @@ function parseAsset(raw: unknown): Parsed<PricedType> {
   if (!name) return "„name“ fehlt.";
   if (typeof raw.color !== "string" || !HEX.test(raw.color)) return "„color“ muss das Format #rrggbb haben.";
   if (typeof raw.value !== "number" || !Number.isFinite(raw.value) || raw.value < 0) return "„value“ muss eine Zahl ≥ 0 sein.";
-  return { id, name, color: raw.color, value: Math.round(raw.value * 100) / 100 };
+  const out: PricedType = { id, name, color: raw.color, value: Math.round(raw.value * 100) / 100 };
+  if (raw.weight !== undefined) {
+    if (typeof raw.weight !== "number" || !Number.isFinite(raw.weight) || raw.weight < 0) return "„weight“ muss eine Zahl ≥ 0 sein.";
+    out.weight = Math.round(raw.weight * 1000) / 1000;
+  }
+  return out;
 }
 
 const STAT_ERRORS = {

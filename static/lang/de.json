@@ -135,7 +135,9 @@
       "addEffect": "Wirkung hinzufügen",
       "removeEffect": "Wirkung entfernen",
       "modeWeekly": "pro Woche",
-      "modeOnce": "einmalig"
+      "modeOnce": "einmalig",
+      "weightLabel": "Baugewicht",
+      "weightHint": "Baugewicht: Wie stark eine gelieferte Einheit dieser Ressource zum Materialfortschritt zählt (Standard 1, Kommazahlen erlaubt). Bei 10 Stein (Gewicht 2) und 10 Holz (Gewicht 1) bringt eine Einheit Stein doppelt so viel Fortschritt wie eine Einheit Holz. Fertig ist ein Bau erst, wenn alles geliefert ist."
     },
     "settlement": {
       "title": "Siedlungs-Übersicht",

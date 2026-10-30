@@ -40,6 +40,9 @@ export const getCategory = (id: string): Category | undefined => getCategories()
 export const getResources = (): PricedType[] => getDefinitions().resources;
 export const getWorkers = (): PricedType[] => getDefinitions().workers;
 export const getStats = (): StatType[] => getDefinitions().stats;
+/** Baugewicht je Ressource (fehlend = 1), für die Berechnung des Materialfortschritts. */
+export const getWeights = (): Record<string, number> =>
+  Object.fromEntries(getResources().map(r => [r.id, typeof r.weight === "number" && r.weight >= 0 ? r.weight : 1]));
 export const getTerrainTypes = (): TerrainEntry[] => getDefinitions().terrain;
 
 export const assetKey = (kind: CostKind): "resources" | "workers" => (kind === "resource" ? "resources" : "workers");

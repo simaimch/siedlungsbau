@@ -37,6 +37,8 @@ export interface PricedType {
   name: string;
   color: string;
   value: number;
+  /** Nur Ressourcen: Baugewicht – wie stark eine gelieferte Einheit zum Materialfortschritt zählt (Standard 1, Kommazahlen erlaubt). */
+  weight?: number;
 }
 
 export interface BuildingType {

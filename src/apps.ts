@@ -1,7 +1,7 @@
 import { ID, STATUS, GOLD_ID } from "./constants";
 import { getBuildings, getTerrain, terrainAt, getType, bounds, isSettlementScene, isConnected, cellKey, transformCells, costsOf } from "./store";
 import {
-  getDefinitions, getCategories, getCategory, getResources, getWorkers, getStats, getTerrainTypes, getAsset, assetKey, isGold, costChips, effectChips,
+  getDefinitions, getCategories, getCategory, getResources, getWorkers, getStats, getTerrainTypes, getWeights, getAsset, assetKey, isGold, costChips, effectChips,
   saveDefinitions, resetDefinitions
 } from "./definitions";
 import { buildingCenter } from "./render";
@@ -201,7 +201,7 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
       construction: buildings
         .filter(b => b.status === STATUS.ORDERED)
         .map(b => {
-          const f = fractions(b, costsOf(b));
+          const f = fractions(b, costsOf(b), getWeights());
           return { name: b.name, res: Math.round(f.res * 100), lab: Math.round(f.lab * 100) };
         })
     };
@@ -237,7 +237,7 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
 /** "Material 40 %, Arbeit 20 %" für einen Bauauftrag. */
 function progressText(b: Building): string {
-  const f = fractions(b, costsOf(b));
+  const f = fractions(b, costsOf(b), getWeights());
   return `${t("SIEDLUNG.settlement.material")} ${Math.round(f.res * 100)} %, ${t("SIEDLUNG.settlement.work")} ${Math.round(f.lab * 100)} %`;
 }
 
@@ -315,7 +315,7 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       terrain: getTerrainTypes().map(e => ({ ...e, fixed: isBuiltinTerrain(e.id), noToggle: isDefaultTerrain(e.id) })),
       categories,
       groups,
-      assets,
+      assets: assets.map(a => ({ ...a, weight: a.weight ?? 1 })),
       assetKind: kind,
       assetTitle: t(`SIEDLUNG.editor.tabs.${kind}`),
       stats: stats.map(s =>
@@ -382,7 +382,10 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!a) return;
       if (field === "color" && /^#[0-9a-f]{6}$/i.test(el.value)) a.color = el.value;
       else if (field === "name") a.name = sanitizeName(el.value, a.name);
-      else if (field === "value" && !isGold(kind, id)) {
+      else if (field === "weight") {
+        const w = Number(el.value);
+        if (Number.isFinite(w) && w >= 0) a.weight = Math.round(w * 1000) / 1000;
+      } else if (field === "value" && !isGold(kind, id)) {
         const v = Number(el.value);
         if (Number.isFinite(v) && v >= 0) a.value = Math.round(v * 100) / 100;
       }
@@ -445,7 +448,8 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
         id: foundry.utils.randomID(),
         name: t(kind === "resource" ? "SIEDLUNG.editor.newResource" : "SIEDLUNG.editor.newWorker"),
         color: ASSET_COLORS[list.length % ASSET_COLORS.length],
-        value: 1
+        value: 1,
+        ...(kind === "resource" ? { weight: 1 } : {})
       });
     });
   }
