@@ -1,15 +1,12 @@
 {
   "id": "siedlungsbau",
   "title": "Siedlungsbau",
-  "description": "Gebäude auf einer Raster-Karte (1 Feld = 5 m) in Auftrag geben und platzieren. Die SL schließt den Bau ab.",
+  "description": "Settlement-Builder. Enables players to order and build buildings with materials and labor, manage resources, workers, stats, temporary effects and laws, and advance the work week. Includes a seeded random map generator (edge terrain, winding rivers, lake), a terrain editor with custom terrain types, map expansion and JSON import/export.",
   "version": "0.1.0",
   "compatibility": { "minimum": "14", "verified": "14" },
   "authors": [{ "name": "Christian Hoffmann" }],
   "esmodules": ["scripts/main.js"],
   "styles": ["styles/siedlungsbau.css"],
   "languages": [{ "lang": "de", "name": "Deutsch", "path": "lang/de.json" }],
-  "relationships": {
-    "systems": [{ "id": "pf2e", "type": "system", "compatibility": {} }]
-  },
   "socket": true
 }
