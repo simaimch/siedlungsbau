@@ -1,0 +1,67 @@
+name: Release
+
+# Release erstellen: Tag mit Versionsnummer pushen, z. B.
+#   git tag v0.2.0 && git push origin v0.2.0
+# Der Workflow baut das Modul, trägt Version und Links in module.json ein
+# und veröffentlicht module.json + module.zip als GitHub-Release.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version ohne v (z. B. 0.2.0) – legt den Tag an, falls er noch fehlt"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version bestimmen
+        id: v
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+
+      - name: module.json mit Version und Links versehen
+        run: node scripts/stamp-manifest.mjs "${{ steps.v.outputs.version }}" "${{ github.repository }}"
+
+      - name: module.zip packen (ohne Sourcemaps)
+        run: |
+          cd dist
+          zip -r ../module.zip . -x "*.map"
+          cd ..
+          cp dist/module.json module.json
+
+      - name: Release veröffentlichen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.v.outputs.tag }}
+        run: |
+          PRERELEASE=""
+          case "$TAG" in *-*) PRERELEASE="--prerelease" ;; esac
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" module.json module.zip --clobber
+          else
+            gh release create "$TAG" module.json module.zip \
+              --target "${{ github.sha }}" --title "Siedlungsbau $TAG" --generate-notes $PRERELEASE
+          fi
