@@ -1,7 +1,7 @@
 import { ID, STATUS, GOLD_ID } from "./constants";
 import { getBuildings, getTerrain, terrainAt, getType, bounds, isSettlementScene, isConnected, cellKey, transformCells, costsOf } from "./store";
 import {
-  getDefinitions, getCategories, getCategory, getResources, getWorkers, getStats, getTerrainTypes, getWeights, getAsset, assetKey, isGold, costChips, effectChips, entryChips, getTriggers,
+  getDefinitions, getCategories, getCategory, getResources, getWorkers, getStats, getTerrainTypes, getWeights, getAsset, assetKey, isGold, costChips, effectChips, entryChips, getTriggers, getRoadTypes,
   saveDefinitions, resetDefinitions
 } from "./definitions";
 import { buildingCenter } from "./render";
@@ -15,7 +15,11 @@ import { lawEffectsVisible } from "./laws-service";
 import { openEffectEditor } from "./effect-editor";
 import { sumEntries } from "./effects";
 import { isTriggerOn, triggerEffects } from "./triggers";
+import { orderAsBuilding } from "./roads";
 import { openTriggerEditor } from "./trigger-editor";
+import { openRoadEditor } from "./road-editor";
+import { RoadBrush } from "./road-brush";
+import { getRoadOrders } from "./roads-store";
 import { clampStat, contrastText, defaultStatValue, describeInterval, stripGradient } from "./stats";
 import { openStatEditor } from "./stat-editor";
 import { isBuiltinTerrain, isDefaultTerrain, nextTerrainId } from "./terrain-defs";
@@ -52,7 +56,7 @@ export class PaletteApp extends HandlebarsApplicationMixin(ApplicationV2) {
     classes: [ID],
     window: { title: "SIEDLUNG.palette.title", icon: "fa-solid fa-hammer", resizable: true },
     position: { width: 320, height: 460 },
-    actions: { select: PaletteApp.#onSelect }
+    actions: { select: PaletteApp.#onSelect, pickRoad: PaletteApp.#onPickRoad, roadMode: PaletteApp.#onRoadMode }
   };
 
   static PARTS = {
@@ -69,12 +73,41 @@ export class PaletteApp extends HandlebarsApplicationMixin(ApplicationV2) {
         buildings: buildings.filter(b => b.category === c.id).map(toPreview)
       }))
       .filter(g => g.buildings.length);
-    return { categories: groups };
+    const mode = RoadBrush.mode;
+    const roads = getRoadTypes().map(r => ({
+      id: r.id,
+      name: r.name,
+      color: r.color,
+      costs: costChips(r.buildCost),
+      selected: mode?.kind === "order" && mode.typeId === r.id
+    }));
+    return {
+      categories: groups,
+      roads,
+      hasRoads: roads.length > 0,
+      eraseSelected: mode?.kind === "erase",
+      completeSelected: mode?.kind === "complete",
+      isGM: game.user.isGM
+    };
   }
 
   static #onSelect(_event: Event, target: HTMLElement): void {
     const type = getType(target.dataset.id ?? "");
     if (type && isSettlementScene()) Placement.start(type);
+  }
+
+  /** Wegart wählen (erneuter Klick beendet den Pinsel). */
+  static #onPickRoad(_event: Event, target: HTMLElement): void {
+    const id = target.dataset.id ?? "";
+    if (RoadBrush.mode?.kind === "order" && RoadBrush.mode.typeId === id) RoadBrush.stop();
+    else RoadBrush.start({ kind: "order", typeId: id });
+  }
+
+  /** Entfernen bzw. (SL) sofort fertigstellen. */
+  static #onRoadMode(_event: Event, target: HTMLElement): void {
+    const kind = target.dataset.mode === "complete" ? "complete" : "erase";
+    if (RoadBrush.mode?.kind === kind) RoadBrush.stop();
+    else RoadBrush.start({ kind });
   }
 }
 
@@ -230,12 +263,15 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
           note: bonus && (showLaw || !lawWorker[w.id]) && !hiddenWorker[w.id] ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(bonus) }) : ""
         };
       }),
-      construction: buildings
-        .filter(b => b.status === STATUS.ORDERED)
-        .map(b => {
-          const f = fractions(b, costsOf(b), getWeights());
-          return { name: b.name, res: Math.round(f.res * 100), lab: Math.round(f.lab * 100) };
-        })
+      construction: [
+        ...buildings
+          .filter(b => b.status === STATUS.ORDERED)
+          .map(b => {
+            const f = fractions(b, costsOf(b), getWeights());
+            return { name: b.name, res: Math.round(f.res * 100), lab: Math.round(f.lab * 100) };
+          }),
+        ...roadConstruction()
+      ]
     };
   }
 
@@ -282,6 +318,18 @@ function currentTriggersHidden(fired: Trigger[]): ActiveEffect[] {
 export function conditionText(c: TriggerCondition): string {
   const target = c.kind === "stat" ? getStats().find(x => x.id === c.id) : getAsset(c.kind, c.id);
   return `${target?.name ?? c.id} ${c.op} ${c.value}`;
+}
+
+/** Zusammenfassung der Wegaufträge für die Übersicht: Anzahl und durchschnittlicher Fortschritt. */
+function roadConstruction(): { name: string; res: number; lab: number }[] {
+  const orders = getRoadOrders();
+  const parts = orders.flatMap(o => {
+    const type = getRoadTypes().find(r => r.id === o.typeId);
+    return type ? [fractions(orderAsBuilding(o, type), { buildCost: type.buildCost, upkeep: [] }, getWeights())] : [];
+  });
+  if (!parts.length) return [];
+  const avg = (key: "res" | "lab"): number => Math.round((parts.reduce((a, f) => a + f[key], 0) / parts.length) * 100);
+  return [{ name: game.i18n.format("SIEDLUNG.roads.construction", { count: parts.length }), res: avg("res"), lab: avg("lab") }];
 }
 
 /** "Material 40 %, Arbeit 20 %" für einen Bauauftrag. */
@@ -337,6 +385,9 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       addTrigger: DefinitionsApp.#onAddTrigger,
       editTrigger: DefinitionsApp.#onEditTrigger,
       deleteTrigger: DefinitionsApp.#onDeleteTrigger,
+      addRoad: DefinitionsApp.#onAddRoad,
+      editRoad: DefinitionsApp.#onEditRoad,
+      deleteRoad: DefinitionsApp.#onDeleteRoad,
       resetDefaults: DefinitionsApp.#onReset
     }
   };
@@ -371,6 +422,13 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       isTerrain: tab === "terrain",
       isLaws: tab === "laws",
       isTriggers: tab === "triggers",
+      isRoads: tab === "roads",
+      roads: getRoadTypes().map(r => ({
+        id: r.id,
+        name: r.name,
+        color: r.color,
+        summary: entryChips(r.buildCost).map(c => `${c.text} ${c.name}`).join(", ") || t("SIEDLUNG.roads.free")
+      })),
       triggers: getTriggers().map(tr => ({
         id: tr.id,
         name: tr.name,
@@ -545,7 +603,8 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const inUse =
       getDefinitions().buildings.some(b => [...b.buildCost, ...b.upkeep].some(e => e.kind === kind && e.id === id)) ||
       getDefinitions().laws.some(l => l.options.some(o => o.entries.some(e => e.kind === kind && e.id === id))) ||
-      getTriggers().some(x => [...x.entries, ...x.conditions].some(e => e.kind === kind && e.id === id));
+      getTriggers().some(x => [...x.entries, ...x.conditions].some(e => e.kind === kind && e.id === id)) ||
+      getRoadTypes().some(r => r.buildCost.some(e => e.kind === kind && e.id === id));
     if (inUse) {
       ui.notifications.warn(t("SIEDLUNG.editor.errors.assetInUse"));
       return;
@@ -600,6 +659,29 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #onEditTrigger(_event: Event, target: HTMLElement): void {
     openTriggerEditor(target.dataset.id ?? null);
+  }
+
+  static #onAddRoad(): void {
+    openRoadEditor(null);
+  }
+
+  static #onEditRoad(_event: Event, target: HTMLElement): void {
+    openRoadEditor(target.dataset.id ?? null);
+  }
+
+  static async #onDeleteRoad(_event: Event, target: HTMLElement): Promise<void> {
+    const id = target.dataset.id ?? "";
+    // Wegart darf nicht mehr in einer Szene vorkommen (gebaut oder in Auftrag)
+    const used = game.scenes.some((sc: any) => {
+      const f: any = sc.getFlag(ID, "roads");
+      const o: any = sc.getFlag(ID, "roadOrders");
+      return (typeof f === "string" && f.includes(id)) || (Array.isArray(o) && o.some((x: any) => x?.typeId === id));
+    });
+    if (used) return void ui.notifications.warn(t("SIEDLUNG.roads.errors.inUse"));
+    if (!(await confirm(t("SIEDLUNG.roads.delete"), t("SIEDLUNG.roads.confirmDelete")))) return;
+    await saveDefinitions(defs => {
+      defs.roads = defs.roads.filter(r => r.id !== id);
+    });
   }
 
   static async #onDeleteTrigger(_event: Event, target: HTMLElement): Promise<void> {

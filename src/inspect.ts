@@ -1,6 +1,11 @@
 import { getBuildings, isSettlementScene } from "./store";
 import { Placement } from "./placement";
 import { TerrainBrush } from "./terrain-brush";
+import { RoadBrush } from "./road-brush";
+import { registerRoadSocket } from "./roads-service";
+import { getRoadOrders, getRoads } from "./roads-store";
+import { roadAt } from "./roads";
+import { openRoadInfo, refreshRoadInfo, closeRoadInfo } from "./road-info-app";
 import { registerActionSocket } from "./actions";
 import { registerLawSocket } from "./laws-service";
 import { LawsApp } from "./laws-app";
@@ -16,7 +21,7 @@ let down: { x: number; y: number } | null = null;
 let stage: any = null;
 
 function active(): boolean {
-  return isSettlementScene() && !Placement.type && !Placement.busy && TerrainBrush.code === null && ui.controls?.control?.name === "siedlung";
+  return isSettlementScene() && !Placement.type && !Placement.busy && TerrainBrush.code === null && RoadBrush.mode === null && ui.controls?.control?.name === "siedlung";
 }
 
 const onDown = (event: any): void => {
@@ -33,11 +38,13 @@ const onUp = (event: any): void => {
   const cx = Math.floor(pos.x / s);
   const cy = Math.floor(pos.y / s);
   const hit = getBuildings().find(b => b.cells.some(([x, y]) => x === cx && y === cy));
-  if (hit) openBuildingInfo(hit.id);
+  if (hit) return void openBuildingInfo(hit.id);
+  if (roadAt(getRoads(), cx, cy) !== null || getRoadOrders().some(o => o.x === cx && o.y === cy)) openRoadInfo(cx, cy);
 };
 
 Hooks.once("ready", registerActionSocket);
 Hooks.once("ready", registerLawSocket);
+Hooks.once("ready", registerRoadSocket);
 
 Hooks.on("canvasReady", () => {
   stage?.off("pointerdown", onDown);
@@ -46,13 +53,19 @@ Hooks.on("canvasReady", () => {
   stage.on("pointerdown", onDown);
   stage.on("pointerup", onUp);
   closeBuildingInfo();
+  closeRoadInfo();
 });
 
 Hooks.on("updateScene", (scene: any, changes: any) => {
   if (scene.id !== canvas.scene?.id) return;
   const flags = changes.flags?.[ID];
   if (flags === undefined) return;
-  if (typeof flags === "object" && "enabled" in flags && !isSettlementScene(scene)) closeBuildingInfo();
-  else refreshBuildingInfo();
+  if (typeof flags === "object" && "enabled" in flags && !isSettlementScene(scene)) {
+    closeBuildingInfo();
+    closeRoadInfo();
+  } else {
+    refreshBuildingInfo();
+    refreshRoadInfo();
+  }
   refreshApp(LawsApp);
 });

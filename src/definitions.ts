@@ -5,8 +5,10 @@ import { TERRAIN, DEFAULT_TERRAIN } from "./data";
 import { normalizeTerrain } from "./terrain-defs";
 import { normalizeLawCategories, normalizeLaws } from "./laws";
 import { normalizeTriggers } from "./triggers";
+import { normalizeRoadTypes } from "./roads";
+import { defaultRoadsFor } from "./road-defaults";
 import { DEFAULT_LAWS, DEFAULT_LAW_CATEGORIES } from "./law-defaults";
-import type { BuildingType, Category, CostEntry, CostKind, Definitions, PricedType, StatEffect, StatType, TerrainEntry, Law, LawCategory, EffectEntry, Trigger } from "./types";
+import type { BuildingType, Category, CostEntry, CostKind, Definitions, PricedType, StatEffect, StatType, TerrainEntry, Law, LawCategory, EffectEntry, Trigger, RoadType } from "./types";
 
 export const SETTING_DEFINITIONS = "definitions";
 
@@ -26,18 +28,22 @@ export function getDefinitions(): Required<Definitions> {
     upkeep: list(b.upkeep, []),
     statEffects: list(b.statEffects, [])
   }));
+  const resources = list(raw?.resources, DEFAULT_DEFINITIONS.resources);
+  const workers = list(raw?.workers, DEFAULT_DEFINITIONS.workers);
   return {
     categories: list(raw?.categories, DEFAULT_DEFINITIONS.categories),
     buildings,
-    resources: list(raw?.resources, DEFAULT_DEFINITIONS.resources),
-    workers: list(raw?.workers, DEFAULT_DEFINITIONS.workers),
+    resources,
+    workers,
     // Ältere Speicherstände ohne Stats bekommen die Standard-Stats
     stats: list(raw?.stats, DEFAULT_DEFINITIONS.stats ?? DEFAULT_STATS),
     terrain: normalizeTerrain(raw?.terrain),
     // Fehlen Gesetze ganz (ältere Speicherstände), gilt das mitgelieferte Beispiel; eine leere Liste bleibt leer
     lawCategories: Array.isArray(raw?.lawCategories) ? normalizeLawCategories(raw?.lawCategories) : structuredClone(DEFAULT_LAW_CATEGORIES),
     laws: Array.isArray(raw?.laws) ? normalizeLaws(raw?.laws) : structuredClone(DEFAULT_LAWS),
-    triggers: normalizeTriggers(raw?.triggers)
+    triggers: normalizeTriggers(raw?.triggers),
+    // Fehlen Wegarten ganz (ältere Speicherstände), gelten die mitgelieferten; eine leere Liste bleibt leer
+    roads: Array.isArray(raw?.roads) ? normalizeRoadTypes(raw?.roads) : defaultRoadsFor(new Set(resources.map(r => r.id)), new Set(workers.map(w => w.id)))
   };
 }
 
@@ -52,6 +58,7 @@ export const getWeights = (): Record<string, number> =>
   Object.fromEntries(getResources().map(r => [r.id, typeof r.weight === "number" && r.weight >= 0 ? r.weight : 1]));
 export const getLawCategories = (): LawCategory[] => getDefinitions().lawCategories;
 export const getLaws = (): Law[] => getDefinitions().laws;
+export const getRoadTypes = (): RoadType[] => getDefinitions().roads;
 export const getTriggers = (): Trigger[] => getDefinitions().triggers;
 export const getTerrainTypes = (): TerrainEntry[] => getDefinitions().terrain;
 

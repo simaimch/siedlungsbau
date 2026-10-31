@@ -3,6 +3,7 @@ import { fillRect, outline } from "./render";
 import { requestOrder } from "./service";
 import { askBuildingName } from "./dialogs";
 import { TerrainBrush } from "./terrain-brush";
+import { RoadBrush } from "./road-brush";
 import type { BuildingType, Cell } from "./types";
 
 export class Placement {
@@ -19,6 +20,7 @@ export class Placement {
   static start(type: BuildingType): void {
     this.stop();
     TerrainBrush.stop();
+    RoadBrush.stop();
     this.type = type;
     this.rotation = 0;
     this.mirror = false;

@@ -1,0 +1,32 @@
+<div class="siedlung-road-editor">
+  <div class="form-group">
+    <label>{{localize "SIEDLUNG.roads.editor.name"}}</label>
+    <input type="text" name="name" value="{{name}}" maxlength="60" autocomplete="off" placeholder="{{localize 'SIEDLUNG.roads.editor.defaultName'}}">
+  </div>
+  <div class="form-group">
+    <label>{{localize "SIEDLUNG.roads.editor.color"}}</label>
+    <input type="color" name="color" value="{{color}}">
+  </div>
+  <fieldset class="cost-list">
+    <legend>{{localize "SIEDLUNG.roads.editor.costs"}}</legend>
+    <p class="hint">{{localize "SIEDLUNG.roads.editor.costsHint"}}</p>
+    {{#each rows}}
+    <div class="cost-row">
+      <select name="item">
+        {{#each groups}}
+        <optgroup label="{{label}}">
+          {{#each options}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+        </optgroup>
+        {{/each}}
+      </select>
+      <input type="number" name="amount" value="{{amount}}" min="1" step="1">
+      <button type="button" data-action="removeRow" data-index="{{index}}" title="{{localize 'SIEDLUNG.editor.removeCost'}}"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    {{/each}}
+    <button type="button" data-action="addRow"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.editor.addCost"}}</button>
+  </fieldset>
+  <footer>
+    <button type="button" data-action="save"><i class="fa-solid fa-check"></i> {{localize "SIEDLUNG.editor.save"}}</button>
+    <button type="button" data-action="cancel">{{localize "SIEDLUNG.editor.cancel"}}</button>
+  </footer>
+</div>

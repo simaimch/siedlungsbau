@@ -9,6 +9,8 @@ import { getType } from "./store";
 import { PaletteApp, DefinitionsApp, SettlementApp, refreshApp } from "./apps";
 import { DataTransferApp } from "./transfer-app";
 import { redraw } from "./render";
+import { SETTING_ROAD_GAP } from "./roads-store";
+import { DEFAULT_ROAD_GAP, MAX_ROAD_GAP } from "./roads";
 import { Placement } from "./placement";
 
 export function registerSettings(): void {
@@ -53,6 +55,17 @@ export function registerSettings(): void {
     type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 0, initial: 4 }),
     default: 4,
     onChange: refreshLaws
+  });
+
+  // Abstand der Wege zum Feldrand (Prozent der Feldbreite); Verbindungen zu Nachbarn schließen die Lücke
+  game.settings.register(ID, SETTING_ROAD_GAP, {
+    name: "SIEDLUNG.settings.roadGap.name",
+    hint: "SIEDLUNG.settings.roadGap.hint",
+    scope: "world",
+    config: true,
+    type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 0, max: MAX_ROAD_GAP, initial: DEFAULT_ROAD_GAP }),
+    default: DEFAULT_ROAD_GAP,
+    onChange: () => redraw()
   });
 
   // Eigener Reiter in den Spieleinstellungen mit Button für Export/Import (nur SL)

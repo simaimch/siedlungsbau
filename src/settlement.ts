@@ -1,5 +1,7 @@
 import { ID } from "./constants";
 import { getBuildings, costsOf } from "./store";
+import { getRoadOrders, getRoads, getRoadType } from "./roads-store";
+import { applyRoadWeek, isRoadId, orderAsBuilding } from "./roads";
 import { entryChips, getAsset, getLaws, getStats, getTriggers, getWeights, getResources, getWorkers } from "./definitions";
 import { clampStat, defaultStatValue, describeInterval } from "./stats";
 import { applyStatChanges, computeWeek, sumEffects } from "./week";
@@ -115,9 +117,25 @@ export async function advanceWeek(): Promise<void> {
   // Trigger werden gegen den Stand zu Beginn der Woche geprüft und wirken in dieser Wochenrechnung
   const trig = currentTriggers(before);
   const permanent = [...permanentEffects(before), ...(trig.effect ? [trig.effect] : [])];
-  const result = computeWeek(before, getBuildings(scene), costsOf, getStats(), getWeights(), permanent, trig.statWeekly);
-  await scene.update({ flags: { [ID]: { settlement: result.state, buildings: result.buildings } } });
-  await ChatMessage.create({ speaker: { alias: t("SIEDLUNG.title") }, content: renderReport(result, trig.fired) });
+  // Wegaufträge laufen als Bauaufträge mit einem Feld durch dieselbe Rechnung (nach den Gebäuden)
+  const roads = getRoads(scene);
+  const orders = getRoadOrders(scene);
+  const pseudo = orders.flatMap(o => {
+    const type = getRoadType(o.typeId);
+    return type ? [orderAsBuilding(o, type)] : [];
+  });
+  const costs: typeof costsOf = b => (isRoadId(b.id) ? { buildCost: b.buildCost ?? [], upkeep: [], statEffects: [] } : costsOf(b));
+  const result = computeWeek(before, [...getBuildings(scene), ...pseudo], costs, getStats(), getWeights(), permanent, trig.statWeekly);
+  const roadWeek = applyRoadWeek(roads, orders, result.buildings);
+  const roadStalled = result.stalled.filter(n => isRoadId(n)).length;
+  result.buildings = result.buildings.filter(b => !isRoadId(b.id));
+  result.progress = result.progress.filter(p => !isRoadId(p.id));
+  result.stalled = result.stalled.filter(n => !isRoadId(n));
+  await scene.update({ flags: { [ID]: { settlement: result.state, buildings: result.buildings, roads: roadWeek.roads, roadOrders: roadWeek.orders } } });
+  await ChatMessage.create({
+    speaker: { alias: t("SIEDLUNG.title") },
+    content: renderReport(result, trig.fired, { completed: roadWeek.completed, pending: roadWeek.pending, stalled: roadStalled })
+  });
 }
 
 const dot = (color: string): string =>
@@ -125,7 +143,7 @@ const dot = (color: string): string =>
 const signed = (n: number): string => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "±0");
 const percent = (f: number): string => `${Math.round(f * 100)} %`;
 
-function renderReport(result: WeekResult, fired: Trigger[] = []): string {
+function renderReport(result: WeekResult, fired: Trigger[] = [], roadWeek?: { completed: number; pending: number; stalled: number }): string {
   const label = (kind: CostKind, id: string): string => {
     const asset = getAsset(kind, id);
     return `${dot(asset?.color ?? "#888")}${escapeHTML(asset?.name ?? id)}`;
@@ -193,6 +211,9 @@ function renderReport(result: WeekResult, fired: Trigger[] = []): string {
       return `<li>${escapeHTML(p.name)}: ${t("SIEDLUNG.settlement.material")} ${percent(p.res)}, ${t("SIEDLUNG.settlement.work")} ${percent(p.lab)}${done}</li>`;
     });
     parts.push(`<p><strong>${t("SIEDLUNG.week.progress")}</strong></p><ul>${items.join("")}</ul>`);
+  }
+  if (roadWeek && (roadWeek.completed || roadWeek.pending)) {
+    parts.push(`<p>${t("SIEDLUNG.roads.report", { done: roadWeek.completed, pending: roadWeek.pending, stalled: roadWeek.stalled })}</p>`);
   }
   if (result.stalled.length) {
     parts.push(`<p>${t("SIEDLUNG.week.stalled", { names: result.stalled.map(escapeHTML).join(", ") })}</p>`);

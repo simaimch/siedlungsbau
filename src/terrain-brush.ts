@@ -3,6 +3,7 @@ import { TERRAIN, DEFAULT_TERRAIN } from "./data";
 import { getBuildings, getTerrain, isSettlementScene } from "./store";
 import { fillRect, outline, hexToInt } from "./render";
 import { Placement } from "./placement";
+import { RoadBrush } from "./road-brush";
 import type { TerrainData } from "./types";
 
 export const TERRAIN_APP_ID = `${ID}-terrain`;
@@ -51,6 +52,7 @@ export class TerrainBrush {
   static start(code: string): void {
     if (!TERRAIN[code] || !game.user.isGM) return;
     Placement.stop();
+    RoadBrush.stop();
     const wasActive = this.code !== null;
     this.code = code;
     if (!wasActive) {

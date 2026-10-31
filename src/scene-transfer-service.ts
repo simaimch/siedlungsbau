@@ -3,6 +3,7 @@ import { TERRAIN, DEFAULT_TERRAIN } from "./data";
 import { getDefinitions, replaceDefinitions } from "./definitions";
 import { getBuildings, getTerrain, isSettlementScene } from "./store";
 import { getSettlement } from "./settlement";
+import { getRoads, getRoadOrders } from "./roads-store";
 import { exportDefinitions } from "./transfer";
 import { exportScene } from "./scene-transfer";
 import { normalizeMapGenOptions } from "./mapgen";
@@ -26,6 +27,8 @@ export function exportCurrentScene(includeDefinitions: boolean): string | null {
     ...(hasMapgen ? { mapgen: normalizeMapGenOptions(scene.getFlag(ID, "mapgen")) } : {}),
     settlement: getSettlement(scene),
     buildings: getBuildings(scene),
+    roads: getRoads(scene),
+    roadOrders: getRoadOrders(scene),
     ...(includeDefinitions ? { definitions: JSON.parse(exportDefinitions(getDefinitions())) } : {})
   });
 }
@@ -56,7 +59,9 @@ const flagsOf = (data: SceneData): Record<string, unknown> => ({
     const description = cleanDescription(raw);
     return description ? { ...rest, description } : rest;
   }),
-  settlement: data.settlement
+  settlement: data.settlement,
+  ...(data.roads ? { roads: data.roads } : {}),
+  ...(data.roadOrders ? { roadOrders: data.roadOrders } : {})
 });
 
 /** SL: übernimmt zusammengeführte Definitionen und legt aus den Daten eine neue Siedlungsszene an. */
@@ -87,7 +92,7 @@ export async function importIntoCurrentScene(data: SceneData, definitions: Requi
   if (!game.user.isGM || !scene || !isSettlementScene(scene)) return;
   if (definitions) await replaceDefinitions(definitions);
   // Objekte in Flags werden beim Aktualisieren zusammengeführt: erst die alten Schlüssel entfernen, dann neu schreiben
-  await scene.update({ flags: { [ID]: { "-=settlement": null, "-=terrain": null, "-=mapgen": null, "-=buildings": null } } });
+  await scene.update({ flags: { [ID]: { "-=settlement": null, "-=terrain": null, "-=mapgen": null, "-=buildings": null, "-=roads": null, "-=roadOrders": null } } });
   const size: number = scene.grid.size;
   await scene.update({
     width: data.terrain.cols * size,

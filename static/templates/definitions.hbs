@@ -7,6 +7,7 @@
     <button type="button" class="{{#if isTerrain}}active{{/if}}" data-action="switchTab" data-tab="terrain">{{localize "SIEDLUNG.editor.tabs.terrain"}}</button>
     <button type="button" class="{{#if isLaws}}active{{/if}}" data-action="switchTab" data-tab="laws">{{localize "SIEDLUNG.editor.tabs.laws"}}</button>
     <button type="button" class="{{#if isTriggers}}active{{/if}}" data-action="switchTab" data-tab="triggers">{{localize "SIEDLUNG.editor.tabs.triggers"}}</button>
+    <button type="button" class="{{#if isRoads}}active{{/if}}" data-action="switchTab" data-tab="roads">{{localize "SIEDLUNG.editor.tabs.roads"}}</button>
   </nav>
 
   {{#if isBuildings}}
@@ -127,6 +128,26 @@
       </li>
       {{else}}
       <li class="empty">{{localize "SIEDLUNG.triggers.none"}}</li>
+      {{/each}}
+    </ul>
+  </section>
+  {{else if isRoads}}
+  <section>
+    <header>
+      <h3>{{localize "SIEDLUNG.roads.title"}}</h3>
+      <button type="button" data-action="addRoad"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.editor.add"}}</button>
+    </header>
+    <p class="hint">{{localize "SIEDLUNG.roads.editorHint"}}</p>
+    <ul class="trigger-defs road-defs">
+      {{#each roads}}
+      <li>
+        <span class="name"><i class="swatch" style="background: {{color}}"></i> {{name}}</span>
+        <button type="button" data-action="editRoad" data-id="{{id}}" title="{{localize 'SIEDLUNG.editor.edit'}}"><i class="fa-solid fa-pencil"></i></button>
+        <button type="button" data-action="deleteRoad" data-id="{{id}}" title="{{localize 'SIEDLUNG.roads.delete'}}"><i class="fa-solid fa-trash"></i></button>
+        <div class="meta">{{summary}}</div>
+      </li>
+      {{else}}
+      <li class="empty">{{localize "SIEDLUNG.roads.none"}}</li>
       {{/each}}
     </ul>
   </section>

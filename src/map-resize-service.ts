@@ -1,5 +1,7 @@
 import { ID } from "./constants";
 import { getBuildings, getTerrain, isSettlementScene } from "./store";
+import { getRoads, getRoadOrders } from "./roads-store";
+import { expandRoads, shiftOrders } from "./roads";
 import { expandTerrain, normalizeExpand, shiftCells, MAX_SIDE, type Expand } from "./map-resize";
 
 const t = (key: string, data?: Record<string, string | number>): string =>
@@ -45,10 +47,12 @@ export async function expandMap(input: Partial<Record<keyof Expand, unknown>>): 
   }
   const terrain = expandTerrain(old, e);
   const buildings = getBuildings(scene).map(b => ({ ...b, cells: shiftCells(b.cells, e.left, e.top) }));
+  const roads = expandRoads(getRoads(scene), e);
+  const roadOrders = shiftOrders(getRoadOrders(scene), e.left, e.top);
   await scene.update({
     width: terrain.cols * size,
     height: terrain.rows * size,
-    flags: { [ID]: { terrain, buildings } }
+    flags: { [ID]: { terrain, buildings, roads, roadOrders } }
   });
   await shiftPlaceables(scene, e.left * size, e.top * size);
   ui.notifications.info(t("SIEDLUNG.expand.done", { cols: terrain.cols, rows: terrain.rows }));

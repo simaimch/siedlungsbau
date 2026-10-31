@@ -3,16 +3,17 @@ import { GOLD_ID } from "./constants";
 import { DEFAULT_DEFINITIONS } from "./data";
 import { isConnected, transformCells } from "./store";
 import { COMPARE_OPS } from "./triggers";
+import { ROAD_ID_POOL } from "./roads";
 import { sortedPoints, validateInterval } from "./stats";
 import { BUILTIN_TERRAIN, normalizeTerrain } from "./terrain-defs";
-import type { BuildingType, Category, Cell, CostEntry, Definitions, PricedType, StatEffect, StatPoint, StatType, TerrainEntry, Law, LawCategory, LawOption, CompareOp, EffectEntry, Trigger } from "./types";
+import type { BuildingType, Category, Cell, CostEntry, Definitions, PricedType, StatEffect, StatPoint, StatType, TerrainEntry, Law, LawCategory, LawOption, CompareOp, EffectEntry, Trigger, RoadType } from "./types";
 
 export const FORMAT_VERSION = 1;
 
-export type SectionKey = "categories" | "resources" | "workers" | "stats" | "terrain" | "lawCategories" | "laws" | "triggers" | "buildings";
+export type SectionKey = "categories" | "resources" | "workers" | "stats" | "terrain" | "lawCategories" | "laws" | "triggers" | "roads" | "buildings";
 
 /** Reihenfolge, in der Bereiche exportiert und angewendet werden. */
-export const SECTIONS: SectionKey[] = ["categories", "resources", "workers", "stats", "terrain", "lawCategories", "laws", "triggers", "buildings"];
+export const SECTIONS: SectionKey[] = ["categories", "resources", "workers", "stats", "terrain", "lawCategories", "laws", "triggers", "roads", "buildings"];
 
 export const SECTION_LABELS: Record<SectionKey, string> = {
   categories: "Kategorien",
@@ -23,6 +24,7 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   lawCategories: "Gesetzeskategorien",
   laws: "Gesetze",
   triggers: "Trigger",
+  roads: "Wege",
   buildings: "Gebäude"
 };
 
@@ -36,7 +38,7 @@ const MAX_SHAPE = 50;
 /** Formatiertes JSON; Rasterfelder ([x, y]) stehen dabei jeweils in einer Zeile. */
 export function exportDefinitions(defs: Definitions): string {
   const json = JSON.stringify(
-    { version: FORMAT_VERSION, categories: defs.categories, resources: defs.resources, workers: defs.workers, stats: defs.stats, terrain: defs.terrain ?? [], lawCategories: defs.lawCategories ?? [], laws: defs.laws ?? [], triggers: defs.triggers ?? [], buildings: defs.buildings },
+    { version: FORMAT_VERSION, categories: defs.categories, resources: defs.resources, workers: defs.workers, stats: defs.stats, terrain: defs.terrain ?? [], lawCategories: defs.lawCategories ?? [], laws: defs.laws ?? [], triggers: defs.triggers ?? [], roads: defs.roads ?? [], buildings: defs.buildings },
     null,
     2
   );
@@ -271,6 +273,19 @@ function parseBuilding(raw: unknown): Parsed<BuildingType> {
   return { id, name, category, cells, buildCost, upkeep, statEffects };
 }
 
+function parseRoad(raw: unknown): Parsed<RoadType> {
+  if (!isObj(raw)) return "Kein Objekt.";
+  const id = text(raw.id, 100);
+  const name = text(raw.name, 60);
+  if (!id) return "„id“ fehlt.";
+  if (id.length !== 1 || !ROAD_ID_POOL.includes(id)) return "„id“ muss ein einzelner Buchstabe sein (a–z, A–Z), ohne „.“.";
+  if (!name) return "„name“ fehlt.";
+  if (typeof raw.color !== "string" || !HEX.test(raw.color)) return "„color“ muss eine Farbe wie #b8946a sein.";
+  const buildCost = parseCosts(raw.buildCost, "buildCost", false);
+  if (typeof buildCost === "string") return buildCost;
+  return { id, name, color: raw.color.toLowerCase(), buildCost };
+}
+
 function parseSection<T extends { id: string }>(key: SectionKey, raw: unknown, parse: (e: unknown) => Parsed<T>, errors: string[]): T[] | undefined {
   const label = SECTION_LABELS[key];
   if (!Array.isArray(raw)) {
@@ -303,14 +318,14 @@ export function parseImport(input: string): ParsedImport {
   if (!isObj(raw)) return { data: {}, errors: ["Der Import muss ein JSON-Objekt sein."] };
 
   const data: Partial<Definitions> = {};
-  const parsers = { categories: parseCategory, resources: parseAsset, workers: parseAsset, stats: parseStat, terrain: parseTerrain, lawCategories: parseLawCategory, laws: parseLaw, triggers: parseTrigger, buildings: parseBuilding } as const;
+  const parsers = { categories: parseCategory, resources: parseAsset, workers: parseAsset, stats: parseStat, terrain: parseTerrain, lawCategories: parseLawCategory, laws: parseLaw, triggers: parseTrigger, roads: parseRoad, buildings: parseBuilding } as const;
   for (const key of SECTIONS) {
     if (raw[key] === undefined) continue;
     const list = parseSection(key, raw[key], parsers[key] as (e: unknown) => Parsed<{ id: string }>, errors);
     if (list) (data as Record<string, unknown>)[key] = list;
   }
   if (!errors.length && !Object.keys(data).length) {
-    errors.push("Der Import enthält keinen bekannten Bereich (categories, resources, workers, stats, terrain, lawCategories, laws, triggers, buildings).");
+    errors.push("Der Import enthält keinen bekannten Bereich (categories, resources, workers, stats, terrain, lawCategories, laws, triggers, roads, buildings).");
   }
   return { data, errors };
 }
@@ -325,8 +340,8 @@ export interface MissingEntry {
   name: string;
 }
 
-const nameOf = (key: SectionKey, e: Category | PricedType | BuildingType | StatType | TerrainEntry | LawCategory | Law | Trigger): string =>
-  key === "categories" || key === "terrain" || key === "lawCategories" ? (e as Category | TerrainEntry | LawCategory).label : (e as PricedType | BuildingType | StatType | Law | Trigger).name;
+const nameOf = (key: SectionKey, e: Category | PricedType | BuildingType | StatType | TerrainEntry | LawCategory | Law | Trigger | RoadType): string =>
+  key === "categories" || key === "terrain" || key === "lawCategories" ? (e as Category | TerrainEntry | LawCategory).label : (e as PricedType | BuildingType | StatType | Law | Trigger | RoadType).name;
 
 /**
  * Bestehende Einträge, die im Import fehlen – nur in Bereichen, die der Import enthält.
@@ -338,7 +353,7 @@ export function findMissing(current: Definitions, imported: Partial<Definitions>
     const incoming = imported[key] as { id: string }[] | undefined;
     if (!incoming) continue;
     const ids = new Set(incoming.map(e => e.id));
-    for (const e of (current[key] ?? []) as (Category | PricedType | BuildingType | StatType | TerrainEntry | LawCategory | Law | Trigger)[]) {
+    for (const e of (current[key] ?? []) as (Category | PricedType | BuildingType | StatType | TerrainEntry | LawCategory | Law | Trigger | RoadType)[]) {
       // Goldmünzen und mitgelieferte Geländearten sind unlöschbar und gelten nicht als fehlend
       if (ids.has(e.id) || (key === "resources" && e.id === GOLD_ID) || (key === "terrain" && BUILTIN_TERRAIN.some(b => b.id === e.id))) continue;
       missing.push({ section: key, id: e.id, name: nameOf(key, e) });
@@ -451,6 +466,13 @@ export function applyImport(current: Definitions, imported: Partial<Definitions>
       lawEntries += o.entries.length - kept.length;
       o.entries = kept;
     }
+  }
+  // Wegarten: Baukosten müssen auf Vorhandenes zeigen
+  next.roads = next.roads ?? [];
+  for (const rt of next.roads) {
+    const kept = rt.buildCost.filter(e => (e.kind === "resource" ? resourceIds : workerIds).has(e.id));
+    costEntries += rt.buildCost.length - kept.length;
+    rt.buildCost = kept;
   }
   // Trigger: Bedingungen und Wirkungen müssen auf Vorhandenes zeigen, sonst entfällt der Verweis (ohne Rest der Trigger)
   next.triggers = next.triggers ?? [];

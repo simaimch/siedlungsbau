@@ -116,7 +116,8 @@
         "stat": "Werte",
         "terrain": "Gelände",
         "laws": "Gesetze",
-        "triggers": "Trigger"
+        "triggers": "Trigger",
+        "roads": "Wege"
       },
       "add": "Hinzufügen",
       "newResource": "Neue Ressource",
@@ -386,6 +387,10 @@
       "lawCooldownWeeks": {
         "name": "Siedlung: Wartezeit für Gesetze (Wochen)",
         "hint": "So viele Wochen muss gewartet werden, bis dasselbe Gesetz nach einer Änderung durch Spieler erneut geändert werden kann. 0 = keine Wartezeit."
+      },
+      "roadGap": {
+        "name": "Wegabstand zum Feldrand (%)",
+        "hint": "Abstand eines Wegstücks zu den Feldrändern in Prozent der Feldbreite (0–40). Zu benachbarten Wegstücken besteht kein Abstand."
       }
     },
     "mapgen": {
@@ -482,6 +487,50 @@
       "cleanupEntries": "{count} Einträge, die auf unbekannte Ressourcen, Arbeiter, Werte, Gesetze oder Trigger verweisen, werden entfernt.",
       "cleanupTerrain": "{count} Felder mit unbekannter Geländeart werden zum Standardgelände.",
       "done": "Siedlungsszene importiert."
+    },
+    "roads": {
+      "title": "Wege und Straßen",
+      "hint": "Wege belegen genau ein Feld und brauchen Material und Arbeiter wie Gebäude.",
+      "paletteHint": "Mit gedrückter Maustaste über mehrere Felder ziehen. Rechtsklick oder Esc beendet.",
+      "erase": "Entfernen",
+      "eraseHint": "Wege und Aufträge",
+      "complete": "Sofort fertigstellen",
+      "completeHint": "nur Spielleitung",
+      "free": "kostenlos",
+      "none": "Keine Wegarten vorhanden.",
+      "delete": "Wegart löschen",
+      "confirmDelete": "Diese Wegart wirklich löschen?",
+      "editorHint": "Wegarten haben nur Name, Farbe und Baukosten je Feld. Fertige Wege haben keine Wirkung.",
+      "construction": "Wege ({count} Felder)",
+      "report": "Wege: {done} fertiggestellt, {pending} im Bau, {stalled} warten auf Material oder Arbeiter.",
+      "errors": {
+        "full": "Es sind keine weiteren Wegarten möglich.",
+        "inUse": "Diese Wegart wird noch in einer Szene verwendet (gebaut oder in Auftrag)."
+      },
+      "editor": {
+        "new": "Neue Wegart",
+        "edit": "Wegart bearbeiten",
+        "name": "Name",
+        "defaultName": "Weg",
+        "color": "Farbe",
+        "costs": "Baukosten je Feld",
+        "costsHint": "Material und Arbeiter, die für ein Wegstück nötig sind."
+      },
+      "chat": {
+        "ordered": "{user} beauftragt {count} Wegstück(e): {name}.",
+        "rejected": "Der Wegbau ({name}) war nicht möglich.",
+        "removed": "{user} entfernt {count} Wegstück(e)."
+      },
+      "info": {
+        "title": "Weg",
+        "cell": "Feld",
+        "costs": "Baukosten",
+        "free": "Keine Kosten",
+        "remove": "Wegstück entfernen",
+        "cancelBuild": "Bau abbrechen",
+        "confirmRemove": "Dieses Wegstück wirklich entfernen?",
+        "confirmCancel": "Den Bau dieses Wegstücks abbrechen? Gelieferte Mengen gehen verloren."
+      }
     }
   }
 }

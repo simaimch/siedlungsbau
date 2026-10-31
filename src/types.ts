@@ -24,6 +24,8 @@ export interface Definitions {
   laws?: Law[];
   /** Getriggerte Effekte: wirken, solange ihre Bedingungen erfüllt sind */
   triggers?: Trigger[];
+  /** Wegarten (Pfade, Straßen); fehlend = mitgelieferte */
+  roads?: RoadType[];
 }
 
 export type CostKind = "resource" | "worker";
@@ -282,4 +284,32 @@ export interface Trigger {
   hidden?: boolean;
   /** Voreinstellung in Siedlungen ohne eigene Schaltung (Standard: an) */
   defaultOn?: boolean;
+}
+
+/** Art eines Wegs. Die ID ist das einzelne Zeichen, das pro Feld gespeichert wird. */
+export interface RoadType {
+  id: string;
+  name: string;
+  color: string;
+  /** Kosten je Wegabschnitt (ein Feld) */
+  buildCost: CostEntry[];
+}
+
+/** Beauftragter, noch nicht fertiger Wegabschnitt auf einem Feld. */
+export interface RoadOrder {
+  x: number;
+  y: number;
+  typeId: string;
+  /** Bisher gelieferte Menge je Ressource bzw. Arbeiterart */
+  progress?: Progress;
+}
+
+/** Aktion eines Nutzers an Wegabschnitten; die aktive SL prüft und führt aus. */
+export interface RoadMessage {
+  action: "roadOrder" | "roadRemove";
+  sceneId: string;
+  cells: Cell[];
+  /** nur bei "roadOrder" */
+  typeId?: string;
+  userId: string;
 }

@@ -2,6 +2,9 @@ import { STATUS } from "./constants";
 import { TERRAIN, DEFAULT_TERRAIN } from "./data";
 import { getCategory, syncTerrain } from "./definitions";
 import { getBuildings, getTerrain, cellKey } from "./store";
+import { lerpColor } from "./stats";
+import { getRoadOrders, getRoads, getRoadType, roadGap, buildingCells } from "./roads-store";
+import { roadAt, roadGeometry } from "./roads";
 import type { Building, Cell } from "./types";
 
 let terrainContainer: any = null;
@@ -86,11 +89,43 @@ function drawTerrain(): void {
   terrainContainer.addChild(g);
 }
 
+/** Zeichnet fertige Wege und beauftragte Abschnitte (blasser, in der Farbe des Untergrunds gemischt) über dem Gelände. */
+function drawRoads(): void {
+  const scene = canvas.scene;
+  const s: number = scene.grid.size;
+  const roads = getRoads(scene);
+  const orders = new Map(getRoadOrders(scene).map(o => [`${o.x},${o.y}`, o.typeId]));
+  if (!orders.size && !/[^.]/.test(roads.cells)) return;
+  const taken = buildingCells(scene);
+  const terrain = getTerrain(scene);
+  const cellAt = (x: number, y: number) => {
+    const done = roadAt(roads, x, y);
+    if (done !== null) return { typeId: done, ordered: false };
+    const typeId = orders.get(`${x},${y}`);
+    return typeId !== undefined ? { typeId, ordered: true } : null;
+  };
+  const pieces = roadGeometry(roads.cols, roads.rows, cellAt, (x, y) => taken.has(`${x},${y}`), roadGap());
+  const colorOf = (typeId: string, ordered: boolean, x: number, y: number): number => {
+    const base = getRoadType(typeId)?.color ?? "#888888";
+    if (!ordered) return hexToInt(base);
+    const ground = TERRAIN[terrain ? (terrain.cells[Math.floor(y) * terrain.cols + Math.floor(x)] ?? DEFAULT_TERRAIN) : DEFAULT_TERRAIN] ?? TERRAIN[DEFAULT_TERRAIN];
+    return hexToInt(lerpColor(base, ground?.color ?? "#a8d672", 0.55));
+  };
+  // Erst alle Rechtecke, dann die diagonalen Verbindungen (mit PIXI v7 gilt ein gesetzter Linienstil für alle folgenden Formen)
+  const g = new PIXI.Graphics();
+  for (const p of pieces) if (p.kind === "rect") fillRect(g, p.x * s, p.y * s, p.w * s, p.h * s, colorOf(p.typeId, p.ordered, p.x + 0.001, p.y + 0.001), 1);
+  terrainContainer.addChild(g);
+  const d = new PIXI.Graphics();
+  for (const p of pieces) if (p.kind === "diag") strokeLine(d, p.x1 * s, p.y1 * s, p.x2 * s, p.y2 * s, colorOf(p.typeId, p.ordered, p.x1, p.y1), 1, p.width * s);
+  terrainContainer.addChild(d);
+}
+
 export function redraw(): void {
   if (!container || !terrainContainer || !canvas.scene) return;
   // Die erste Szene wird vor dem "ready"-Hook gezeichnet: Geländearten der SL deshalb hier aktuell halten.
   syncTerrain();
   drawTerrain();
+  drawRoads();
   for (const c of container.removeChildren()) c.destroy({ children: true });
   const s: number = canvas.scene.grid.size;
 

@@ -5,8 +5,9 @@ import { normalizeLawStates } from "./laws";
 import { normalizeTriggerSwitches } from "./triggers";
 import { normalizeMapGenOptions } from "./mapgen";
 import { applyImport, parseImport } from "./transfer";
+import { NO_ROAD, normalizeRoadOrders } from "./roads";
 import type { MapGenOptions } from "./mapgen";
-import type { ActiveEffect, Building, Cell, CostEntry, Definitions, SettlementState, StatEffect, StatType, TerrainData } from "./types";
+import type { ActiveEffect, Building, Cell, CostEntry, Definitions, SettlementState, StatEffect, StatType, TerrainData, RoadOrder } from "./types";
 
 export const SCENE_FORMAT = "siedlungsbau-scene";
 export const SCENE_FORMAT_VERSION = 1;
@@ -20,6 +21,9 @@ export interface SceneData {
   mapgen?: MapGenOptions;
   settlement: SettlementState;
   buildings: Building[];
+  /** Fertige Wege (1 Zeichen je Feld) und beauftragte Abschnitte */
+  roads?: TerrainData;
+  roadOrders?: RoadOrder[];
 }
 
 /** Bekannte Einträge der Welt; Verweise auf Unbekanntes werden beim Import bereinigt. */
@@ -31,6 +35,8 @@ export interface Known {
   /** Gesetz-ID → IDs seiner Ausprägungen */
   laws: Map<string, Set<string>>;
   triggers: Set<string>;
+  /** IDs der Wegarten */
+  roads?: Set<string>;
   terrain: Set<string>;
   defaultTerrain: string;
 }
@@ -79,6 +85,8 @@ export function exportScene(input: ExportInput): string {
     settlement: scene.settlement,
     buildings: scene.buildings
   };
+  if (scene.roads && /[^.]/.test(scene.roads.cells)) out.roads = scene.roads.cells;
+  if (scene.roadOrders?.length) out.roadOrders = scene.roadOrders;
   if (definitions !== undefined) out.definitions = definitions;
   return JSON.stringify(out, null, 2).replace(/\[\s*(-?\d+),\s*(-?\d+)\s*\]/g, "[$1, $2]");
 }
@@ -263,9 +271,38 @@ export function parseSceneImport(text: string, known: Known): SceneParse {
 
   const buildings = parseBuildings(raw.buildings, cols, rows, known, errors, cleanup);
   const settlement = parseSettlement(raw.settlement, known, errors, cleanup);
+  const roadIds = known.roads ?? new Set<string>();
+  const occupied = new Set(buildings.flatMap(b => b.cells.map(([x, y]) => `${x},${y}`)));
+  let roads = "";
+  if (raw.roads !== undefined) {
+    if (typeof raw.roads !== "string" || raw.roads.length !== cols * rows) errors.push(`„roads“ muss ein Text mit genau ${cols * rows} Zeichen sein (${cols} × ${rows}).`);
+    else {
+      let i = 0;
+      for (const ch of raw.roads) {
+        const x = i % cols, y = Math.floor(i / cols);
+        i++;
+        if (ch === NO_ROAD) roads += NO_ROAD;
+        else if (roadIds.has(ch) && !occupied.has(`${x},${y}`)) roads += ch;
+        else {
+          roads += NO_ROAD;
+          cleanup.entries++;
+        }
+      }
+    }
+  }
+  if (raw.roadOrders !== undefined && !Array.isArray(raw.roadOrders)) errors.push("„roadOrders“ muss eine Liste sein.");
   if (errors.length) return { data: null, errors, cleanup, definitions: null };
 
   const data: SceneData = { name: name(raw.name, "Siedlung"), terrain: { cols, rows, cells }, settlement, buildings };
+  if (roads) data.roads = { cols, rows, cells: roads };
+  if (Array.isArray(raw.roadOrders)) {
+    const taken = new Set(occupied);
+    if (roads) for (let i = 0; i < roads.length; i++) if (roads[i] !== NO_ROAD) taken.add(`${i % cols},${Math.floor(i / cols)}`);
+    const valid = normalizeRoadOrders(raw.roadOrders, cols, rows, roadIds);
+    const orders = valid.filter(o => !taken.has(`${o.x},${o.y}`));
+    cleanup.entries += raw.roadOrders.length - orders.length;
+    if (orders.length) data.roadOrders = orders;
+  }
   if (isObj(raw.mapgen)) data.mapgen = normalizeMapGenOptions(raw.mapgen);
   return { data, errors, cleanup, definitions: raw.definitions !== undefined ? JSON.stringify(raw.definitions) : null };
 }
@@ -283,6 +320,7 @@ export function knownFromDefinitions(defs: Required<Definitions>, defaultTerrain
     stats: new Map(defs.stats.map(s => [s.id, s])),
     laws: new Map(defs.laws.map(l => [l.id, new Set(l.options.map(o => o.id))])),
     triggers: new Set(defs.triggers.map(x => x.id)),
+    roads: new Set((defs.roads ?? []).map(r => r.id)),
     terrain: new Set(defs.terrain.map(e => e.id)),
     defaultTerrain
   };

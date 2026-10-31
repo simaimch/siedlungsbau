@@ -1,0 +1,36 @@
+<div class="siedlung-info siedlung-road-info" style="--cat: {{color}}">
+  {{#unless missing}}
+  <header>
+    <span class="shape" style="--w: 1; --h: 1"><i style="grid-column: 1; grid-row: 1"></i></span>
+    <div>
+      <h3><a data-action="focus" title="{{localize 'SIEDLUNG.info.focus'}}">{{name}}</a></h3>
+      <p class="meta">{{localize "SIEDLUNG.roads.info.cell"}} {{cell}}</p>
+      <p class="status {{#if done}}done{{else}}pending{{/if}}">{{#if done}}{{localize "SIEDLUNG.info.done"}}{{else}}{{localize "SIEDLUNG.info.inConstruction"}}{{/if}}</p>
+    </div>
+  </header>
+
+  {{#unless done}}
+  <section>
+    <h4>{{localize "SIEDLUNG.info.progress"}}</h4>
+    <div class="bar-row"><span>{{localize "SIEDLUNG.settlement.material"}}</span><div class="bar"><div style="width: {{material}}%"></div></div><span>{{material}} %</span></div>
+    <div class="bar-row"><span>{{localize "SIEDLUNG.settlement.work"}}</span><div class="bar"><div style="width: {{work}}%"></div></div><span>{{work}} %</span></div>
+  </section>
+  {{/unless}}
+
+  <section>
+    <h4>{{localize "SIEDLUNG.roads.info.costs"}}</h4>
+    {{#if costs.length}}
+    <p class="costs">{{#each costs}}<span class="chip"><i style="background: {{color}}"></i>{{text}}&nbsp;{{name}}</span>{{/each}}</p>
+    {{else}}
+    <p class="hint">{{localize "SIEDLUNG.roads.info.free"}}</p>
+    {{/if}}
+  </section>
+
+  <footer>
+    {{#if isGM}}{{#unless done}}
+    <button type="button" data-action="complete"><i class="fa-solid fa-check"></i> {{localize "SIEDLUNG.info.complete"}}</button>
+    {{/unless}}{{/if}}
+    <button type="button" data-action="remove"><i class="fa-solid fa-trash"></i> {{#if done}}{{localize "SIEDLUNG.roads.info.remove"}}{{else}}{{localize "SIEDLUNG.info.cancelBuild"}}{{/if}}</button>
+  </footer>
+  {{/unless}}
+</div>

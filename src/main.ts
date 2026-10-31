@@ -10,6 +10,7 @@ import { LawsApp } from "./laws-app";
 import { TerrainBrush } from "./terrain-brush";
 import "./inspect";
 import { openSceneAdmin } from "./scene-transfer-app";
+import { RoadBrush } from "./road-brush";
 
 function refreshControls(): void {
   // Ab v13: Neuaufbau der Steuerung über render() mit der zu aktivierenden Control-Gruppe.
@@ -164,6 +165,7 @@ Hooks.on("canvasReady", () => {
 Hooks.on("canvasTearDown", () => {
   Placement.stop();
   TerrainBrush.stop();
+  RoadBrush.stop();
   teardownRender();
 });
 

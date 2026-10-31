@@ -245,3 +245,11 @@
 .siedlung-info .description-editor { min-height: 200px; display: flex; }
 .siedlung-info .description-editor prose-mirror { flex: 1; min-height: 200px; }
 .siedlung-info .description-buttons { display: flex; justify-content: flex-end; gap: 6px; }
+
+.siedlung-road-editor { display: flex; flex-direction: column; gap: 0.5rem; }
+.siedlung-road-editor fieldset.cost-list { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+.siedlung-road-editor .cost-row { display: grid; grid-template-columns: 1fr 5rem 2rem; gap: 6px; align-items: center; }
+.siedlung-road-editor .hint { opacity: 0.7; font-size: var(--font-size-12, 12px); margin: 0; }
+.siedlung-road-editor footer { display: flex; justify-content: flex-end; gap: 6px; }
+.siedlung-definitions .road-defs .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; border: 1px solid #0006; }
+.siedlung-palette .building.selected { outline: 2px solid var(--color-border-highlight, #ff6400); }
