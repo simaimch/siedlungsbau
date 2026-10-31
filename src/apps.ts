@@ -178,6 +178,7 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
       nextWeek: SettlementApp.#onNextWeek,
       addEffect: SettlementApp.#onAddEffect,
       removeEffect: SettlementApp.#onRemoveEffect,
+      switchTab: SettlementApp.#onSwitchTab,
       focusBuilding: SettlementApp.#onFocusBuilding,
       infoBuilding: SettlementApp.#onInfoBuilding
     }
@@ -272,7 +273,14 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
           note: bonus && (showLaw || !lawWorker[w.id]) && !hiddenWorker[w.id] ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(bonus) }) : ""
         };
       }),
-      builtGroups: builtGroups(buildings),
+      isLage: this._tab === "lage",
+      isBau: this._tab === "bau",
+      isGebaeude: this._tab === "gebaeude",
+      isEinfluesse: this._tab === "einfluesse",
+      builtCategories: builtCategories(buildings),
+      builtCount: buildings.filter(b => b.status === STATUS.DONE).length,
+      constructionCount: buildings.filter(b => b.status === STATUS.ORDERED).length + getRoadOrders().length,
+      influenceCount: effects.length + triggerRows.filter(r => r.firing).length,
       construction: [
         ...buildings
           .filter(b => b.status === STATUS.ORDERED)
@@ -287,6 +295,14 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Aufgeklappte Gebäudegruppen (bleiben beim Neuzeichnen erhalten) */
   _openGroups = new Set<string>();
+
+  /** Gewählter Reiter: lage, bau, gebaeude oder einfluesse */
+  _tab = "lage";
+
+  static #onSwitchTab(this: SettlementApp, _event: Event, target: HTMLElement): void {
+    this._tab = target.dataset.tab ?? "lage";
+    void this.render();
+  }
 
   static #onFocusBuilding(_event: Event, target: HTMLElement): void {
     const b = getBuildings().find(x => x.id === target.dataset.id);
@@ -352,18 +368,38 @@ export function conditionText(c: TriggerCondition): string {
   return `${target?.name ?? c.id} ${c.op} ${c.value}`;
 }
 
-/** Fertige Gebäude nach Typ gruppiert: Anzahl und Liste, alphabetisch. */
-function builtGroups(buildings: Building[]): { key: string; name: string; count: number; items: { id: string; name: string }[] }[] {
-  const groups = new Map<string, { key: string; name: string; items: { id: string; name: string }[] }>();
+interface BuiltGroup { key: string; name: string; count: number; single: boolean; id: string; items: { id: string; name: string }[] }
+
+/** Fertige Gebäude nach Kategorie (in der Reihenfolge der Kategorien) und darin nach Typ gruppiert, alphabetisch. */
+function builtCategories(buildings: Building[]): { id: string; label: string; color: string; groups: BuiltGroup[] }[] {
+  const byCat = new Map<string, Map<string, { key: string; name: string; items: { id: string; name: string }[] }>>();
   for (const b of buildings) {
     if (b.status !== STATUS.DONE) continue;
+    const groups = byCat.get(b.category) ?? new Map();
     const g = groups.get(b.typeId) ?? { key: b.typeId, name: getType(b.typeId)?.name ?? b.name, items: [] };
     g.items.push({ id: b.id, name: b.name });
     groups.set(b.typeId, g);
+    byCat.set(b.category, groups);
   }
-  return [...groups.values()]
-    .map(g => ({ ...g, count: g.items.length, items: g.items.sort((a, b) => a.name.localeCompare(b.name, "de")) }))
-    .sort((a, b) => a.name.localeCompare(b.name, "de"));
+  const collator = (a: string, b: string): number => a.localeCompare(b, "de");
+  const cats = getCategories();
+  const order = [...cats.map(c => c.id), ...[...byCat.keys()].filter(id => !cats.some(c => c.id === id))];
+  return order.flatMap(id => {
+    const groups = byCat.get(id);
+    if (!groups) return [];
+    const cat = cats.find(c => c.id === id);
+    return [{
+      id,
+      label: cat?.label ?? t("SIEDLUNG.editor.noCategory"),
+      color: cat?.color ?? "#888888",
+      groups: [...groups.values()]
+        .map((g): BuiltGroup => {
+          const items = g.items.sort((a, b) => collator(a.name, b.name));
+          return { key: g.key, name: items.length === 1 ? items[0].name : g.name, count: items.length, single: items.length === 1, id: items[0].id, items };
+        })
+        .sort((a, b) => collator(a.name, b.name))
+    }];
+  });
 }
 
 /** Zusammenfassung der Wegaufträge für die Übersicht: Anzahl und durchschnittlicher Fortschritt. */

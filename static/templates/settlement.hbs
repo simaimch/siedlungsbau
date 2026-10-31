@@ -4,6 +4,14 @@
     {{#if isGM}}<button type="button" data-action="nextWeek"><i class="fa-solid fa-forward"></i> {{localize "SIEDLUNG.settlement.nextWeek"}}</button>{{/if}}
   </div>
 
+  <nav class="settlement-tabs">
+    <button type="button" class="{{#if isLage}}active{{/if}}" data-action="switchTab" data-tab="lage">{{localize "SIEDLUNG.settlement.tabs.lage"}}</button>
+    <button type="button" class="{{#if isBau}}active{{/if}}" data-action="switchTab" data-tab="bau">{{localize "SIEDLUNG.settlement.tabs.bau"}}{{#if constructionCount}} ({{constructionCount}}){{/if}}</button>
+    <button type="button" class="{{#if isGebaeude}}active{{/if}}" data-action="switchTab" data-tab="gebaeude">{{localize "SIEDLUNG.settlement.tabs.buildings"}}{{#if builtCount}} ({{builtCount}}){{/if}}</button>
+    <button type="button" class="{{#if isEinfluesse}}active{{/if}}" data-action="switchTab" data-tab="einfluesse">{{localize "SIEDLUNG.settlement.tabs.influences"}}{{#if influenceCount}} ({{influenceCount}}){{/if}}</button>
+  </nav>
+
+  {{#if isLage}}
   {{#if stats.length}}
   <section>
     <h4>{{localize "SIEDLUNG.settlement.stats"}}</h4>
@@ -52,26 +60,41 @@
     </ul>
   </section>
 
-  {{#if builtGroups.length}}
+  {{/if}}
+
+  {{#if isGebaeude}}
   <section class="built">
-    <h4>{{localize "SIEDLUNG.settlement.built"}}</h4>
-    {{#each builtGroups}}
-    <details data-group="{{key}}">
-      <summary><span class="name">{{name}}</span><span class="count">{{count}}</span></summary>
-      <ul>
-        {{#each items}}
-        <li>
-          <span class="name">{{name}}</span>
-          <button type="button" data-action="focusBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.info.focus'}}"><i class="fa-solid fa-location-crosshairs"></i></button>
-          <button type="button" data-action="infoBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.settlement.details'}}"><i class="fa-solid fa-circle-info"></i></button>
-        </li>
-        {{/each}}
-      </ul>
-    </details>
+    {{#each builtCategories}}
+    <div class="cat" style="--cat: {{color}}">
+      <h5>{{label}}</h5>
+      {{#each groups}}
+      {{#if single}}
+      <div class="row"><span class="name">{{name}}</span>
+        <button type="button" data-action="focusBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.info.focus'}}"><i class="fa-solid fa-location-crosshairs"></i></button>
+        <button type="button" data-action="infoBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.settlement.details'}}"><i class="fa-solid fa-circle-info"></i></button>
+      </div>
+      {{else}}
+      <details data-group="{{key}}">
+        <summary><span class="name">{{count}}× {{name}}</span></summary>
+        <ul>
+          {{#each items}}
+          <li class="row"><span class="name">{{name}}</span>
+            <button type="button" data-action="focusBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.info.focus'}}"><i class="fa-solid fa-location-crosshairs"></i></button>
+            <button type="button" data-action="infoBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.settlement.details'}}"><i class="fa-solid fa-circle-info"></i></button>
+          </li>
+          {{/each}}
+        </ul>
+      </details>
+      {{/if}}
+      {{/each}}
+    </div>
+    {{else}}
+    <p class="empty">{{localize "SIEDLUNG.settlement.noBuilt"}}</p>
     {{/each}}
   </section>
   {{/if}}
 
+  {{#if isEinfluesse}}
   <section class="effects">
     <h4>{{localize "SIEDLUNG.effects.title"}}</h4>
     {{#if effects.length}}
@@ -122,6 +145,9 @@
   </section>
   {{/if}}
 
+  {{/if}}
+
+  {{#if isBau}}
   <section>
     <h4>{{localize "SIEDLUNG.settlement.underConstruction"}}</h4>
     {{#if construction.length}}
@@ -138,4 +164,5 @@
     <p class="empty">{{localize "SIEDLUNG.settlement.noConstruction"}}</p>
     {{/if}}
   </section>
+  {{/if}}
 </div>

@@ -162,7 +162,14 @@
       "trendShortfall": "{amount} fehlen für den Betrieb",
       "trendHint": "Tendenz pro Woche",
       "built": "Gebäude",
-      "details": "Detailansicht öffnen"
+      "details": "Detailansicht öffnen",
+      "tabs": {
+        "lage": "Lage",
+        "bau": "Bau",
+        "buildings": "Gebäude",
+        "influences": "Einflüsse"
+      },
+      "noBuilt": "Noch keine Gebäude fertiggestellt."
     },
     "week": {
       "title": "Arbeitswoche {week}",

@@ -260,9 +260,13 @@
 .siedlung-settlement .trend.bad { color: #c0392b; font-weight: bold; }
 .siedlung-settlement .trend.flat { opacity: 0.45; }
 
-.siedlung-settlement .built details { margin-bottom: 2px; }
-.siedlung-settlement .built summary { display: flex; justify-content: space-between; cursor: pointer; padding: 2px 4px; }
-.siedlung-settlement .built summary .count { opacity: 0.8; font-weight: bold; }
-.siedlung-settlement .built ul { list-style: none; margin: 2px 0 6px; padding: 0 0 0 14px; }
-.siedlung-settlement .built li { display: grid; grid-template-columns: 1fr auto auto; gap: 4px; align-items: center; }
-.siedlung-settlement .built li button { width: 26px; height: 22px; padding: 0; line-height: 1; }
+.settlement-tabs { display: flex; gap: 2px; margin-bottom: 0.6rem; border-bottom: 1px solid var(--color-border-light-tertiary, #8884); }
+.settlement-tabs button { flex: 1; width: auto; height: auto; padding: 4px 6px; margin: 0; border: none; border-radius: 4px 4px 0 0; background: transparent; box-shadow: none; }
+.settlement-tabs button.active { background: var(--color-border-light-tertiary, #8883); font-weight: bold; }
+.siedlung-settlement .built .cat { margin-bottom: 0.6rem; }
+.siedlung-settlement .built h5 { margin: 0 0 2px; padding-bottom: 1px; border-bottom: 2px solid var(--cat); color: var(--cat); font-size: var(--font-size-12, 12px); text-transform: uppercase; letter-spacing: 0.04em; }
+.siedlung-settlement .built .name { color: var(--cat); font-weight: bold; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.siedlung-settlement .built .row { display: flex; flex-direction: row; align-items: center; gap: 4px; padding: 1px 4px; }
+.siedlung-settlement .built summary { display: flex; align-items: center; cursor: pointer; padding: 1px 4px; }
+.siedlung-settlement .built ul { list-style: none; margin: 0 0 4px; padding: 0 0 0 16px; display: flex; flex-direction: column; gap: 2px; }
+.siedlung-settlement .built .row button { flex: 0 0 26px; width: 26px; height: 22px; margin: 0; padding: 0; line-height: 1; }
