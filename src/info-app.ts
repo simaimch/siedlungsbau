@@ -5,7 +5,7 @@ import { buildingCenter } from "./render";
 import { fractions } from "./week";
 import { requestComplete, requestDescribe, requestRemove, requestRename } from "./actions";
 import { cleanDescription } from "./description";
-import { differsFromDefinition, syncBuildingToDefinition } from "./building-sync";
+import { differsFromDefinition, setBuildingDisabled, syncBuildingToDefinition } from "./building-sync";
 import type { Building, CostEntry } from "./types";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -28,7 +28,8 @@ export class BuildingInfoApp extends HandlebarsApplicationMixin(ApplicationV2) {
       saveDescription: BuildingInfoApp.#onSaveDescription,
       cancelDescription: BuildingInfoApp.#onCancelDescription,
       focus: BuildingInfoApp.#onFocus,
-      syncDefinition: BuildingInfoApp.#onSync
+      syncDefinition: BuildingInfoApp.#onSync,
+      toggleDisabled: BuildingInfoApp.#onToggleDisabled
     }
   };
 
@@ -94,6 +95,7 @@ export class BuildingInfoApp extends HandlebarsApplicationMixin(ApplicationV2) {
       shape: { w, h, cells: b.cells.map(([x, y]) => ({ col: x - minX + 1, row: y - minY + 1 })) },
       count: b.cells.length,
       done,
+      disabled: !!b.disabled,
       material: Math.round(f.res * 100),
       work: Math.round(f.lab * 100),
       progressRows,
@@ -148,6 +150,11 @@ export class BuildingInfoApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #onComplete(this: BuildingInfoApp): void {
     requestComplete(this.buildingId);
+  }
+
+  static async #onToggleDisabled(this: BuildingInfoApp): Promise<void> {
+    const b = this.building;
+    if (b) await setBuildingDisabled(b.id, !b.disabled);
   }
 
   static async #onSync(this: BuildingInfoApp): Promise<void> {

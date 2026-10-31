@@ -21,8 +21,8 @@ export function strokeLine(g: any, x1: number, y1: number, x2: number, y2: numbe
   else g.lineStyle(width, color, alpha).moveTo(x1, y1).lineTo(x2, y2);
 }
 
-function makeText(content: string, size: number): any {
-  const style = { fontFamily: "Signika, sans-serif", fontSize: size, fill: 0xffffff, align: "center" };
+function makeText(content: string, size: number, fill = 0xffffff): any {
+  const style = { fontFamily: "Signika, sans-serif", fontSize: size, fill, align: "center" };
   return parseInt(PIXI.VERSION) >= 8 ? new PIXI.Text({ text: content, style }) : new PIXI.Text(content, style);
 }
 
@@ -133,12 +133,12 @@ export function redraw(): void {
     const done = b.status === STATUS.DONE;
     const color = hexToInt(getCategory(b.category)?.color ?? "#888888");
     const g = new PIXI.Graphics();
-    for (const [x, y] of b.cells) fillRect(g, x * s, y * s, s, s, color, done ? 0.65 : 0.25);
-    outline(g, b.cells, s, color, done ? 1 : 0.7);
+    for (const [x, y] of b.cells) fillRect(g, x * s, y * s, s, s, color, b.disabled ? 0.3 : done ? 0.65 : 0.25);
+    outline(g, b.cells, s, color, b.disabled ? 0.6 : done ? 1 : 0.7);
     container.addChild(g);
 
     const label = done ? b.name : `${b.name} (${game.i18n.localize("SIEDLUNG.building.underConstruction")})`;
-    const text = makeText(label, s * 0.22);
+    const text = makeText(b.disabled ? `${label} (${game.i18n.localize("SIEDLUNG.building.disabled")})` : label, s * 0.22, b.disabled ? 0xff5a4d : 0xffffff);
     if (text.width > s * 2.2) text.scale.set((s * 2.2) / text.width);
     text.anchor.set(0.5);
     const { x, y } = buildingCenter(b, s);

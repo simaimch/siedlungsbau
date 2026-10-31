@@ -148,7 +148,7 @@ export function fractions(b: Building, costs: Costs, weights: Weights = {}): { r
 export function laborCommitted(buildings: Building[], costsOf: CostsOf): Record<string, number> {
   const net: Record<string, number> = {};
   for (const b of buildings) {
-    if (b.status !== "done") continue;
+    if (b.status !== "done" || b.disabled) continue;
     for (const e of costsOf(b).upkeep) if (e.kind === "worker") net[e.id] = (net[e.id] ?? 0) + e.amount;
   }
   return net;
@@ -187,7 +187,7 @@ export function computeWeek(
   const wantLab: Record<string, number> = {};
   const prodLab: Record<string, number> = {};
   for (const b of buildings) {
-    if (b.status !== "done") continue;
+    if (b.status !== "done" || b.disabled) continue;
     for (const e of costsOf(b).upkeep) {
       const want = e.kind === "resource" ? wantRes : wantLab;
       const prod = e.kind === "resource" ? prodRes : prodLab;
@@ -300,7 +300,9 @@ export function computeWeek(
   const onceEffects: StatEffect[] = [];
   buildings.forEach((b, i) => {
     const effects = costsOf(b).statEffects ?? [];
-    if (b.status === "done") weeklyEffects.push(...effects);
+    if (b.status === "done") {
+      if (!b.disabled) weeklyEffects.push(...effects);
+    }
     else if (updated[i].status === "done") onceEffects.push(...effects);
   });
   const applied = applyStatChanges(stats, state.stats, sumEffects(weeklyEffects, "weekly"), sumEffects(onceEffects, "once"));

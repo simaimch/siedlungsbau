@@ -72,7 +72,7 @@
         <summary><span class="name">{{count}}× {{name}}</span></summary>
         <ul>
           {{#each items}}
-          <li class="row"><span class="name">{{name}}</span>
+          <li class="row {{#if disabled}}disabled{{/if}}"><span class="name">{{name}}{{#if disabled}} ({{localize "SIEDLUNG.building.disabled"}}){{/if}}</span>
             <button type="button" data-action="focusBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.info.focus'}}"><i class="fa-solid fa-location-crosshairs"></i></button>
             <button type="button" data-action="infoBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.settlement.details'}}"><i class="fa-solid fa-circle-info"></i></button>
           </li>

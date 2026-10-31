@@ -174,6 +174,7 @@ function parseBuildings(raw: unknown, cols: number, rows: number, known: Known, 
       return;
     }
     const building: Building = { id: b.id, typeId: b.typeId, name: bname, category: type.category, cells, status: b.status };
+    if (b.disabled === true && b.status === "done") building.disabled = true;
     if (typeof b.description === "string" && b.description.trim()) building.description = b.description.slice(0, 20000);
     const buildCost = costList(b.buildCost, known, cleanup);
     const upkeep = costList(b.upkeep, known, cleanup);

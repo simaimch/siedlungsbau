@@ -95,7 +95,7 @@ export async function removeBuilding(id: string): Promise<void> {
   const buildings = all.filter(x => x.id !== id);
   await canvas.scene.setFlag(ID, "buildings", buildings);
   // Abriss eines fertigen Gebäudes nimmt dessen einmalige Wirkungen zurück
-  if (removed?.status === STATUS.DONE) {
+  if (removed?.status === STATUS.DONE && !removed.disabled) {
     const lines = await applyOnceEffects(costsOf(removed).statEffects, true);
     if (lines.length) {
       await ChatMessage.create({ speaker: speaker(), content: `${t("SIEDLUNG.chat.removed", { name: escapeHTML(removed.name) })}<ul>${lines.join("")}</ul>` });

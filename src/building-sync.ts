@@ -1,5 +1,7 @@
 import { ID, STATUS } from "./constants";
-import { getBuildings, getType } from "./store";
+import { costsOf, getBuildings, getType } from "./store";
+import { applyOnceEffects } from "./settlement";
+import { escapeHTML } from "./util";
 import type { Building } from "./types";
 
 const norm = (list: unknown[] | undefined): string =>
@@ -30,4 +32,24 @@ export async function syncBuildingToDefinition(id: string): Promise<boolean> {
   b.statEffects = foundry.utils.deepClone(type.statEffects ?? []);
   await scene.setFlag(ID, "buildings", buildings);
   return true;
+}
+
+/**
+ * SL: schaltet ein fertiges Gebäude ab bzw. wieder an. Abgeschaltete Gebäude haben weder Betrieb noch Wirkungen;
+ * bereits angewendete einmalige Wirkungen auf Werte werden dabei zurückgenommen bzw. wieder angewendet.
+ */
+export async function setBuildingDisabled(id: string, disabled: boolean): Promise<void> {
+  const scene = canvas.scene;
+  if (!game.user.isGM || !scene) return;
+  const buildings: Building[] = foundry.utils.deepClone(getBuildings(scene));
+  const b = buildings.find(x => x.id === id);
+  if (!b || b.status !== STATUS.DONE || !!b.disabled === disabled) return;
+  if (disabled) b.disabled = true;
+  else delete b.disabled;
+  await scene.setFlag(ID, "buildings", buildings);
+  const lines = await applyOnceEffects(costsOf(b).statEffects, disabled);
+  const key = disabled ? "SIEDLUNG.chat.disabled" : "SIEDLUNG.chat.enabled";
+  let content = game.i18n.format(key, { name: escapeHTML(b.name) });
+  if (lines.length) content += `<ul>${lines.join("")}</ul>`;
+  await ChatMessage.create({ speaker: { alias: game.i18n.localize("SIEDLUNG.title") }, content });
 }

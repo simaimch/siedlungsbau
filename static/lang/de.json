@@ -46,7 +46,9 @@
       "rejected": "Dein Bauauftrag für <strong>{name}</strong> wurde abgelehnt: {reason}",
       "removed": "<strong>{name}</strong> wurde abgerissen.",
       "demolishedBy": "<strong>{user}</strong> hat <strong>{name}</strong> abgerissen.",
-      "cancelledBy": "<strong>{user}</strong> hat den Bau von <strong>{name}</strong> abgebrochen."
+      "cancelledBy": "<strong>{user}</strong> hat den Bau von <strong>{name}</strong> abgebrochen.",
+      "disabled": "{name} wurde deaktiviert.",
+      "enabled": "{name} wurde wieder aktiviert."
     },
     "errors": {
       "noSquareGrid": "Diese Szene hat kein Quadratraster.",
@@ -64,7 +66,8 @@
       "create": "Erstellen"
     },
     "building": {
-      "underConstruction": "im Bau"
+      "underConstruction": "im Bau",
+      "disabled": "deaktiviert"
     },
     "notes": {
       "notSettlement": "Dies ist keine Siedlungsszene. Markiere sie über das Flaggen-Werkzeug oder erstelle eine neue Siedlungs-Szene."
@@ -284,7 +287,11 @@
       "editDescription": "Beschreibung bearbeiten",
       "syncDefinition": "Gebäude an Definition anpassen",
       "syncHint": "Die Definition dieses Gebäudetyps wurde seit der Beauftragung geändert.",
-      "confirmSync": "Baukosten, Betrieb und Wirkungen dieses Gebäudes an die aktuelle Definition anpassen? Der bisherige Baufortschritt bleibt erhalten."
+      "confirmSync": "Baukosten, Betrieb und Wirkungen dieses Gebäudes an die aktuelle Definition anpassen? Der bisherige Baufortschritt bleibt erhalten.",
+      "disable": "Deaktivieren",
+      "enable": "Aktivieren",
+      "disabled": "Deaktiviert",
+      "disabledHint": "Deaktiviert: kein Betrieb und keine Wirkungen. Die Werte unten gelten nach der Aktivierung wieder."
     },
     "terrain": {
       "title": "Gelände",

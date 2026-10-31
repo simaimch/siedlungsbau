@@ -368,16 +368,16 @@ export function conditionText(c: TriggerCondition): string {
   return `${target?.name ?? c.id} ${c.op} ${c.value}`;
 }
 
-interface BuiltGroup { key: string; name: string; count: number; single: boolean; id: string; items: { id: string; name: string }[] }
+interface BuiltGroup { key: string; name: string; count: number; single: boolean; id: string; items: { id: string; name: string; disabled: boolean }[] }
 
 /** Fertige Gebäude nach Kategorie (in der Reihenfolge der Kategorien) und darin nach Typ gruppiert, alphabetisch. */
 function builtCategories(buildings: Building[]): { id: string; label: string; color: string; groups: BuiltGroup[] }[] {
-  const byCat = new Map<string, Map<string, { key: string; name: string; items: { id: string; name: string }[] }>>();
+  const byCat = new Map<string, Map<string, { key: string; name: string; items: { id: string; name: string; disabled: boolean }[] }>>();
   for (const b of buildings) {
     if (b.status !== STATUS.DONE) continue;
     const groups = byCat.get(b.category) ?? new Map();
     const g = groups.get(b.typeId) ?? { key: b.typeId, name: getType(b.typeId)?.name ?? b.name, items: [] };
-    g.items.push({ id: b.id, name: b.name });
+    g.items.push({ id: b.id, name: b.name, disabled: !!b.disabled });
     groups.set(b.typeId, g);
     byCat.set(b.category, groups);
   }

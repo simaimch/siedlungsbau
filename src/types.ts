@@ -73,6 +73,8 @@ export interface Building {
   /** Absolute Rasterzellen. */
   cells: Cell[];
   status: Status;
+  /** Fertiges Gebäude ist abgeschaltet: kein Betrieb, keine Wirkungen */
+  disabled?: boolean;
   /** Beim Beauftragen festgehaltene Kosten (ältere Aufträge ohne diese Felder nutzen die aktuelle Typ-Definition). */
   buildCost?: CostEntry[];
   upkeep?: CostEntry[];

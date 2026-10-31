@@ -270,3 +270,5 @@
 .siedlung-settlement .built summary { display: flex; align-items: center; cursor: pointer; padding: 1px 4px; }
 .siedlung-settlement .built ul { list-style: none; margin: 0 0 4px; padding: 0 0 0 16px; display: flex; flex-direction: column; gap: 2px; }
 .siedlung-settlement .built .row button { flex: 0 0 26px; width: 26px; height: 22px; margin: 0; padding: 0; line-height: 1; }
+
+.siedlung-settlement .built .row.disabled .name { color: #8a8a8a; text-decoration: line-through; font-weight: normal; }
