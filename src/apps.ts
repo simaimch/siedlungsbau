@@ -395,7 +395,7 @@ function builtCategories(buildings: Building[]): { id: string; label: string; co
       groups: [...groups.values()]
         .map((g): BuiltGroup => {
           const items = g.items.sort((a, b) => collator(a.name, b.name));
-          return { key: g.key, name: items.length === 1 ? items[0].name : g.name, count: items.length, single: items.length === 1, id: items[0].id, items };
+          return { key: g.key, name: g.name, count: items.length, single: items.length === 1, id: items[0].id, items };
         })
         .sort((a, b) => collator(a.name, b.name))
     }];

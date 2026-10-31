@@ -68,12 +68,6 @@
     <div class="cat" style="--cat: {{color}}">
       <h5>{{label}}</h5>
       {{#each groups}}
-      {{#if single}}
-      <div class="row"><span class="name">{{name}}</span>
-        <button type="button" data-action="focusBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.info.focus'}}"><i class="fa-solid fa-location-crosshairs"></i></button>
-        <button type="button" data-action="infoBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.settlement.details'}}"><i class="fa-solid fa-circle-info"></i></button>
-      </div>
-      {{else}}
       <details data-group="{{key}}">
         <summary><span class="name">{{count}}× {{name}}</span></summary>
         <ul>
@@ -85,7 +79,6 @@
           {{/each}}
         </ul>
       </details>
-      {{/if}}
       {{/each}}
     </div>
     {{else}}
