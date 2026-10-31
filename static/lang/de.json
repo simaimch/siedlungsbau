@@ -160,7 +160,9 @@
       "hintGM": "Als Spielleitung kannst du die Werte direkt ändern.",
       "stats": "Werte",
       "trendShortfall": "{amount} fehlen für den Betrieb",
-      "trendHint": "Tendenz pro Woche"
+      "trendHint": "Tendenz pro Woche",
+      "built": "Gebäude",
+      "details": "Detailansicht öffnen"
     },
     "week": {
       "title": "Arbeitswoche {week}",

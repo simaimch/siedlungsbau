@@ -5,6 +5,7 @@ import {
   saveDefinitions, resetDefinitions
 } from "./definitions";
 import { buildingCenter } from "./render";
+import { openBuildingInfo } from "./info-app";
 import { Placement } from "./placement";
 import { TERRAIN_APP_ID } from "./terrain-brush";
 import { completeBuilding, removeBuilding } from "./service";
@@ -176,7 +177,9 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
     actions: {
       nextWeek: SettlementApp.#onNextWeek,
       addEffect: SettlementApp.#onAddEffect,
-      removeEffect: SettlementApp.#onRemoveEffect
+      removeEffect: SettlementApp.#onRemoveEffect,
+      focusBuilding: SettlementApp.#onFocusBuilding,
+      infoBuilding: SettlementApp.#onInfoBuilding
     }
   };
 
@@ -269,6 +272,7 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
           note: bonus && (showLaw || !lawWorker[w.id]) && !hiddenWorker[w.id] ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(bonus) }) : ""
         };
       }),
+      builtGroups: builtGroups(buildings),
       construction: [
         ...buildings
           .filter(b => b.status === STATUS.ORDERED)
@@ -281,7 +285,29 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
+  /** Aufgeklappte Gebäudegruppen (bleiben beim Neuzeichnen erhalten) */
+  _openGroups = new Set<string>();
+
+  static #onFocusBuilding(_event: Event, target: HTMLElement): void {
+    const b = getBuildings().find(x => x.id === target.dataset.id);
+    if (!b) return;
+    const { x, y } = buildingCenter(b, canvas.scene.grid.size);
+    canvas.animatePan({ x, y });
+  }
+
+  static #onInfoBuilding(_event: Event, target: HTMLElement): void {
+    openBuildingInfo(target.dataset.id ?? "");
+  }
+
   _onRender(): void {
+    for (const el of this.element.querySelectorAll("details[data-group]") as NodeListOf<HTMLDetailsElement>) {
+      const key = el.dataset.group ?? "";
+      el.open = this._openGroups.has(key);
+      el.addEventListener("toggle", () => {
+        if (el.open) this._openGroups.add(key);
+        else this._openGroups.delete(key);
+      });
+    }
     const inputs = this.element.querySelectorAll("[data-stock-kind]") as NodeListOf<HTMLInputElement>;
     for (const el of inputs) {
       el.addEventListener("change", () => void setAmount(el.dataset.stockKind as CostKind, el.dataset.id ?? "", Number(el.value)));
@@ -324,6 +350,20 @@ function currentTriggersHidden(fired: Trigger[]): ActiveEffect[] {
 export function conditionText(c: TriggerCondition): string {
   const target = c.kind === "stat" ? getStats().find(x => x.id === c.id) : getAsset(c.kind, c.id);
   return `${target?.name ?? c.id} ${c.op} ${c.value}`;
+}
+
+/** Fertige Gebäude nach Typ gruppiert: Anzahl und Liste, alphabetisch. */
+function builtGroups(buildings: Building[]): { key: string; name: string; count: number; items: { id: string; name: string }[] }[] {
+  const groups = new Map<string, { key: string; name: string; items: { id: string; name: string }[] }>();
+  for (const b of buildings) {
+    if (b.status !== STATUS.DONE) continue;
+    const g = groups.get(b.typeId) ?? { key: b.typeId, name: getType(b.typeId)?.name ?? b.name, items: [] };
+    g.items.push({ id: b.id, name: b.name });
+    groups.set(b.typeId, g);
+  }
+  return [...groups.values()]
+    .map(g => ({ ...g, count: g.items.length, items: g.items.sort((a, b) => a.name.localeCompare(b.name, "de")) }))
+    .sort((a, b) => a.name.localeCompare(b.name, "de"));
 }
 
 /** Zusammenfassung der Wegaufträge für die Übersicht: Anzahl und durchschnittlicher Fortschritt. */

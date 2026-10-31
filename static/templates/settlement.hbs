@@ -52,6 +52,26 @@
     </ul>
   </section>
 
+  {{#if builtGroups.length}}
+  <section class="built">
+    <h4>{{localize "SIEDLUNG.settlement.built"}}</h4>
+    {{#each builtGroups}}
+    <details data-group="{{key}}">
+      <summary><span class="name">{{name}}</span><span class="count">{{count}}</span></summary>
+      <ul>
+        {{#each items}}
+        <li>
+          <span class="name">{{name}}</span>
+          <button type="button" data-action="focusBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.info.focus'}}"><i class="fa-solid fa-location-crosshairs"></i></button>
+          <button type="button" data-action="infoBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.settlement.details'}}"><i class="fa-solid fa-circle-info"></i></button>
+        </li>
+        {{/each}}
+      </ul>
+    </details>
+    {{/each}}
+  </section>
+  {{/if}}
+
   <section class="effects">
     <h4>{{localize "SIEDLUNG.effects.title"}}</h4>
     {{#if effects.length}}
