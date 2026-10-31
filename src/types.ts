@@ -66,6 +66,8 @@ export interface Building {
   typeId: string;
   name: string;
   category: string;
+  /** Beschreibung als bereinigtes HTML (Rich-Text-Editor); fehlt, wenn leer */
+  description?: string;
   /** Absolute Rasterzellen. */
   cells: Cell[];
   status: Status;
@@ -231,11 +233,13 @@ export type StatEffectMode = "weekly" | "once";
 
 /** Aktion eines Spielers an einem bestehenden Gebäude; wird von der aktiven SL ausgeführt. */
 export interface BuildingActionMessage {
-  action: "rename" | "remove";
+  action: "rename" | "remove" | "describe";
   sceneId: string;
   buildingId: string;
   /** nur bei "rename" */
   name?: string;
+  /** nur bei "describe" (HTML, wird von der SL bereinigt) */
+  description?: string;
   userId: string;
 }
 

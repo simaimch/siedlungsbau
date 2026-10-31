@@ -38,6 +38,20 @@
     {{#unless upkeep.length}}{{#unless effects.length}}<p class="hint">{{localize "SIEDLUNG.info.noEffect"}}</p>{{/unless}}{{/unless}}
   </section>
 
+  <section class="description">
+    <h4>{{localize "SIEDLUNG.info.description"}}</h4>
+    {{#if editing}}
+    <div class="description-editor"></div>
+    <div class="description-buttons">
+      <button type="button" data-action="saveDescription"><i class="fa-solid fa-check"></i> {{localize "SIEDLUNG.editor.save"}}</button>
+      <button type="button" data-action="cancelDescription">{{localize "SIEDLUNG.editor.cancel"}}</button>
+    </div>
+    {{else}}
+    {{#if description}}<div class="description-text">{{{description}}}</div>{{else}}<p class="hint">{{localize "SIEDLUNG.info.noDescription"}}</p>{{/if}}
+    <button type="button" data-action="editDescription"><i class="fa-solid fa-pen-to-square"></i> {{localize "SIEDLUNG.info.editDescription"}}</button>
+    {{/if}}
+  </section>
+
   <section>
     <h4>{{localize "SIEDLUNG.info.rename"}}</h4>
     <div class="rename-row">

@@ -6,6 +6,7 @@ import { getSettlement } from "./settlement";
 import { exportDefinitions } from "./transfer";
 import { exportScene } from "./scene-transfer";
 import { normalizeMapGenOptions } from "./mapgen";
+import { cleanDescription } from "./description";
 import type { SceneData } from "./scene-transfer";
 import type { Definitions } from "./types";
 
@@ -49,7 +50,12 @@ const flagsOf = (data: SceneData): Record<string, unknown> => ({
   enabled: true,
   terrain: data.terrain,
   ...(data.mapgen ? { mapgen: data.mapgen } : {}),
-  buildings: data.buildings,
+  buildings: data.buildings.map(b => {
+    // Beschreibungen kommen aus fremdem JSON: vor dem Speichern bereinigen
+    const { description: raw, ...rest } = b;
+    const description = cleanDescription(raw);
+    return description ? { ...rest, description } : rest;
+  }),
   settlement: data.settlement
 });
 

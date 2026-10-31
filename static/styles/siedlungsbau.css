@@ -237,3 +237,11 @@
 .siedlung-scene-admin header .buttons { display: flex; gap: 6px; }
 .siedlung-scene-admin .target { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
 .siedlung-scene-admin label.checkbox { display: flex; align-items: center; gap: 6px; }
+
+/* Beschreibung im Gebäude-Info */
+.siedlung-info .description-text { font-size: var(--font-size-13, 13px); overflow-wrap: anywhere; }
+.siedlung-info .description-text > :first-child { margin-top: 0; }
+.siedlung-info .description-text img { max-width: 100%; height: auto; }
+.siedlung-info .description-editor { min-height: 200px; display: flex; }
+.siedlung-info .description-editor prose-mirror { flex: 1; min-height: 200px; }
+.siedlung-info .description-buttons { display: flex; justify-content: flex-end; gap: 6px; }

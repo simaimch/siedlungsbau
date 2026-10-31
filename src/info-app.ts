@@ -3,7 +3,8 @@ import { costsOf, getBuildings, getType } from "./store";
 import { costChips, effectChips, getAsset, getCategory, getWeights } from "./definitions";
 import { buildingCenter } from "./render";
 import { fractions } from "./week";
-import { requestComplete, requestRemove, requestRename } from "./actions";
+import { requestComplete, requestDescribe, requestRemove, requestRename } from "./actions";
+import { cleanDescription } from "./description";
 import type { Building, CostEntry } from "./types";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -22,6 +23,9 @@ export class BuildingInfoApp extends HandlebarsApplicationMixin(ApplicationV2) {
       rename: BuildingInfoApp.#onRename,
       remove: BuildingInfoApp.#onRemove,
       complete: BuildingInfoApp.#onComplete,
+      editDescription: BuildingInfoApp.#onEditDescription,
+      saveDescription: BuildingInfoApp.#onSaveDescription,
+      cancelDescription: BuildingInfoApp.#onCancelDescription,
       focus: BuildingInfoApp.#onFocus
     }
   };
@@ -31,6 +35,9 @@ export class BuildingInfoApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   buildingId = "";
+
+  /** Beschreibung wird gerade im Rich-Text-Editor bearbeitet */
+  _editing = false;
 
   get building(): Building | undefined {
     return getBuildings().find(b => b.id === this.buildingId);
@@ -67,8 +74,15 @@ export class BuildingInfoApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     }).filter(r => r.need > 0);
 
+    // Beschreibung: bereinigtes HTML, zusätzlich angereichert (Verweise, Textformatierung); Geheimnisse bleiben verborgen
+    const raw = cleanDescription(b.description);
+    const TextEditor = (foundry.applications.ux as any).TextEditor.implementation;
+    const descriptionHTML: string = raw ? await TextEditor.enrichHTML(raw, { secrets: false, rolls: false }) : "";
+
     return {
       missing: false,
+      description: descriptionHTML,
+      editing: this._editing,
       id: b.id,
       name: b.name,
       typeName: type?.name ?? "",
@@ -85,6 +99,32 @@ export class BuildingInfoApp extends HandlebarsApplicationMixin(ApplicationV2) {
       effects: effectChips(costs.statEffects ?? []),
       isGM: game.user.isGM
     };
+  }
+
+  _onRender(): void {
+    if (!this._editing) return;
+    const slot = this.element.querySelector(".description-editor") as HTMLElement | null;
+    if (!slot || slot.querySelector("prose-mirror")) return;
+    const ProseMirror = (foundry.applications.elements as any).HTMLProseMirrorElement;
+    const editor = ProseMirror.create({ name: "description", value: this.building?.description ?? "", toggled: false, collaborate: false });
+    slot.append(editor);
+  }
+
+  static #onEditDescription(this: BuildingInfoApp): void {
+    this._editing = true;
+    void this.render();
+  }
+
+  static #onSaveDescription(this: BuildingInfoApp): void {
+    const editor = this.element.querySelector(".description-editor prose-mirror") as (HTMLElement & { value?: string }) | null;
+    if (editor && this.building) requestDescribe(this.buildingId, editor.value ?? "");
+    this._editing = false;
+    void this.render();
+  }
+
+  static #onCancelDescription(this: BuildingInfoApp): void {
+    this._editing = false;
+    void this.render();
   }
 
   static #onRename(this: BuildingInfoApp): void {
@@ -119,6 +159,7 @@ export class BuildingInfoApp extends HandlebarsApplicationMixin(ApplicationV2) {
 export function openBuildingInfo(buildingId: string): void {
   const existing = foundry.applications.instances.get(BuildingInfoApp.DEFAULT_OPTIONS.id) as BuildingInfoApp | undefined;
   if (existing) {
+    if (existing.buildingId !== buildingId) existing._editing = false;
     existing.buildingId = buildingId;
     void existing.render({ force: true });
     return;
@@ -132,7 +173,7 @@ export function refreshBuildingInfo(): void {
   const existing = foundry.applications.instances.get(BuildingInfoApp.DEFAULT_OPTIONS.id) as BuildingInfoApp | undefined;
   if (!existing) return;
   if (!existing.building) void existing.close();
-  else void existing.render();
+  else if (!existing._editing) void existing.render();
 }
 
 export function closeBuildingInfo(): void {

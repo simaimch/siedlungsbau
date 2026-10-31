@@ -189,7 +189,7 @@
       "menuHint": "Gebäude, Kategorien, Ressourcen und Arbeiter als JSON exportieren oder aus JSON importieren.",
       "title": "Siedlungsbau: Daten",
       "export": "Export",
-      "copy": "Kopieren",
+      "copy": "In Zwischenablage kopieren",
       "copied": "Daten in die Zwischenablage kopiert.",
       "copyFailed": "Kopieren nicht möglich. Der Text wurde markiert, bitte mit Strg+C kopieren.",
       "import": "Import",
@@ -266,7 +266,10 @@
       "demolish": "Abreißen",
       "cancelBuild": "Bau abbrechen",
       "confirmDemolish": "Dieses Gebäude wirklich abreißen? Einmalige Wirkungen auf Werte werden zurückgenommen.",
-      "confirmCancel": "Den Bau wirklich abbrechen? Bereits gelieferte Ressourcen und geleistete Arbeit gehen verloren."
+      "confirmCancel": "Den Bau wirklich abbrechen? Bereits gelieferte Ressourcen und geleistete Arbeit gehen verloren.",
+      "description": "Beschreibung",
+      "noDescription": "Noch keine Beschreibung.",
+      "editDescription": "Beschreibung bearbeiten"
     },
     "terrain": {
       "title": "Gelände",

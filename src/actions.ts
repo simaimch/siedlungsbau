@@ -2,6 +2,7 @@ import { ID, SOCKET, STATUS } from "./constants";
 import { getBuildings, getType, isSettlementScene } from "./store";
 import { completeBuilding, removeBuilding } from "./service";
 import { escapeHTML, sanitizeName } from "./util";
+import { cleanDescription } from "./description";
 import type { Building, BuildingActionMessage } from "./types";
 
 const t = (key: string, data?: Record<string, string>): string =>
@@ -26,6 +27,11 @@ export function requestRename(buildingId: string, name: string): void {
   send({ action: "rename", sceneId: canvas.scene.id, buildingId, name, userId: game.user.id });
 }
 
+/** Alle Nutzer: Beschreibung eines Gebäudes ändern (leer = entfernen). */
+export function requestDescribe(buildingId: string, description: string): void {
+  send({ action: "describe", sceneId: canvas.scene.id, buildingId, description, userId: game.user.id });
+}
+
 /** Alle Nutzer: Gebäude abreißen bzw. den Bau abbrechen. */
 export function requestRemove(buildingId: string): void {
   send({ action: "remove", sceneId: canvas.scene.id, buildingId, userId: game.user.id });
@@ -40,7 +46,7 @@ export function requestComplete(buildingId: string): void {
 export function registerActionSocket(): void {
   game.socket.on(SOCKET, (msg: BuildingActionMessage | undefined) => {
     if (game.user !== game.users.activeGM) return;
-    if (msg?.action === "rename" || msg?.action === "remove") void handle(msg);
+    if (msg?.action === "rename" || msg?.action === "remove" || msg?.action === "describe") void handle(msg);
   });
 }
 
@@ -59,6 +65,19 @@ async function handle(msg: BuildingActionMessage): Promise<void> {
     const buildings: Building[] = foundry.utils.deepClone(getBuildings(scene));
     const target = buildings.find(b => b.id === msg.buildingId);
     if (target) target.name = name;
+    await scene.setFlag(ID, "buildings", buildings);
+    return;
+  }
+
+  if (msg.action === "describe") {
+    const description = cleanDescription(msg.description);
+    if (description === (building.description ?? "")) return;
+    const buildings: Building[] = foundry.utils.deepClone(getBuildings(scene));
+    const target = buildings.find(b => b.id === msg.buildingId);
+    if (target) {
+      if (description) target.description = description;
+      else delete target.description;
+    }
     await scene.setFlag(ID, "buildings", buildings);
     return;
   }
