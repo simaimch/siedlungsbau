@@ -258,6 +258,7 @@ export interface RoadCell { typeId: string; ordered: boolean }
 /**
  * Zeichenteile (in Feldeinheiten) für alle Wegfelder. Jedes Feld füllt sich bis auf den Abstand gap (0..0.4) zu allen Rändern.
  * Ist ein Nachbar (oben, unten, links, rechts) ebenfalls ein Weg, reicht das Feld bis zum Rand zu ihm.
+ * Vier Wegfelder im 2×2-Quadrat verschmelzen zu einer Fläche (die Ecke in der Mitte wird gefüllt).
  * Diagonal verbindet ein Weg nur, wenn keines der beiden Felder dazwischen ein Gebäude trägt oder selbst ein Weg ist.
  */
 export function roadGeometry(
@@ -278,6 +279,10 @@ export function roadGeometry(
         if (at(x - 1, y)) pieces.push({ kind: "rect", x, y: y + g, w: g, h: inner, ...base });
         if (at(x, y + 1)) pieces.push({ kind: "rect", x: x + g, y: y + 1 - g, w: inner, h: g, ...base });
         if (at(x, y - 1)) pieces.push({ kind: "rect", x: x + g, y, w: inner, h: g, ...base });
+      }
+      // Vier Felder im Quadrat bilden eine große Fläche: die Lücke an der gemeinsamen Ecke wird geschlossen
+      if (g > 0 && at(x + 1, y) && at(x, y + 1) && at(x + 1, y + 1)) {
+        pieces.push({ kind: "rect", x: x + 1 - g, y: y + 1 - g, w: 2 * g, h: 2 * g, ...base });
       }
       for (const [dx, dy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
         if (!at(x + dx, y + dy)) continue;
