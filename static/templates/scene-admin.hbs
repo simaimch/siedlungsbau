@@ -1,0 +1,38 @@
+<div class="siedlung-transfer siedlung-scene-admin">
+  <section>
+    <header>
+      <h3>{{localize "SIEDLUNG.admin.export"}}</h3>
+      {{#if isSettlement}}
+      <span class="buttons">
+        <button type="button" data-action="copyExport"><i class="fa-regular fa-copy"></i> {{localize "SIEDLUNG.transfer.copy"}}</button>
+        <button type="button" data-action="saveExport"><i class="fa-solid fa-download"></i> {{localize "SIEDLUNG.admin.saveFile"}}</button>
+      </span>
+      {{/if}}
+    </header>
+    {{#if isSettlement}}
+    <p class="hint">{{localize "SIEDLUNG.admin.exportHint"}} <strong>{{sceneName}}</strong></p>
+    <label class="checkbox"><input type="checkbox" name="exportDefs" {{#if exportDefs}}checked{{/if}}> {{localize "SIEDLUNG.admin.exportDefs"}}</label>
+    <textarea class="json" name="exportJson" rows="12" readonly spellcheck="false">{{exportJson}}</textarea>
+    {{else}}
+    <p class="hint">{{localize "SIEDLUNG.admin.notSettlement"}}</p>
+    {{/if}}
+  </section>
+
+  <section>
+    <header>
+      <h3>{{localize "SIEDLUNG.admin.import"}}</h3>
+      <span class="buttons">
+        <button type="button" data-action="pickFile"><i class="fa-solid fa-folder-open"></i> {{localize "SIEDLUNG.admin.openFile"}}</button>
+        <button type="button" data-action="runImport"><i class="fa-solid fa-file-import"></i> {{localize "SIEDLUNG.transfer.run"}}</button>
+      </span>
+    </header>
+    <input type="file" name="importFile" accept=".json,application/json" hidden>
+    <p class="hint">{{localize "SIEDLUNG.admin.importHint"}}</p>
+    <div class="target">
+      <label class="checkbox"><input type="radio" name="target" value="new" {{#if targetNew}}checked{{/if}}> {{localize "SIEDLUNG.admin.targetNew"}}</label>
+      <label class="checkbox"><input type="radio" name="target" value="current" {{#if targetCurrent}}checked{{/if}} {{#unless canReplace}}disabled{{/unless}}> {{localize "SIEDLUNG.admin.targetCurrent"}}</label>
+      <label class="checkbox"><input type="checkbox" name="importDefs" {{#if importDefs}}checked{{/if}}> {{localize "SIEDLUNG.admin.importDefs"}}</label>
+    </div>
+    <textarea class="json" name="importJson" rows="10" spellcheck="false" placeholder="{{localize 'SIEDLUNG.admin.placeholder'}}">{{importJson}}</textarea>
+  </section>
+</div>

@@ -9,6 +9,7 @@ import { TerrainApp } from "./terrain-app";
 import { LawsApp } from "./laws-app";
 import { TerrainBrush } from "./terrain-brush";
 import "./inspect";
+import { openSceneAdmin } from "./scene-transfer-app";
 
 function refreshControls(): void {
   // Ab v13: Neuaufbau der Steuerung über render() mit der zu aktivierenden Control-Gruppe.
@@ -132,6 +133,15 @@ Hooks.on("getSceneControlButtons", (controls: Record<string, any>) => {
         button: true,
         visible: isGM,
         onChange: onClick("createScene", () => { void createSettlementScene(); })
+      },
+      admin: {
+        name: "admin",
+        title: "SIEDLUNG.tools.admin",
+        icon: "fa-solid fa-screwdriver-wrench",
+        order: 6,
+        button: true,
+        visible: isGM,
+        onChange: onClick("admin", () => { if (game.user.isGM) openSceneAdmin(); })
       }
     }
   };

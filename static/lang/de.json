@@ -12,7 +12,8 @@
       "select": "Auswahl",
       "settlement": "Siedlungs-Übersicht",
       "terrain": "Gelände bearbeiten",
-      "laws": "Gesetze"
+      "laws": "Gesetze",
+      "admin": "Siedlung administrieren"
     },
     "palette": {
       "title": "Gebäude",
@@ -188,7 +189,7 @@
       "menuHint": "Gebäude, Kategorien, Ressourcen und Arbeiter als JSON exportieren oder aus JSON importieren.",
       "title": "Siedlungsbau: Daten",
       "export": "Export",
-      "copy": "In Zwischenablage kopieren",
+      "copy": "Kopieren",
       "copied": "Daten in die Zwischenablage kopiert.",
       "copyFailed": "Kopieren nicht möglich. Der Text wurde markiert, bitte mit Strg+C kopieren.",
       "import": "Import",
@@ -451,6 +452,33 @@
       "errors": {
         "noConditions": "Mindestens eine gültige Bedingung ist nötig."
       }
+    },
+    "admin": {
+      "title": "Siedlung administrieren",
+      "export": "Export der aktuellen Siedlungsszene",
+      "exportHint": "Karte, Gebäude und Siedlungsdaten der Szene",
+      "exportDefs": "Definitionen mitexportieren (Gebäudetypen, Ressourcen, Gesetze, Trigger, …)",
+      "notSettlement": "Die aktuelle Szene ist keine Siedlungsszene. Öffne eine Siedlungsszene, um sie zu exportieren. Importieren kannst du trotzdem.",
+      "saveFile": "Als Datei",
+      "openFile": "Datei öffnen",
+      "copied": "Siedlungsszene in die Zwischenablage kopiert.",
+      "import": "Import",
+      "importHint": "JSON einer Siedlungsszene einfügen oder eine Datei öffnen. Verweise auf Dinge, die es in dieser Welt nicht gibt, werden bereinigt – oder du übernimmst die mitgelieferten Definitionen.",
+      "targetNew": "Als neue Szene anlegen",
+      "targetCurrent": "Aktuelle Siedlungsszene ersetzen",
+      "importDefs": "Mitgelieferte Definitionen übernehmen (werden per ID zusammengeführt, Bestehendes bleibt)",
+      "placeholder": "JSON hier einfügen",
+      "confirmNewTitle": "Neue Siedlungsszene anlegen?",
+      "confirmReplaceTitle": "Aktuelle Siedlung ersetzen?",
+      "summaryScene": "Szene „{name}“, {cols} × {rows} Felder",
+      "summaryContent": "Arbeitswoche {week}, {buildings} Gebäude",
+      "summaryDefinitions": "Mitgelieferte Definitionen werden zusammengeführt.",
+      "replaceWarning": "Karte, Gebäude und Siedlungsdaten dieser Szene werden vollständig ersetzt. Tokens, Wände und andere Objekte der Szene bleiben unverändert.",
+      "cleanupNote": "Beim Import wird bereinigt:",
+      "cleanupBuildings": "Gebäude mit unbekanntem Typ werden weggelassen: {names}",
+      "cleanupEntries": "{count} Einträge, die auf unbekannte Ressourcen, Arbeiter, Werte, Gesetze oder Trigger verweisen, werden entfernt.",
+      "cleanupTerrain": "{count} Felder mit unbekannter Geländeart werden zum Standardgelände.",
+      "done": "Siedlungsszene importiert."
     }
   }
 }
