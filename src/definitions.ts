@@ -74,11 +74,27 @@ export const getAsset = (kind: CostKind, id: string): PricedType | undefined =>
 
 export const isGold = (kind: CostKind, id: string): boolean => kind === "resource" && id === GOLD_ID;
 
+const KIND_RANK: Record<string, number> = { resource: 0, worker: 1, stat: 2 };
+
+/** Sortierwert nach der Reihenfolge der Definitionen: erst Ressourcen, dann Arbeiter, dann Werte, jeweils in Listenreihenfolge. */
+export function orderIndex(kind: string, id: string): number {
+  const defs = getDefinitions();
+  const list = kind === "resource" ? defs.resources : kind === "worker" ? defs.workers : defs.stats;
+  const i = list.findIndex(a => a.id === id);
+  return (KIND_RANK[kind] ?? 3) * 100000 + (i < 0 ? 99999 : i);
+}
+
+/** Sortiert Posten (Kosten, Wirkungen) nach der Reihenfolge der Definitionen; die Eingabe bleibt unverändert. */
+export function sortEntries<T extends { kind: string; id: string }>(entries: T[]): T[] {
+  const keyed = entries.map(e => ({ e, k: orderIndex(e.kind, e.id) }));
+  return keyed.sort((a, b) => a.k - b.k).map(x => x.e);
+}
+
 /** Kosten für die Anzeige: Name und Farbe aufgelöst, unbekannte Einträge übersprungen. */
 export function costChips(entries: CostEntry[]): { name: string; color: string; amount: number; text: string }[] {
   const defs = getDefinitions();
   const chips: { name: string; color: string; amount: number; text: string }[] = [];
-  for (const e of entries) {
+  for (const e of sortEntries(entries)) {
     const asset = defs[assetKey(e.kind)].find(a => a.id === e.id);
     // Negative Mengen (Betriebskosten) bedeuten Produktion und werden mit "+" angezeigt
     if (asset) chips.push({ name: asset.name, color: asset.color, amount: e.amount, text: e.amount < 0 ? `+${-e.amount}` : String(e.amount) });
@@ -150,7 +166,7 @@ export function effectChips(effects: StatEffect[]): { name: string; text: string
 
 /** Einträge von Effekten und Ausprägungen für die Anzeige: Name, Farbe (nur Ressourcen/Arbeiter), Vorzeichen-Text. */
 export function entryChips(entries: EffectEntry[]): { name: string; color: string; text: string; perWeek: boolean }[] {
-  return entries.map(e => {
+  return sortEntries(entries).map(e => {
     const target = e.kind === "stat" ? getStats().find(s => s.id === e.id) : getAsset(e.kind, e.id);
     return {
       name: target?.name ?? e.id,

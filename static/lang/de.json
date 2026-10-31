@@ -8,7 +8,7 @@
       "markScene": "Szene als Siedlungsszene markieren",
       "unmarkScene": "Siedlungsmarkierung entfernen",
       "info": "Hinweis",
-      "editor": "Gebäude-Editor",
+      "editor": "Szenario-Editor",
       "select": "Auswahl",
       "settlement": "Siedlungs-Übersicht",
       "terrain": "Gelände bearbeiten",
@@ -79,7 +79,7 @@
       "confirm": "Beauftragen"
     },
     "editor": {
-      "title": "Gebäude-Editor",
+      "title": "Szenario-Editor",
       "categories": "Kategorien",
       "addCategory": "Kategorie hinzufügen",
       "newCategory": "Neue Kategorie",
@@ -146,7 +146,12 @@
       "modeWeekly": "pro Woche",
       "modeOnce": "einmalig",
       "weightLabel": "Baugewicht",
-      "weightHint": "Baugewicht: Wie stark eine gelieferte Einheit dieser Ressource zum Materialfortschritt zählt (Standard 1, Kommazahlen erlaubt). Bei 10 Stein (Gewicht 2) und 10 Holz (Gewicht 1) bringt eine Einheit Stein doppelt so viel Fortschritt wie eine Einheit Holz. Fertig ist ein Bau erst, wenn alles geliefert ist."
+      "weightHint": "Baugewicht: Wie stark eine gelieferte Einheit dieser Ressource zum Materialfortschritt zählt (Standard 1, Kommazahlen erlaubt). Bei 10 Stein (Gewicht 2) und 10 Holz (Gewicht 1) bringt eine Einheit Stein doppelt so viel Fortschritt wie eine Einheit Holz. Fertig ist ein Bau erst, wenn alles geliefert ist.",
+      "moveTop": "Ganz nach oben",
+      "moveUp": "Eins nach oben",
+      "moveDown": "Eins nach unten",
+      "moveBottom": "Ganz nach unten",
+      "orderLabel": "Reihenfolge"
     },
     "settlement": {
       "title": "Siedlungs-Übersicht",

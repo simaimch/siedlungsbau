@@ -183,12 +183,13 @@
     </header>
     <p class="hint">{{localize "SIEDLUNG.editor.valueHint"}}</p>
     {{#if isResource}}<p class="hint">{{localize "SIEDLUNG.editor.weightHint"}}</p>{{/if}}
-    <ul class="asset-list {{#if isResource}}with-weight{{/if}}">
+    <ul class="asset-list with-order {{#if isResource}}with-weight{{/if}}">
       <li class="asset-head">
         <span>{{localize "SIEDLUNG.editor.colorLabel"}}</span>
         <span>{{localize "SIEDLUNG.editor.nameLabel"}}</span>
         <span>{{localize "SIEDLUNG.editor.valueLabel"}}</span>
         {{#if isResource}}<span>{{localize "SIEDLUNG.editor.weightLabel"}}</span><span>{{localize "SIEDLUNG.shortage.editor.column"}}</span>{{/if}}
+        <span>{{localize "SIEDLUNG.editor.orderLabel"}}</span>
         <span></span>
       </li>
       {{#each assets}}
@@ -198,6 +199,12 @@
         <input type="number" value="{{value}}" min="0" step="0.01" data-asset-field="value" data-kind="{{../assetKind}}" data-id="{{id}}" {{#if fixed}}disabled{{/if}}>
         {{#if ../isResource}}<input type="number" value="{{weight}}" min="0" step="any" data-asset-field="weight" data-kind="{{../assetKind}}" data-id="{{id}}">{{/if}}
         {{#if ../isResource}}<button type="button" class="shortage-btn" data-action="editShortage" data-id="{{id}}" title="{{localize 'SIEDLUNG.shortage.editor.open'}}"><i class="fa-solid fa-triangle-exclamation"></i> {{shortageText}}</button>{{/if}}
+        <span class="move-btns">
+          <button type="button" data-action="moveAsset" data-dir="top" data-kind="{{../assetKind}}" data-id="{{id}}" title="{{localize 'SIEDLUNG.editor.moveTop'}}"><i class="fa-solid fa-angles-up"></i></button>
+          <button type="button" data-action="moveAsset" data-dir="up" data-kind="{{../assetKind}}" data-id="{{id}}" title="{{localize 'SIEDLUNG.editor.moveUp'}}"><i class="fa-solid fa-angle-up"></i></button>
+          <button type="button" data-action="moveAsset" data-dir="down" data-kind="{{../assetKind}}" data-id="{{id}}" title="{{localize 'SIEDLUNG.editor.moveDown'}}"><i class="fa-solid fa-angle-down"></i></button>
+          <button type="button" data-action="moveAsset" data-dir="bottom" data-kind="{{../assetKind}}" data-id="{{id}}" title="{{localize 'SIEDLUNG.editor.moveBottom'}}"><i class="fa-solid fa-angles-down"></i></button>
+        </span>
         {{#if fixed}}<span></span>{{else}}<button type="button" data-action="deleteAsset" data-kind="{{../assetKind}}" data-id="{{id}}" title="{{localize 'SIEDLUNG.editor.deleteAsset'}}"><i class="fa-solid fa-trash"></i></button>{{/if}}
       </li>
       {{/each}}

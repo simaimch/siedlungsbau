@@ -1,7 +1,7 @@
 import { ID, STATUS, GOLD_ID } from "./constants";
 import { getBuildings, getTerrain, terrainAt, getType, bounds, isSettlementScene, isConnected, cellKey, transformCells, costsOf } from "./store";
 import {
-  getDefinitions, getCategories, getCategory, getResources, getWorkers, getStats, getTerrainTypes, getWeights, getAsset, assetKey, isGold, costChips, effectChips, entryChips, getTriggers, getRoadTypes,
+  getDefinitions, getCategories, getCategory, getResources, getWorkers, getStats, getTerrainTypes, getWeights, getAsset, assetKey, isGold, costChips, effectChips, entryChips, getTriggers, getRoadTypes, sortEntries,
   saveDefinitions, resetDefinitions
 } from "./definitions";
 import { buildingCenter } from "./render";
@@ -235,7 +235,7 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
       id: fx.id,
       name: fx.name,
       remaining: fx.remaining,
-      entries: fx.entries.map(e => {
+      entries: sortEntries(fx.entries).map(e => {
         const target = e.kind === "stat" ? getStats().find(s => s.id === e.id) : getAsset(e.kind, e.id);
         return {
           name: target?.name ?? e.id,
@@ -256,9 +256,9 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
         firing: firedIds.has(tr.id),
         hidden: !!tr.hidden,
         conditions: tr.conditions.map(c => conditionText(c)),
-        entries: entryChips(tr.entries).map((c, i) => ({
+        entries: entryChips(sortEntries(tr.entries)).map((c, i) => ({
           ...c,
-          mode: tr.entries[i].kind === "stat" ? t(tr.entries[i].mode === "modifier" ? "SIEDLUNG.triggers.modeModifierShort" : "SIEDLUNG.triggers.modeWeeklyShort") : ""
+          mode: sortEntries(tr.entries)[i].kind === "stat" ? t(sortEntries(tr.entries)[i].mode === "modifier" ? "SIEDLUNG.triggers.modeModifierShort" : "SIEDLUNG.triggers.modeWeeklyShort") : ""
         }))
       }));
     return {
@@ -457,7 +457,7 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     id: `${ID}-definitions`,
     classes: [ID],
     window: { title: "SIEDLUNG.editor.title", icon: "fa-solid fa-pen-ruler", resizable: true },
-    position: { width: 520, height: 620 },
+    position: { width: 1040, height: 620 },
     actions: {
       switchTab: DefinitionsApp.#onTab,
       addCategory: DefinitionsApp.#onAddCategory,
@@ -481,6 +481,7 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       editTrigger: DefinitionsApp.#onEditTrigger,
       deleteTrigger: DefinitionsApp.#onDeleteTrigger,
       editShortage: DefinitionsApp.#onEditShortage,
+      moveAsset: DefinitionsApp.#onMoveAsset,
       addRoad: DefinitionsApp.#onAddRoad,
       editRoad: DefinitionsApp.#onEditRoad,
       deleteRoad: DefinitionsApp.#onDeleteRoad,
@@ -755,6 +756,22 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #onEditTrigger(_event: Event, target: HTMLElement): void {
     openTriggerEditor(target.dataset.id ?? null);
+  }
+
+  /** Reihenfolge der Ressourcen bzw. Arbeiter ändern: ganz nach oben/unten oder eins hoch/runter. */
+  static async #onMoveAsset(_event: Event, target: HTMLElement): Promise<void> {
+    const kind = target.dataset.kind as CostKind;
+    const id = target.dataset.id ?? "";
+    const dir = target.dataset.dir ?? "";
+    await saveDefinitions(defs => {
+      const list = defs[assetKey(kind)];
+      const i = list.findIndex(a => a.id === id);
+      if (i < 0) return;
+      const to = dir === "top" ? 0 : dir === "bottom" ? list.length - 1 : dir === "up" ? i - 1 : i + 1;
+      if (to < 0 || to >= list.length || to === i) return;
+      const [item] = list.splice(i, 1);
+      list.splice(to, 0, item);
+    });
   }
 
   static #onEditShortage(_event: Event, target: HTMLElement): void {

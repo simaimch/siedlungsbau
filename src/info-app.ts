@@ -1,6 +1,6 @@
 import { ID, STATUS } from "./constants";
 import { costsOf, getBuildings, getType } from "./store";
-import { costChips, effectChips, getAsset, getCategory, getWeights } from "./definitions";
+import { costChips, effectChips, getAsset, getCategory, getWeights, sortEntries } from "./definitions";
 import { buildingCenter } from "./render";
 import { fractions } from "./week";
 import { requestComplete, requestDescribe, requestRemove, requestRename } from "./actions";
@@ -64,7 +64,7 @@ export class BuildingInfoApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const h = Math.max(...b.cells.map(c => c[1])) - minY + 1;
 
     const f = fractions(b, costs, getWeights());
-    const progressRows = (costs.buildCost as CostEntry[]).map(e => {
+    const progressRows = sortEntries(costs.buildCost as CostEntry[]).map(e => {
       const asset = getAsset(e.kind, e.id);
       const have = Math.min(e.amount, b.progress?.[KEY[e.kind]]?.[e.id] ?? 0);
       return {

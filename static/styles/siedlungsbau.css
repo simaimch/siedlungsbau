@@ -281,3 +281,9 @@
 .siedlung-shortage-editor footer { display: flex; justify-content: flex-end; gap: 6px; }
 .siedlung-settlement .shortage-bar { border: 1px solid #c0392b; background: rgba(192, 57, 43, 0.15); border-radius: 4px; padding: 4px 8px; margin-bottom: 0.6rem; font-size: var(--font-size-12, 12px); }
 .siedlung-settlement .shortage-bar.blocked { background: rgba(192, 57, 43, 0.35); }
+
+.siedlung-definitions .asset-list .move-btns { display: flex; gap: 2px; }
+.siedlung-definitions .asset-list .move-btns button { flex: 1; width: auto; height: 24px; padding: 0; line-height: 1; }
+
+.siedlung-definitions .asset-list.with-order li { grid-template-columns: 40px 1fr 7rem 7.6rem 2.2rem; }
+.siedlung-definitions .asset-list.with-order.with-weight li { grid-template-columns: 40px 1fr 5rem 4rem 9rem 7.6rem 2.2rem; }

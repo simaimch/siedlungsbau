@@ -2,7 +2,7 @@ import { ID } from "./constants";
 import { getBuildings, costsOf } from "./store";
 import { getRoadOrders, getRoads, getRoadType } from "./roads-store";
 import { applyRoadWeek, isRoadId, orderAsBuilding } from "./roads";
-import { entryChips, getAsset, getLaws, getStats, getTriggers, getWeights, getResources, getWorkers } from "./definitions";
+import { entryChips, sortEntries, orderIndex, getAsset, getLaws, getStats, getTriggers, getWeights, getResources, getWorkers } from "./definitions";
 import { clampStat, defaultStatValue, describeInterval } from "./stats";
 import { applyStatChanges, computeWeek, sumEffects } from "./week";
 import { normalizeEffects, sumEntries } from "./effects";
@@ -242,6 +242,9 @@ function renderReport(result: WeekResult, fired: Trigger[] = [], roadWeek?: { co
   const parts: string[] = [`<h3>${t("SIEDLUNG.week.title", { week: result.state.week })}</h3>`];
 
   // Vorräte
+  const byOrder = (kind: string) => (a: { id: string }, b: { id: string }): number => orderIndex(kind, a.id) - orderIndex(kind, b.id);
+  result.resources = [...result.resources].sort(byOrder("resource"));
+  result.labor = [...result.labor].sort(byOrder("worker"));
   const rows = result.resources
     .filter(r => r.before !== r.after || r.shortfall > 0)
     .map(r => {
@@ -287,8 +290,9 @@ function renderReport(result: WeekResult, fired: Trigger[] = [], roadWeek?: { co
   const shown = fired.filter(f => !f.hidden);
   if (shown.length) {
     const lines = shown.map(f => {
-      const chips = entryChips(f.entries).map((c, i) => {
-        const mode = f.entries[i].kind === "stat" ? ` ${t(f.entries[i].mode === "modifier" ? "SIEDLUNG.triggers.modeModifierShort" : "SIEDLUNG.triggers.modeWeeklyShort")}` : "";
+      const sorted = sortEntries(f.entries);
+      const chips = entryChips(sorted).map((c, i) => {
+        const mode = sorted[i].kind === "stat" ? ` ${t(sorted[i].mode === "modifier" ? "SIEDLUNG.triggers.modeModifierShort" : "SIEDLUNG.triggers.modeWeeklyShort")}` : "";
         return `${c.text} ${escapeHTML(c.name)}${mode}`;
       });
       return `<li><strong>${escapeHTML(f.name)}</strong>: ${chips.join(", ")}</li>`;
