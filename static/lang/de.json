@@ -67,7 +67,8 @@
     },
     "building": {
       "underConstruction": "im Bau",
-      "disabled": "deaktiviert"
+      "disabled": "deaktiviert",
+      "shortage": "Engpass"
     },
     "notes": {
       "notSettlement": "Dies ist keine Siedlungsszene. Markiere sie über das Flaggen-Werkzeug oder erstelle eine neue Siedlungs-Szene."
@@ -291,7 +292,9 @@
       "disable": "Deaktivieren",
       "enable": "Aktivieren",
       "disabled": "Deaktiviert",
-      "disabledHint": "Deaktiviert: kein Betrieb und keine Wirkungen. Die Werte unten gelten nach der Aktivierung wieder."
+      "disabledHint": "Deaktiviert: kein Betrieb und keine Wirkungen. Die Werte unten gelten nach der Aktivierung wieder.",
+      "shortageOff": "Vorübergehend deaktiviert (Produktionsengpass)",
+      "shortageHint": "Dieses Gebäude ist wegen eines Engpasses abgeschaltet und läuft automatisch wieder an, sobald die Bilanz stimmt. Die Werte unten gelten dann wieder."
     },
     "terrain": {
       "title": "Gelände",
@@ -412,6 +415,10 @@
       "roadGap": {
         "name": "Wegabstand zum Feldrand (%)",
         "hint": "Abstand eines Wegstücks zu den Feldrändern in Prozent der Feldbreite (0–40). Zu benachbarten Wegstücken besteht kein Abstand."
+      },
+      "shortageChecks": {
+        "name": "Engpass-Prüfungen",
+        "hint": "Wie oft bei Engpässen erneut geprüft wird, wenn das Abschalten von Gebäuden neue Engpässe erzeugt (Kette). Reicht das nicht aus, ist „Nächste Woche“ gesperrt, bis der Engpass von Hand behoben ist."
       }
     },
     "mapgen": {
@@ -551,6 +558,39 @@
         "cancelBuild": "Bau abbrechen",
         "confirmRemove": "Dieses Wegstück wirklich entfernen?",
         "confirmCancel": "Den Bau dieses Wegstücks abbrechen? Gelieferte Mengen gehen verloren."
+      }
+    },
+    "shortage": {
+      "title": "Produktionsengpass",
+      "missing": "{amount} fehlen",
+      "switchedOff": "abgeschaltet",
+      "weeks": "{weeks} Wochen",
+      "blocked": "Die automatische Engpass-Prüfung findet keine stabile Lösung. Bitte behebe den Engpass selbst (Vorräte erhöhen, Gebäude abreißen oder deaktivieren, Effekte entfernen).",
+      "blockedShort": "Gesperrt: Engpass nicht automatisch lösbar",
+      "barSwitchedOff": "Vorübergehend abgeschaltete Gebäude",
+      "barExceeded": "Die Prüfung reicht nicht aus, um den Engpass automatisch aufzulösen. Bitte behebe das Problem selbst; bis dahin ist „Nächste Woche“ gesperrt.",
+      "editor": {
+        "open": "Verhalten bei Engpass",
+        "column": "Bei Engpass",
+        "title": "Engpass: {name}",
+        "hint": "Legt fest, was passiert, wenn der Betrieb mehr dieser Ressource braucht, als vorhanden ist.",
+        "mode": "Verhalten",
+        "modeCheck": "Teil der Prüfung (Verbraucher abschalten)",
+        "modeDebt": "Vorrat darf negativ werden (Schulden)",
+        "modeIgnore": "Ignorieren (Vorrat bleibt bei 0)",
+        "checkHint": "Gebäude, die diese Ressource verbrauchen, werden vorübergehend abgeschaltet (zuletzt gebaute zuerst), bis die Bilanz stimmt. Danach laufen sie automatisch wieder an.",
+        "debtHint": "Der Vorrat kann unter 0 fallen und stellt Schulden dar. Nichts wird abgeschaltet.",
+        "ignoreHint": "Es fehlt einfach, was nicht gedeckt werden kann. Es wird nichts abgeschaltet.",
+        "effectOn": "Ein Engpass löst einen Effekt aus",
+        "effect": "Effekt bei Engpass",
+        "name": "Name des Effekts",
+        "defaultName": "Engpass",
+        "weeks": "Dauer (Wochen)",
+        "short": {
+          "check": "Prüfung",
+          "debt": "Schulden",
+          "ignore": "Ignorieren"
+        }
       }
     }
   }

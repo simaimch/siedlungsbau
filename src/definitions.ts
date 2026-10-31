@@ -6,6 +6,7 @@ import { normalizeTerrain } from "./terrain-defs";
 import { normalizeLawCategories, normalizeLaws } from "./laws";
 import { normalizeTriggers } from "./triggers";
 import { normalizeRoadTypes } from "./roads";
+import { normalizeShortage } from "./shortage";
 import { defaultRoadsFor } from "./road-defaults";
 import { DEFAULT_LAWS, DEFAULT_LAW_CATEGORIES } from "./law-defaults";
 import type { BuildingType, Category, CostEntry, CostKind, Definitions, PricedType, StatEffect, StatType, TerrainEntry, Law, LawCategory, EffectEntry, Trigger, RoadType } from "./types";
@@ -28,7 +29,11 @@ export function getDefinitions(): Required<Definitions> {
     upkeep: list(b.upkeep, []),
     statEffects: list(b.statEffects, [])
   }));
-  const resources = list(raw?.resources, DEFAULT_DEFINITIONS.resources);
+  const resources = list(raw?.resources, DEFAULT_DEFINITIONS.resources).map(r => {
+    const { shortage, ...rest } = r;
+    const rule = normalizeShortage(shortage, r.id);
+    return rule ? { ...rest, shortage: rule } : rest;
+  });
   const workers = list(raw?.workers, DEFAULT_DEFINITIONS.workers);
   return {
     categories: list(raw?.categories, DEFAULT_DEFINITIONS.categories),

@@ -4,6 +4,7 @@ import { DEFAULT_DEFINITIONS } from "./data";
 import { isConnected, transformCells } from "./store";
 import { COMPARE_OPS } from "./triggers";
 import { ROAD_ID_POOL } from "./roads";
+import { normalizeShortage } from "./shortage";
 import { sortedPoints, validateInterval } from "./stats";
 import { BUILTIN_TERRAIN, normalizeTerrain } from "./terrain-defs";
 import type { BuildingType, Category, Cell, CostEntry, Definitions, PricedType, StatEffect, StatPoint, StatType, TerrainEntry, Law, LawCategory, LawOption, CompareOp, EffectEntry, Trigger, RoadType } from "./types";
@@ -181,6 +182,17 @@ function parseAsset(raw: unknown): Parsed<PricedType> {
   return out;
 }
 
+/** Ressource: wie ein Arbeiter, zusätzlich die Regel für Engpässe (nur gültige Teile werden übernommen). */
+function parseResource(raw: unknown): Parsed<PricedType> {
+  const out = parseAsset(raw);
+  if (typeof out === "string") return out;
+  if (isObj(raw) && raw.shortage !== undefined) {
+    const rule = normalizeShortage(raw.shortage, out.id);
+    if (rule) out.shortage = rule;
+  }
+  return out;
+}
+
 const STAT_ERRORS = {
   range: "„min“ und „max“ müssen Zahlen sein, min < max.",
   pointRange: "Ein Stützpunkt liegt außerhalb von min/max.",
@@ -318,7 +330,7 @@ export function parseImport(input: string): ParsedImport {
   if (!isObj(raw)) return { data: {}, errors: ["Der Import muss ein JSON-Objekt sein."] };
 
   const data: Partial<Definitions> = {};
-  const parsers = { categories: parseCategory, resources: parseAsset, workers: parseAsset, stats: parseStat, terrain: parseTerrain, lawCategories: parseLawCategory, laws: parseLaw, triggers: parseTrigger, roads: parseRoad, buildings: parseBuilding } as const;
+  const parsers = { categories: parseCategory, resources: parseResource, workers: parseAsset, stats: parseStat, terrain: parseTerrain, lawCategories: parseLawCategory, laws: parseLaw, triggers: parseTrigger, roads: parseRoad, buildings: parseBuilding } as const;
   for (const key of SECTIONS) {
     if (raw[key] === undefined) continue;
     const list = parseSection(key, raw[key], parsers[key] as (e: unknown) => Parsed<{ id: string }>, errors);
@@ -466,6 +478,14 @@ export function applyImport(current: Definitions, imported: Partial<Definitions>
       lawEntries += o.entries.length - kept.length;
       o.entries = kept;
     }
+  }
+  // Engpass-Effekte von Ressourcen: nur Ziele, die es gibt
+  for (const r of next.resources) {
+    if (!r.shortage?.effect) continue;
+    const entries = r.shortage.effect.entries.filter(e => targets[e.kind].has(e.id));
+    costEntries += r.shortage.effect.entries.length - entries.length;
+    if (entries.length) r.shortage.effect.entries = entries;
+    else delete r.shortage.effect;
   }
   // Wegarten: Baukosten müssen auf Vorhandenes zeigen
   next.roads = next.roads ?? [];

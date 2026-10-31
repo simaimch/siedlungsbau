@@ -96,6 +96,7 @@ export class BuildingInfoApp extends HandlebarsApplicationMixin(ApplicationV2) {
       count: b.cells.length,
       done,
       disabled: !!b.disabled,
+      autoOff: !!b.autoDisabled && !b.disabled,
       material: Math.round(f.res * 100),
       work: Math.round(f.lab * 100),
       progressRows,

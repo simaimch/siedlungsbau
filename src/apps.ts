@@ -17,15 +17,18 @@ import { openEffectEditor } from "./effect-editor";
 import { sumEntries } from "./effects";
 import { isTriggerOn, triggerEffects } from "./triggers";
 import { orderAsBuilding } from "./roads";
+import { shortageSummary } from "./shortage-service";
+import { shortageMode } from "./shortage";
 import { openTriggerEditor } from "./trigger-editor";
 import { openRoadEditor } from "./road-editor";
+import { openShortageEditor } from "./shortage-editor";
 import { RoadBrush } from "./road-brush";
 import { getRoadOrders } from "./roads-store";
 import { clampStat, contrastText, defaultStatValue, describeInterval, stripGradient } from "./stats";
 import { openStatEditor } from "./stat-editor";
 import { isBuiltinTerrain, isDefaultTerrain, nextTerrainId } from "./terrain-defs";
 import { fractions, laborCommitted } from "./week";
-import type { ActiveEffect, Building, BuildingType, Cell, CostEntry, CostKind, StatEffect, Trigger, TriggerCondition } from "./types";
+import type { ActiveEffect, Building, BuildingType, Cell, CostEntry, CostKind, StatEffect, Trigger, TriggerCondition, PricedType } from "./types";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -194,6 +197,8 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const buildings = getBuildings();
     const committed = laborCommitted(buildings, costsOf);
     const trend = weekTrend();
+    const shortage = shortageSummary();
+    const shortageBar = shortage.exceeded || shortage.items.length > 0 ? { exceeded: shortage.exceeded, switchedOff: shortage.switchedOff, checks: shortage.checks, maxChecks: shortage.maxChecks, items: shortage.items.map(i => `${i.name} (−${i.deficit})${i.resolved ? "" : " ⚠"}`).join(", ") } : null;
     const trendOf = (map: Record<string, { net: number; shortfall: number; detail: string }>, id: string) => {
       const tr = map[id];
       const net = tr?.net ?? 0;
@@ -262,7 +267,7 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
       triggerRows,
       isGM: game.user.isGM,
       weekLabel: game.i18n.format("SIEDLUNG.settlement.week", { week: state.week }),
-      resources: resources.map(r => ({ id: r.id, name: r.name, color: r.color, amount: state.resources[r.id] ?? 0, ...trendOf(trend.resources, r.id) })),
+      resources: resources.map(r => ({ id: r.id, name: r.name, color: r.color, amount: state.resources[r.id] ?? 0, canNegative: shortageMode(r) === "debt", ...trendOf(trend.resources, r.id) })),
       workers: workers.map(w => {
         const base = state.workers[w.id] ?? 0;
         const bonus = effWorker[w.id] ?? 0;
@@ -273,6 +278,7 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
           note: bonus && (showLaw || !lawWorker[w.id]) && !hiddenWorker[w.id] ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(bonus) }) : ""
         };
       }),
+      shortage: shortageBar,
       isLage: this._tab === "lage",
       isBau: this._tab === "bau",
       isGebaeude: this._tab === "gebaeude",
@@ -368,16 +374,23 @@ export function conditionText(c: TriggerCondition): string {
   return `${target?.name ?? c.id} ${c.op} ${c.value}`;
 }
 
-interface BuiltGroup { key: string; name: string; count: number; single: boolean; id: string; items: { id: string; name: string; disabled: boolean }[] }
+interface BuiltGroup { key: string; name: string; count: number; single: boolean; id: string; items: { id: string; name: string; disabled: boolean; shortage: boolean }[] }
+
+/** Kurzbeschreibung des Engpass-Verhaltens einer Ressource für die Liste im Editor. */
+function shortageLabel(r: PricedType): string {
+  const mode = shortageMode(r);
+  const base = t(`SIEDLUNG.shortage.editor.short.${mode}`);
+  return r.shortage?.effect && mode !== "debt" ? `${base} · ${r.shortage.effect.name}` : base;
+}
 
 /** Fertige Gebäude nach Kategorie (in der Reihenfolge der Kategorien) und darin nach Typ gruppiert, alphabetisch. */
 function builtCategories(buildings: Building[]): { id: string; label: string; color: string; groups: BuiltGroup[] }[] {
-  const byCat = new Map<string, Map<string, { key: string; name: string; items: { id: string; name: string; disabled: boolean }[] }>>();
+  const byCat = new Map<string, Map<string, { key: string; name: string; items: { id: string; name: string; disabled: boolean; shortage: boolean }[] }>>();
   for (const b of buildings) {
     if (b.status !== STATUS.DONE) continue;
     const groups = byCat.get(b.category) ?? new Map();
     const g = groups.get(b.typeId) ?? { key: b.typeId, name: getType(b.typeId)?.name ?? b.name, items: [] };
-    g.items.push({ id: b.id, name: b.name, disabled: !!b.disabled });
+    g.items.push({ id: b.id, name: b.name, disabled: !!b.disabled, shortage: !b.disabled && !!b.autoDisabled });
     groups.set(b.typeId, g);
     byCat.set(b.category, groups);
   }
@@ -467,6 +480,7 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       addTrigger: DefinitionsApp.#onAddTrigger,
       editTrigger: DefinitionsApp.#onEditTrigger,
       deleteTrigger: DefinitionsApp.#onDeleteTrigger,
+      editShortage: DefinitionsApp.#onEditShortage,
       addRoad: DefinitionsApp.#onAddRoad,
       editRoad: DefinitionsApp.#onEditRoad,
       deleteRoad: DefinitionsApp.#onDeleteRoad,
@@ -527,7 +541,7 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       terrain: getTerrainTypes().map(e => ({ ...e, fixed: isBuiltinTerrain(e.id), noToggle: isDefaultTerrain(e.id) })),
       categories,
       groups,
-      assets: assets.map(a => ({ ...a, weight: a.weight ?? 1 })),
+      assets: assets.map(a => ({ ...a, weight: a.weight ?? 1, shortageText: kind === "resource" ? shortageLabel(a as PricedType) : "" })),
       assetKind: kind,
       assetTitle: t(`SIEDLUNG.editor.tabs.${kind}`),
       stats: stats.map(s =>
@@ -741,6 +755,10 @@ export class DefinitionsApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #onEditTrigger(_event: Event, target: HTMLElement): void {
     openTriggerEditor(target.dataset.id ?? null);
+  }
+
+  static #onEditShortage(_event: Event, target: HTMLElement): void {
+    openShortageEditor(target.dataset.id ?? "");
   }
 
   static #onAddRoad(): void {

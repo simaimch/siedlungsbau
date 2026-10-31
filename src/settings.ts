@@ -12,6 +12,7 @@ import { redraw } from "./render";
 import { SETTING_ROAD_GAP } from "./roads-store";
 import { DEFAULT_ROAD_GAP, MAX_ROAD_GAP } from "./roads";
 import { Placement } from "./placement";
+import { SETTING_MAX_CHECKS, DEFAULT_MAX_CHECKS, MAX_CHECKS_LIMIT } from "./shortage";
 
 export function registerSettings(): void {
   // Geländearten der SL ins globale TERRAIN übernehmen, sobald die Einstellungen lesbar sind
@@ -66,6 +67,20 @@ export function registerSettings(): void {
     type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 0, max: MAX_ROAD_GAP, initial: DEFAULT_ROAD_GAP }),
     default: DEFAULT_ROAD_GAP,
     onChange: () => redraw()
+  });
+
+  // Wie oft bei Engpässen erneut geprüft wird, wenn das Abschalten von Gebäuden neue Engpässe erzeugt (Kette)
+  game.settings.register(ID, SETTING_MAX_CHECKS, {
+    name: "SIEDLUNG.settings.shortageChecks.name",
+    hint: "SIEDLUNG.settings.shortageChecks.hint",
+    scope: "world",
+    config: true,
+    type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 1, max: MAX_CHECKS_LIMIT, initial: DEFAULT_MAX_CHECKS }),
+    default: DEFAULT_MAX_CHECKS,
+    onChange: () => {
+      refreshApp(SettlementApp);
+      redraw();
+    }
   });
 
   // Eigener Reiter in den Spieleinstellungen mit Button für Export/Import (nur SL)

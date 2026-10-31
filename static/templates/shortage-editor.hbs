@@ -1,0 +1,52 @@
+<div class="siedlung-shortage-editor">
+  <p class="hint">{{localize "SIEDLUNG.shortage.editor.hint"}}</p>
+  <div class="form-group">
+    <label>{{localize "SIEDLUNG.shortage.editor.mode"}}</label>
+    <select name="mode">
+      <option value="check" {{#if isCheck}}selected{{/if}}>{{localize "SIEDLUNG.shortage.editor.modeCheck"}}</option>
+      <option value="debt" {{#if isDebt}}selected{{/if}}>{{localize "SIEDLUNG.shortage.editor.modeDebt"}}</option>
+      <option value="ignore" {{#if isIgnore}}selected{{/if}}>{{localize "SIEDLUNG.shortage.editor.modeIgnore"}}</option>
+    </select>
+  </div>
+  {{#if isCheck}}<p class="hint">{{localize "SIEDLUNG.shortage.editor.checkHint"}}</p>{{/if}}
+  {{#if isDebt}}<p class="hint">{{localize "SIEDLUNG.shortage.editor.debtHint"}}</p>{{/if}}
+  {{#if isIgnore}}<p class="hint">{{localize "SIEDLUNG.shortage.editor.ignoreHint"}}</p>{{/if}}
+
+  {{#if showEffect}}
+  <div class="form-group">
+    <label class="checkbox"><input type="checkbox" name="effectOn" {{#if effectOn}}checked{{/if}}> {{localize "SIEDLUNG.shortage.editor.effectOn"}}</label>
+  </div>
+  {{#if effectOn}}
+  <fieldset class="cost-list">
+    <legend>{{localize "SIEDLUNG.shortage.editor.effect"}}</legend>
+    <div class="form-group">
+      <label>{{localize "SIEDLUNG.shortage.editor.name"}}</label>
+      <input type="text" name="name" value="{{name}}" maxlength="60" autocomplete="off" placeholder="{{localize 'SIEDLUNG.shortage.editor.defaultName'}}">
+    </div>
+    <div class="form-group">
+      <label>{{localize "SIEDLUNG.shortage.editor.weeks"}}</label>
+      <input type="number" name="weeks" value="{{weeks}}" min="1" max="{{max}}" step="1">
+    </div>
+    {{#each entries}}
+    <div class="entry-row">
+      <select name="target">
+        {{#each groups}}
+        <optgroup label="{{label}}">
+          {{#each options}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+        </optgroup>
+        {{/each}}
+      </select>
+      <input type="number" name="amount" value="{{amount}}" step="any">
+      <button type="button" data-action="removeEntry" data-index="{{index}}" title="{{localize 'SIEDLUNG.effects.removeRow'}}"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    {{/each}}
+    <button type="button" data-action="addEntry"><i class="fa-solid fa-plus"></i> {{localize "SIEDLUNG.effects.addRow"}}</button>
+  </fieldset>
+  {{/if}}
+  {{/if}}
+
+  <footer>
+    <button type="button" data-action="save"><i class="fa-solid fa-check"></i> {{localize "SIEDLUNG.editor.save"}}</button>
+    <button type="button" data-action="cancel">{{localize "SIEDLUNG.editor.cancel"}}</button>
+  </footer>
+</div>

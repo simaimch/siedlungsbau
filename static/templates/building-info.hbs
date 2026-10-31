@@ -7,7 +7,7 @@
     <div>
       <h3><a data-action="focus" title="{{localize 'SIEDLUNG.info.focus'}}">{{name}}</a></h3>
       <p class="meta">{{#if showType}}{{typeName}} · {{/if}}{{categoryLabel}} · {{count}} {{localize "SIEDLUNG.palette.fields"}}</p>
-      <p class="status {{#if done}}done{{else}}pending{{/if}}">{{#if disabled}}{{localize "SIEDLUNG.info.disabled"}}{{else if done}}{{localize "SIEDLUNG.info.done"}}{{else}}{{localize "SIEDLUNG.info.inConstruction"}}{{/if}}</p>
+      <p class="status {{#if done}}done{{else}}pending{{/if}}">{{#if disabled}}{{localize "SIEDLUNG.info.disabled"}}{{else if autoOff}}{{localize "SIEDLUNG.info.shortageOff"}}{{else if done}}{{localize "SIEDLUNG.info.done"}}{{else}}{{localize "SIEDLUNG.info.inConstruction"}}{{/if}}</p>
     </div>
   </header>
 
@@ -33,6 +33,7 @@
 
   <section>
     {{#if disabled}}<p class="hint">{{localize "SIEDLUNG.info.disabledHint"}}</p>{{/if}}
+    {{#if autoOff}}<p class="hint">{{localize "SIEDLUNG.info.shortageHint"}}</p>{{/if}}
     <h4>{{#if done}}{{localize "SIEDLUNG.info.currentEffect"}}{{else}}{{localize "SIEDLUNG.info.futureEffect"}}{{/if}}</h4>
     {{#if upkeep.length}}
     <p class="costs"><b>{{localize "SIEDLUNG.palette.upkeep"}}:</b> {{#each upkeep}}<span class="chip"><i style="background: {{color}}"></i>{{text}}&nbsp;{{name}}</span>{{/each}}</p>

@@ -11,6 +11,8 @@ import type { Snapshot } from "./triggers";
 import { lawEffects, normalizeLawStates } from "./laws";
 import type { StatReport, WeekResult } from "./week";
 import { escapeHTML } from "./util";
+import { SETTING_MAX_CHECKS, DEFAULT_MAX_CHECKS, resolveShortages, shortageMode, resourceKey, workerKey } from "./shortage";
+import type { Building, ShortageMode } from "./types";
 import type { ActiveEffect, CostKind, SettlementState, StatEffect, Trigger } from "./types";
 
 const t = (key: string, data?: Record<string, string | number>): string =>
@@ -34,7 +36,9 @@ export function getSettlement(scene: any = canvas?.scene): SettlementState {
 /** SL: setzt den Vorrat einer Ressource bzw. die Wochenkapazität einer Arbeiterart (ganze Zahl, mindestens 0). */
 export async function setAmount(kind: CostKind, id: string, amount: number): Promise<void> {
   if (!game.user.isGM || !canvas.scene) return;
-  const value = Number.isFinite(amount) ? Math.max(0, Math.round(amount)) : 0;
+  // Ressourcen mit erlaubten Schulden dürfen negativ sein
+  const debt = kind === "resource" && shortageMode(getResources().find(r => r.id === id) ?? { id }) === "debt";
+  const value = Number.isFinite(amount) ? (debt ? Math.round(amount) : Math.max(0, Math.round(amount))) : 0;
   const state = getSettlement();
   state[kind === "resource" ? "resources" : "workers"][id] = value;
   await canvas.scene.setFlag(ID, "settlement", state);
@@ -110,12 +114,38 @@ export async function setEffectDuration(id: string, weeks: number): Promise<void
 }
 
 /** SL: springt zur nächsten Arbeitswoche, speichert das Ergebnis und veröffentlicht die Übersicht im Chat. */
+/** Verhalten aller Ressourcen bei Engpass. */
+export const shortageModes = (): Record<string, ShortageMode> => Object.fromEntries(getResources().map(r => [r.id, shortageMode(r)]));
+
+const maxChecks = (): number => {
+  const v = Number(game.settings.get(ID, SETTING_MAX_CHECKS));
+  return Number.isFinite(v) && v >= 1 ? Math.floor(v) : DEFAULT_MAX_CHECKS;
+};
+
+/**
+ * Engpass-Prüfung einer Szene: welche Gebäude sind vorübergehend abgeschaltet (Gebäude mit gesetztem autoDisabled),
+ * welche Engpässe gibt es, und reichen die Prüfungen aus.
+ */
+export function evaluateShortages(scene: any = canvas?.scene) {
+  const state = getSettlement(scene);
+  const trig = currentTriggers(state);
+  const permanent = [...permanentEffects(state), ...(trig.effect ? [trig.effect] : [])];
+  const list = getBuildings(scene);
+  const result = resolveShortages(state, list, costsOf, { stats: getStats(), weights: getWeights(), permanent, triggerStats: trig.statWeekly, modes: shortageModes(), maxChecks: maxChecks() });
+  const buildings: Building[] = list.map(b => {
+    const { autoDisabled: _old, ...rest } = b;
+    return result.autoDisabled.has(b.id) ? { ...rest, autoDisabled: true } : rest;
+  });
+  return { result, buildings, trig, permanent, state };
+}
+
 /** Rechnet die nächste Woche durch (ohne zu speichern); Wege laufen als Bauaufträge mit. */
-function runWeek(scene: any): { result: WeekResult; fired: Trigger[]; roadWeek: ReturnType<typeof applyRoadWeek>; roadStalled: number } {
-  const before = getSettlement(scene);
-  // Trigger werden gegen den Stand zu Beginn der Woche geprüft und wirken in dieser Wochenrechnung
-  const trig = currentTriggers(before);
-  const permanent = [...permanentEffects(before), ...(trig.effect ? [trig.effect] : [])];
+function runWeek(scene: any): { result: WeekResult; fired: Trigger[]; roadWeek: ReturnType<typeof applyRoadWeek>; roadStalled: number; exceeded: boolean; shortageLines: string[] } {
+  // Engpässe zuerst auflösen: abgeschaltete Gebäude verbrauchen und erzeugen in dieser Woche nichts
+  const ev = evaluateShortages(scene);
+  const before = ev.state;
+  const trig = ev.trig;
+  const permanent = ev.permanent;
   // Wegaufträge laufen als Bauaufträge mit einem Feld durch dieselbe Rechnung (nach den Gebäuden)
   const roads = getRoads(scene);
   const orders = getRoadOrders(scene);
@@ -124,13 +154,37 @@ function runWeek(scene: any): { result: WeekResult; fired: Trigger[]; roadWeek: 
     return type ? [orderAsBuilding(o, type)] : [];
   });
   const costs: typeof costsOf = b => (isRoadId(b.id) ? { buildCost: b.buildCost ?? [], upkeep: [], statEffects: [] } : costsOf(b));
-  const result = computeWeek(before, [...getBuildings(scene), ...pseudo], costs, getStats(), getWeights(), permanent, trig.statWeekly);
+  const debt = new Set(Object.entries(shortageModes()).filter(([, m]) => m === "debt").map(([id]) => id));
+  const result = computeWeek(before, [...ev.buildings, ...pseudo], costs, getStats(), getWeights(), permanent, trig.statWeekly, debt);
   const roadWeek = applyRoadWeek(roads, orders, result.buildings);
   const roadStalled = result.stalled.filter(n => isRoadId(n)).length;
   result.buildings = result.buildings.filter(b => !isRoadId(b.id));
   result.progress = result.progress.filter(p => !isRoadId(p.id));
   result.stalled = result.stalled.filter(n => !isRoadId(n));
-  return { result, fired: trig.fired, roadWeek, roadStalled };
+
+  // Engpässe: Meldung und Effekte (z. B. Hungersnot), ein bestehender Effekt der Ressource wird erneuert
+  const shortageLines: string[] = [];
+  const names = (ids: string[]): string => ids.map(escapeHTML).join(", ");
+  for (const r of getResources()) {
+    const deficit = ev.result.triggered[resourceKey(r.id)];
+    if (deficit === undefined) continue;
+    const off = result.buildings.filter(b => b.autoDisabled && ev.result.autoDisabled.get(b.id)?.includes(resourceKey(r.id))).map(b => b.name);
+    let line = `<li>${escapeHTML(r.name)}: ${t("SIEDLUNG.shortage.missing", { amount: deficit })}${off.length ? ` – ${t("SIEDLUNG.shortage.switchedOff")}: ${names(off)}` : ""}`;
+    const effect = r.shortage?.effect;
+    if (effect && shortageMode(r) !== "debt") {
+      const id = `shortage:${r.id}`;
+      result.state.effects = [...result.state.effects.filter(e => e.id !== id), { id, name: effect.name, remaining: effect.weeks, entries: effect.entries.map(e => ({ ...e })) }];
+      line += ` – <strong>${escapeHTML(effect.name)}</strong> (${t("SIEDLUNG.shortage.weeks", { weeks: effect.weeks })})`;
+    }
+    shortageLines.push(`${line}</li>`);
+  }
+  for (const w of getWorkers()) {
+    const deficit = ev.result.triggered[workerKey(w.id)];
+    if (deficit === undefined) continue;
+    const off = result.buildings.filter(b => b.autoDisabled && ev.result.autoDisabled.get(b.id)?.includes(workerKey(w.id))).map(b => b.name);
+    shortageLines.push(`<li>${escapeHTML(w.name)}: ${t("SIEDLUNG.shortage.missing", { amount: deficit })}${off.length ? ` – ${t("SIEDLUNG.shortage.switchedOff")}: ${names(off)}` : ""}</li>`);
+  }
+  return { result, fired: trig.fired, roadWeek, roadStalled, exceeded: ev.result.exceeded, shortageLines };
 }
 
 /** Voraussichtliche Entwicklung der nächsten Woche je Ressource (Saldo) und Arbeiterart (Zu-/Abgang freier Arbeitskraft). */
@@ -162,11 +216,15 @@ export function weekTrend(scene: any = canvas?.scene): { resources: Record<strin
 export async function advanceWeek(): Promise<void> {
   const scene = canvas.scene;
   if (!game.user.isGM || !scene) return;
-  const { result, fired, roadWeek, roadStalled } = runWeek(scene);
+  const { result, fired, roadWeek, roadStalled, exceeded, shortageLines } = runWeek(scene);
+  if (exceeded) {
+    ui.notifications.error(t("SIEDLUNG.shortage.blocked"));
+    return;
+  }
   await scene.update({ flags: { [ID]: { settlement: result.state, buildings: result.buildings, roads: roadWeek.roads, roadOrders: roadWeek.orders } } });
   await ChatMessage.create({
     speaker: { alias: t("SIEDLUNG.title") },
-    content: renderReport(result, fired, { completed: roadWeek.completed, pending: roadWeek.pending, stalled: roadStalled })
+    content: renderReport(result, fired, { completed: roadWeek.completed, pending: roadWeek.pending, stalled: roadStalled }, shortageLines)
   });
 }
 
@@ -175,7 +233,7 @@ const dot = (color: string): string =>
 const signed = (n: number): string => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "±0");
 const percent = (f: number): string => `${Math.round(f * 100)} %`;
 
-function renderReport(result: WeekResult, fired: Trigger[] = [], roadWeek?: { completed: number; pending: number; stalled: number }): string {
+function renderReport(result: WeekResult, fired: Trigger[] = [], roadWeek?: { completed: number; pending: number; stalled: number }, shortageLines: string[] = []): string {
   const label = (kind: CostKind, id: string): string => {
     const asset = getAsset(kind, id);
     return `${dot(asset?.color ?? "#888")}${escapeHTML(asset?.name ?? id)}`;
@@ -198,6 +256,8 @@ function renderReport(result: WeekResult, fired: Trigger[] = [], roadWeek?: { co
   for (const r of result.resources.filter(x => x.shortfall > 0)) {
     parts.push(`<p>⚠ ${t("SIEDLUNG.week.shortfall", { name: plain("resource", r.id), amount: r.shortfall })}</p>`);
   }
+
+  if (shortageLines.length) parts.push(`<p><strong>${t("SIEDLUNG.shortage.title")}</strong></p><ul>${shortageLines.join("")}</ul>`);
 
   // Werte
   const statLines = result.stats.map(statLine).filter(Boolean);

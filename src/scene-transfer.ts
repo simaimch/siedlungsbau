@@ -6,6 +6,7 @@ import { normalizeTriggerSwitches } from "./triggers";
 import { normalizeMapGenOptions } from "./mapgen";
 import { applyImport, parseImport } from "./transfer";
 import { NO_ROAD, normalizeRoadOrders } from "./roads";
+import { shortageMode } from "./shortage";
 import type { MapGenOptions } from "./mapgen";
 import type { ActiveEffect, Building, Cell, CostEntry, Definitions, SettlementState, StatEffect, StatType, TerrainData, RoadOrder } from "./types";
 
@@ -37,6 +38,8 @@ export interface Known {
   triggers: Set<string>;
   /** IDs der Wegarten */
   roads?: Set<string>;
+  /** Ressourcen, deren Vorrat negativ sein darf (Schulden) */
+  debt?: Set<string>;
   terrain: Set<string>;
   defaultTerrain: string;
 }
@@ -83,7 +86,8 @@ export function exportScene(input: ExportInput): string {
     terrain: scene.terrain.cells,
     ...(scene.mapgen ? { mapgen: scene.mapgen } : {}),
     settlement: scene.settlement,
-    buildings: scene.buildings
+    // Vorübergehende Abschaltungen werden beim Import neu berechnet
+    buildings: scene.buildings.map(({ autoDisabled: _auto, ...b }) => b)
   };
   if (scene.roads && /[^.]/.test(scene.roads.cells)) out.roads = scene.roads.cells;
   if (scene.roadOrders?.length) out.roadOrders = scene.roadOrders;
@@ -125,7 +129,7 @@ function statEffectList(raw: unknown, known: Known, cleanup: SceneCleanup): Stat
   return out;
 }
 
-function amounts(raw: unknown, allowed: Set<string>, cleanup: SceneCleanup): Record<string, number> {
+function amounts(raw: unknown, allowed: Set<string>, cleanup: SceneCleanup, negative: Set<string> = new Set()): Record<string, number> {
   const out: Record<string, number> = {};
   if (!isObj(raw)) return out;
   for (const [id, v] of Object.entries(raw)) {
@@ -133,7 +137,7 @@ function amounts(raw: unknown, allowed: Set<string>, cleanup: SceneCleanup): Rec
       cleanup.entries++;
       continue;
     }
-    out[id] = Math.max(0, Math.round(v));
+    out[id] = negative.has(id) ? Math.round(v) : Math.max(0, Math.round(v));
   }
   return out;
 }
@@ -202,7 +206,7 @@ function parseSettlement(raw: unknown, known: Known, errors: string[], cleanup: 
     if (w === null || w < 1) errors.push("„settlement.week“ muss eine ganze Zahl ≥ 1 sein.");
     else s.week = w;
   }
-  s.resources = amounts(raw.resources, known.resources, cleanup);
+  s.resources = amounts(raw.resources, known.resources, cleanup, known.debt);
   s.workers = amounts(raw.workers, known.workers, cleanup);
   if (isObj(raw.stats)) {
     for (const [id, v] of Object.entries(raw.stats)) {
@@ -322,6 +326,7 @@ export function knownFromDefinitions(defs: Required<Definitions>, defaultTerrain
     laws: new Map(defs.laws.map(l => [l.id, new Set(l.options.map(o => o.id))])),
     triggers: new Set(defs.triggers.map(x => x.id)),
     roads: new Set((defs.roads ?? []).map(r => r.id)),
+    debt: new Set(defs.resources.filter(r => shortageMode(r) === "debt").map(r => r.id)),
     terrain: new Set(defs.terrain.map(e => e.id)),
     defaultTerrain
   };

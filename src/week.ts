@@ -148,7 +148,7 @@ export function fractions(b: Building, costs: Costs, weights: Weights = {}): { r
 export function laborCommitted(buildings: Building[], costsOf: CostsOf): Record<string, number> {
   const net: Record<string, number> = {};
   for (const b of buildings) {
-    if (b.status !== "done" || b.disabled) continue;
+    if (b.status !== "done" || b.disabled || b.autoDisabled) continue;
     for (const e of costsOf(b).upkeep) if (e.kind === "worker") net[e.id] = (net[e.id] ?? 0) + e.amount;
   }
   return net;
@@ -173,7 +173,9 @@ export function computeWeek(
   /** Dauerhafte Effekte (aktive Ausprägungen der Gesetze); werden nicht heruntergezählt */
   permanent: ActiveEffect[] = [],
   /** Änderungen des Basiswerts pro Woche durch ausgelöste Trigger */
-  triggerStats: StatEffect[] = []
+  triggerStats: StatEffect[] = [],
+  /** Ressourcen, deren Vorrat negativ werden darf (Schulden) */
+  debt: ReadonlySet<string> = new Set()
 ): WeekResult {
   const stock: Record<string, number> = { ...state.resources };
   const have = (id: string): number => stock[id] ?? 0;
@@ -187,7 +189,7 @@ export function computeWeek(
   const wantLab: Record<string, number> = {};
   const prodLab: Record<string, number> = {};
   for (const b of buildings) {
-    if (b.status !== "done" || b.disabled) continue;
+    if (b.status !== "done" || b.disabled || b.autoDisabled) continue;
     for (const e of costsOf(b).upkeep) {
       const want = e.kind === "resource" ? wantRes : wantLab;
       const prod = e.kind === "resource" ? prodRes : prodLab;
@@ -219,7 +221,7 @@ export function computeWeek(
   for (const id of new Set([...Object.keys(wantRes), ...Object.keys(prodRes)])) {
     const r = report(id);
     const available = have(id) + (prodRes[id] ?? 0);
-    const consumed = Math.min(available, wantRes[id] ?? 0);
+    const consumed = debt.has(id) ? (wantRes[id] ?? 0) : Math.min(available, wantRes[id] ?? 0);
     r.produced = prodRes[id] ?? 0;
     r.consumed = consumed;
     r.shortfall = (wantRes[id] ?? 0) - consumed;
@@ -258,7 +260,7 @@ export function computeWeek(
     for (const e of buildCost) {
       if (e.kind !== "resource") continue;
       const r = report(e.id);
-      const take = Math.min(e.amount - (prog.resources[e.id] ?? 0), have(e.id));
+      const take = Math.min(e.amount - (prog.resources[e.id] ?? 0), Math.max(0, have(e.id)));
       if (take > 0) {
         prog.resources[e.id] = (prog.resources[e.id] ?? 0) + take;
         stock[e.id] = have(e.id) - take;
@@ -301,7 +303,7 @@ export function computeWeek(
   buildings.forEach((b, i) => {
     const effects = costsOf(b).statEffects ?? [];
     if (b.status === "done") {
-      if (!b.disabled) weeklyEffects.push(...effects);
+      if (!b.disabled && !b.autoDisabled) weeklyEffects.push(...effects);
     }
     else if (updated[i].status === "done") onceEffects.push(...effects);
   });

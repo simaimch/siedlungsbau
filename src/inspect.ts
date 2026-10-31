@@ -3,6 +3,7 @@ import { Placement } from "./placement";
 import { TerrainBrush } from "./terrain-brush";
 import { RoadBrush } from "./road-brush";
 import { registerRoadSocket } from "./roads-service";
+import "./shortage-service";
 import { getRoadOrders, getRoads } from "./roads-store";
 import { roadAt } from "./roads";
 import { openRoadInfo, refreshRoadInfo, closeRoadInfo } from "./road-info-app";

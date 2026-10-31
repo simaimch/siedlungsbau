@@ -1,8 +1,17 @@
 <div class="siedlung-settlement">
   <div class="week">
     <h3>{{weekLabel}}</h3>
-    {{#if isGM}}<button type="button" data-action="nextWeek"><i class="fa-solid fa-forward"></i> {{localize "SIEDLUNG.settlement.nextWeek"}}</button>{{/if}}
+    {{#if isGM}}<button type="button" data-action="nextWeek" {{#if shortage.exceeded}}disabled title="{{localize 'SIEDLUNG.shortage.blockedShort'}}"{{/if}}><i class="fa-solid fa-forward"></i> {{localize "SIEDLUNG.settlement.nextWeek"}}</button>{{/if}}
   </div>
+
+  {{#if shortage}}
+  <div class="shortage-bar {{#if shortage.exceeded}}blocked{{/if}}">
+    <strong><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SIEDLUNG.shortage.title"}}</strong>
+    {{#if shortage.items}}<div>{{shortage.items}}</div>{{/if}}
+    {{#if shortage.switchedOff}}<div>{{localize "SIEDLUNG.shortage.barSwitchedOff"}}: {{shortage.switchedOff}}</div>{{/if}}
+    {{#if shortage.exceeded}}<div>{{localize "SIEDLUNG.shortage.barExceeded"}}</div>{{/if}}
+  </div>
+  {{/if}}
 
   <nav class="settlement-tabs">
     <button type="button" class="{{#if isLage}}active{{/if}}" data-action="switchTab" data-tab="lage">{{localize "SIEDLUNG.settlement.tabs.lage"}}</button>
@@ -39,7 +48,7 @@
         <i class="dot" style="background: {{color}}"></i>
         <span class="name">{{name}}</span>
         <span class="trend {{trendClass}}" title="{{trendTitle}}">{{trend}}</span>
-        {{#if ../isGM}}<input type="number" step="1" min="0" value="{{amount}}" data-stock-kind="resource" data-id="{{id}}">{{else}}<span class="amount">{{amount}}</span>{{/if}}
+        {{#if ../isGM}}<input type="number" step="1" {{#unless canNegative}}min="0"{{/unless}} value="{{amount}}" data-stock-kind="resource" data-id="{{id}}">{{else}}<span class="amount">{{amount}}</span>{{/if}}
       </li>
       {{/each}}
     </ul>
@@ -72,7 +81,7 @@
         <summary><span class="name">{{count}}× {{name}}</span></summary>
         <ul>
           {{#each items}}
-          <li class="row {{#if disabled}}disabled{{/if}}"><span class="name">{{name}}{{#if disabled}} ({{localize "SIEDLUNG.building.disabled"}}){{/if}}</span>
+          <li class="row {{#if disabled}}disabled{{/if}}{{#if shortage}}disabled{{/if}}"><span class="name">{{name}}{{#if disabled}} ({{localize "SIEDLUNG.building.disabled"}}){{/if}}{{#if shortage}} ({{localize "SIEDLUNG.building.shortage"}}){{/if}}</span>
             <button type="button" data-action="focusBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.info.focus'}}"><i class="fa-solid fa-location-crosshairs"></i></button>
             <button type="button" data-action="infoBuilding" data-id="{{id}}" title="{{localize 'SIEDLUNG.settlement.details'}}"><i class="fa-solid fa-circle-info"></i></button>
           </li>

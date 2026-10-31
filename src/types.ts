@@ -46,6 +46,23 @@ export interface PricedType {
   value: number;
   /** Nur Ressourcen: Baugewicht – wie stark eine gelieferte Einheit zum Materialfortschritt zählt (Standard 1, Kommazahlen erlaubt). */
   weight?: number;
+  /** Nur Ressourcen: Verhalten bei Engpass (fehlend = Standard: Prüfung, bei Gold Schulden). */
+  shortage?: ShortageRule;
+}
+
+/** check: Teil der Engpass-Prüfung (Verbraucher werden vorübergehend abgeschaltet); debt: Vorrat darf negativ werden; ignore: Vorrat bleibt bei 0. */
+export type ShortageMode = "check" | "debt" | "ignore";
+
+/** Effekt, der bei einem Engpass für einige Wochen entsteht (z. B. Hungersnot). */
+export interface ShortageEffect {
+  name: string;
+  weeks: number;
+  entries: EffectEntry[];
+}
+
+export interface ShortageRule {
+  mode: ShortageMode;
+  effect?: ShortageEffect;
 }
 
 export interface BuildingType {
@@ -75,6 +92,8 @@ export interface Building {
   status: Status;
   /** Fertiges Gebäude ist abgeschaltet: kein Betrieb, keine Wirkungen */
   disabled?: boolean;
+  /** Vorübergehend abgeschaltet wegen eines Produktionsengpasses (wird automatisch berechnet, nie exportiert) */
+  autoDisabled?: boolean;
   /** Beim Beauftragen festgehaltene Kosten (ältere Aufträge ohne diese Felder nutzen die aktuelle Typ-Definition). */
   buildCost?: CostEntry[];
   upkeep?: CostEntry[];
