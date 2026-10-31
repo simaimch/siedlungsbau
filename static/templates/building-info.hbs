@@ -24,6 +24,10 @@
     </ul>
     {{/if}}
     <p class="hint">{{localize "SIEDLUNG.info.afterDone"}}</p>
+    {{#if canSync}}
+    <p class="hint">{{localize "SIEDLUNG.info.syncHint"}}</p>
+    <button type="button" data-action="syncDefinition"><i class="fa-solid fa-rotate"></i> {{localize "SIEDLUNG.info.syncDefinition"}}</button>
+    {{/if}}
   </section>
   {{/unless}}
 

@@ -158,7 +158,9 @@
       "material": "Material",
       "work": "Arbeit",
       "hintGM": "Als Spielleitung kannst du die Werte direkt ändern.",
-      "stats": "Werte"
+      "stats": "Werte",
+      "trendShortfall": "{amount} fehlen für den Betrieb",
+      "trendHint": "Tendenz pro Woche"
     },
     "week": {
       "title": "Arbeitswoche {week}",
@@ -270,7 +272,10 @@
       "confirmCancel": "Den Bau wirklich abbrechen? Bereits gelieferte Ressourcen und geleistete Arbeit gehen verloren.",
       "description": "Beschreibung",
       "noDescription": "Noch keine Beschreibung.",
-      "editDescription": "Beschreibung bearbeiten"
+      "editDescription": "Beschreibung bearbeiten",
+      "syncDefinition": "Gebäude an Definition anpassen",
+      "syncHint": "Die Definition dieses Gebäudetyps wurde seit der Beauftragung geändert.",
+      "confirmSync": "Baukosten, Betrieb und Wirkungen dieses Gebäudes an die aktuelle Definition anpassen? Der bisherige Baufortschritt bleibt erhalten."
     },
     "terrain": {
       "title": "Gelände",

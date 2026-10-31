@@ -1,4 +1,4 @@
-import { ID } from "./constants";
+import { ID, STATUS } from "./constants";
 import { TERRAIN, DEFAULT_TERRAIN, ROCK_CHANCE } from "./data";
 import { getBuildingTypes } from "./definitions";
 import type { Building, BuildingType, Cell, CostEntry, PlacementCheck, StatEffect, TerrainData } from "./types";
@@ -98,7 +98,7 @@ export function costsOf(b: Building): { buildCost: CostEntry[]; upkeep: CostEntr
   const type = getBuildingTypes().find(t => t.id === b.typeId);
   return {
     buildCost: b.buildCost ?? type?.buildCost ?? [],
-    upkeep: b.upkeep ?? type?.upkeep ?? [],
-    statEffects: b.statEffects ?? type?.statEffects ?? []
+    upkeep: (b.status === STATUS.DONE ? type?.upkeep : undefined) ?? b.upkeep ?? type?.upkeep ?? [],
+    statEffects: (b.status === STATUS.DONE ? type?.statEffects : undefined) ?? b.statEffects ?? type?.statEffects ?? []
   };
 }

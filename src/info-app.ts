@@ -5,6 +5,7 @@ import { buildingCenter } from "./render";
 import { fractions } from "./week";
 import { requestComplete, requestDescribe, requestRemove, requestRename } from "./actions";
 import { cleanDescription } from "./description";
+import { differsFromDefinition, syncBuildingToDefinition } from "./building-sync";
 import type { Building, CostEntry } from "./types";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -26,7 +27,8 @@ export class BuildingInfoApp extends HandlebarsApplicationMixin(ApplicationV2) {
       editDescription: BuildingInfoApp.#onEditDescription,
       saveDescription: BuildingInfoApp.#onSaveDescription,
       cancelDescription: BuildingInfoApp.#onCancelDescription,
-      focus: BuildingInfoApp.#onFocus
+      focus: BuildingInfoApp.#onFocus,
+      syncDefinition: BuildingInfoApp.#onSync
     }
   };
 
@@ -97,7 +99,8 @@ export class BuildingInfoApp extends HandlebarsApplicationMixin(ApplicationV2) {
       progressRows,
       upkeep: costChips(costs.upkeep),
       effects: effectChips(costs.statEffects ?? []),
-      isGM: game.user.isGM
+      isGM: game.user.isGM,
+      canSync: game.user.isGM && differsFromDefinition(b)
     };
   }
 
@@ -145,6 +148,14 @@ export class BuildingInfoApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #onComplete(this: BuildingInfoApp): void {
     requestComplete(this.buildingId);
+  }
+
+  static async #onSync(this: BuildingInfoApp): Promise<void> {
+    const ok = await foundry.applications.api.DialogV2.confirm({
+      window: { title: t("SIEDLUNG.info.syncDefinition") },
+      content: `<p>${t("SIEDLUNG.info.confirmSync")}</p>`
+    });
+    if (ok) await syncBuildingToDefinition(this.buildingId);
   }
 
   static #onFocus(this: BuildingInfoApp): void {

@@ -9,7 +9,7 @@ import { Placement } from "./placement";
 import { TERRAIN_APP_ID } from "./terrain-brush";
 import { completeBuilding, removeBuilding } from "./service";
 import { sanitizeName } from "./util";
-import { getSettlement, setAmount, setStat, advanceWeek, removeEffect, setEffectDuration, permanentEffects, currentTriggers, setTriggerEnabled } from "./settlement";
+import { getSettlement, setAmount, setStat, advanceWeek, removeEffect, setEffectDuration, permanentEffects, weekTrend, currentTriggers, setTriggerEnabled } from "./settlement";
 import { openLawEditor } from "./law-editor";
 import { lawEffectsVisible } from "./laws-service";
 import { openEffectEditor } from "./effect-editor";
@@ -189,6 +189,12 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { resources, workers } = getDefinitions();
     const buildings = getBuildings();
     const committed = laborCommitted(buildings, costsOf);
+    const trend = weekTrend();
+    const trendOf = (map: Record<string, { net: number; shortfall: number; detail: string }>, id: string) => {
+      const tr = map[id];
+      const net = tr?.net ?? 0;
+      return { trend: net ? signed(net) : "±0", trendClass: tr?.shortfall ? "bad" : net > 0 ? "up" : net < 0 ? "down" : "flat", trendTitle: [tr?.detail, tr?.shortfall ? game.i18n.format("SIEDLUNG.settlement.trendShortfall", { amount: tr.shortfall }) : ""].filter(Boolean).join(" · ") };
+    };
     // Zeitliche Effekte plus aktive Ausprägungen der Gesetze; Spieler sehen die Aufschlüsselung der Gesetze nur, wenn erlaubt
     const lawFx = permanentEffects(state);
     const showLaw = game.user.isGM || lawEffectsVisible();
@@ -252,14 +258,14 @@ export class SettlementApp extends HandlebarsApplicationMixin(ApplicationV2) {
       triggerRows,
       isGM: game.user.isGM,
       weekLabel: game.i18n.format("SIEDLUNG.settlement.week", { week: state.week }),
-      resources: resources.map(r => ({ id: r.id, name: r.name, color: r.color, amount: state.resources[r.id] ?? 0 })),
+      resources: resources.map(r => ({ id: r.id, name: r.name, color: r.color, amount: state.resources[r.id] ?? 0, ...trendOf(trend.resources, r.id) })),
       workers: workers.map(w => {
         const base = state.workers[w.id] ?? 0;
         const bonus = effWorker[w.id] ?? 0;
         const capacity = Math.max(0, base + bonus);
         const bound = committed[w.id] ?? 0;
         return {
-          id: w.id, name: w.name, color: w.color, base, capacity, bound: bound > 0 ? bound : 0, free: Math.max(0, capacity - bound),
+          ...trendOf(trend.workers, w.id), id: w.id, name: w.name, color: w.color, base, capacity, bound: bound > 0 ? bound : 0, free: Math.max(0, capacity - bound),
           note: bonus && (showLaw || !lawWorker[w.id]) && !hiddenWorker[w.id] ? game.i18n.format("SIEDLUNG.effects.baseNote", { base, bonus: signed(bonus) }) : ""
         };
       }),

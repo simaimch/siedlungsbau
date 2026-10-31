@@ -30,6 +30,7 @@
       <li>
         <i class="dot" style="background: {{color}}"></i>
         <span class="name">{{name}}</span>
+        <span class="trend {{trendClass}}" title="{{trendTitle}}">{{trend}}</span>
         {{#if ../isGM}}<input type="number" step="1" min="0" value="{{amount}}" data-stock-kind="resource" data-id="{{id}}">{{else}}<span class="amount">{{amount}}</span>{{/if}}
       </li>
       {{/each}}
@@ -43,6 +44,7 @@
       <li>
         <i class="dot" style="background: {{color}}"></i>
         <span class="name">{{name}}</span>
+        <span class="trend {{trendClass}}" title="{{trendTitle}}">{{trend}}</span>
         {{#if ../isGM}}<input type="number" step="1" min="0" value="{{base}}" data-stock-kind="worker" data-id="{{id}}">{{else}}<span class="amount">{{capacity}}</span>{{/if}}
         <span class="sub">{{free}} {{localize "SIEDLUNG.settlement.free"}}{{#if bound}} ({{bound}} {{localize "SIEDLUNG.settlement.bound"}}){{/if}}{{#if note}} · {{localize "SIEDLUNG.effects.effective"}} {{capacity}} ({{note}}){{/if}}</span>
       </li>

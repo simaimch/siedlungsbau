@@ -110,9 +110,8 @@ export async function setEffectDuration(id: string, weeks: number): Promise<void
 }
 
 /** SL: springt zur nächsten Arbeitswoche, speichert das Ergebnis und veröffentlicht die Übersicht im Chat. */
-export async function advanceWeek(): Promise<void> {
-  const scene = canvas.scene;
-  if (!game.user.isGM || !scene) return;
+/** Rechnet die nächste Woche durch (ohne zu speichern); Wege laufen als Bauaufträge mit. */
+function runWeek(scene: any): { result: WeekResult; fired: Trigger[]; roadWeek: ReturnType<typeof applyRoadWeek>; roadStalled: number } {
   const before = getSettlement(scene);
   // Trigger werden gegen den Stand zu Beginn der Woche geprüft und wirken in dieser Wochenrechnung
   const trig = currentTriggers(before);
@@ -131,10 +130,43 @@ export async function advanceWeek(): Promise<void> {
   result.buildings = result.buildings.filter(b => !isRoadId(b.id));
   result.progress = result.progress.filter(p => !isRoadId(p.id));
   result.stalled = result.stalled.filter(n => !isRoadId(n));
+  return { result, fired: trig.fired, roadWeek, roadStalled };
+}
+
+/** Voraussichtliche Entwicklung der nächsten Woche je Ressource (Saldo) und Arbeiterart (Zu-/Abgang freier Arbeitskraft). */
+export function weekTrend(scene: any = canvas?.scene): { resources: Record<string, { net: number; shortfall: number; detail: string }>; workers: Record<string, { net: number; shortfall: number; detail: string }> } {
+  const out = { resources: {} as Record<string, { net: number; shortfall: number; detail: string }>, workers: {} as Record<string, { net: number; shortfall: number; detail: string }> };
+  if (!scene) return out;
+  try {
+    const { result } = runWeek(scene);
+    for (const r of result.resources) {
+      const parts: string[] = [];
+      const upkeepNet = r.produced - r.consumed - r.effect;
+      if (upkeepNet) parts.push(`${t("SIEDLUNG.week.upkeep")} ${signed(upkeepNet)}`);
+      if (r.effect) parts.push(`${t("SIEDLUNG.week.effects")} ${signed(r.effect)}`);
+      if (r.built) parts.push(`${t("SIEDLUNG.week.build")} ${signed(-r.built)}`);
+      out.resources[r.id] = { net: r.after - r.before, shortfall: r.shortfall, detail: parts.join(", ") };
+    }
+    for (const l of result.labor) {
+      const parts: string[] = [];
+      if (l.produced) parts.push(`${t("SIEDLUNG.week.upkeep")} ${signed(l.produced)}`);
+      if (l.used) parts.push(`${t("SIEDLUNG.week.build")} ${signed(-l.used)}`);
+      out.workers[l.id] = { net: l.produced - l.used, shortfall: l.shortfall, detail: parts.join(", ") };
+    }
+  } catch (err) {
+    console.warn("siedlungsbau | Tendenz konnte nicht berechnet werden", err);
+  }
+  return out;
+}
+
+export async function advanceWeek(): Promise<void> {
+  const scene = canvas.scene;
+  if (!game.user.isGM || !scene) return;
+  const { result, fired, roadWeek, roadStalled } = runWeek(scene);
   await scene.update({ flags: { [ID]: { settlement: result.state, buildings: result.buildings, roads: roadWeek.roads, roadOrders: roadWeek.orders } } });
   await ChatMessage.create({
     speaker: { alias: t("SIEDLUNG.title") },
-    content: renderReport(result, trig.fired, { completed: roadWeek.completed, pending: roadWeek.pending, stalled: roadStalled })
+    content: renderReport(result, fired, { completed: roadWeek.completed, pending: roadWeek.pending, stalled: roadStalled })
   });
 }
 
